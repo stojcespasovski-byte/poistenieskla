@@ -994,6 +994,7 @@ const state = {
     ico: '', obec: '', psc: '',
   },
   client: {},
+  zaciatok: new Date().toISOString().slice(0,10),
   submitting: false,
 };
 
@@ -1044,7 +1045,7 @@ async function apiLookupVehicle({ ecv, vin }) {
         znacka: 'BMW', model: '320d', datumReg: '2021-05-10',
         typ: 'osobne', palivo: 'diesel',
         vykon: '110', objem: '1998', hmotnost: '1650',
-        farba: 'Čierna', pohon: true,
+        farba: 'Čierna', pohon: true, tp: 'AB123456',
         vin: vin || 'WBA3A5C55FK123456',
       }
     };
@@ -1152,6 +1153,20 @@ function toggleHtml(id, val) {
       <button type="button" data-toggle="${id}" data-val="true"  class="${val===true  ? 'active-yes' : ''}">Áno</button>
       <button type="button" data-toggle="${id}" data-val="false" class="${val===false ? 'active-no'  : ''}">Nie</button>
     </div>`;
+}
+
+function datumNarFromRC(rc) {
+  const clean = rc.replace(/\D/g, '');
+  if (clean.length < 6) return '';
+  let rr = parseInt(clean.slice(0, 2));
+  let mm = parseInt(clean.slice(2, 4));
+  let dd = parseInt(clean.slice(4, 6));
+  if (mm > 50) mm -= 50;          // žena
+  if (mm > 20) mm -= 20;          // výnimočný prípad
+  const year = rr + (rr >= 0 && rr <= 24 ? 2000 : 1900);
+  const m = String(mm).padStart(2, '0');
+  const d = String(dd).padStart(2, '0');
+  return `${year}-${m}-${d}`;     // ISO formát pre input[type=date]
 }
 
 function pillHtml(id, label, checked) {
@@ -1464,54 +1479,73 @@ function renderStep3() {
   <div class="step-screen">
     <div class="card">
 
+      <!-- ── ZAČIATOK POISTENIA ── -->
+      <div class="form-grid" style="margin-bottom:24px;">
+        <div class="field">
+          <label>Začiatok poistenia</label>
+          <input type="date" id="s3Zaciatok" value="${state.zaciatok}">
+        </div>
+        <div class="field"></div>
+      </div>
+
       <!-- ── SEKCIA: VOZIDLO ── -->
       <div class="section-label">Vozidlo</div>
 
-      <!-- Riadok 1: nové polia -->
-      <div class="form-grid" style="margin-bottom:16px;">
-        <div class="field">
-          <label>Číslo technického preukazu</label>
-          <input type="text" id="s3Tp" placeholder="AB123456" value="${v.bezTp ? 'zatiaľ bez TP' : (v.tp||'')}" ${v.bezTp ? 'class="readonly" readonly' : ''}>
-          <label style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:500;color:var(--text-muted);cursor:pointer;margin-top:8px;text-transform:none;letter-spacing:0;">
-            <input type="checkbox" id="s3BezTp" ${v.bezTp ? 'checked' : ''} style="width:14px;height:14px;accent-color:var(--accent);cursor:pointer;">
-            Bez TP (pred prihlásením)
-          </label>
-        </div>
-        <div class="field">
-          <label>Farba vozidla</label>
-          <select id="s3Farba">
-            <option value="">– Vyberte farbu –</option>
-            <option value="Biela"   ${v.farba==='Biela'   ?'selected':''}>Biela</option>
-            <option value="Čierna"  ${v.farba==='Čierna'  ?'selected':''}>Čierna</option>
-            <option value="Sivá"    ${v.farba==='Sivá'    ?'selected':''}>Sivá</option>
-            <option value="Strieborná" ${v.farba==='Strieborná'?'selected':''}>Strieborná</option>
-            <option value="Modrá"   ${v.farba==='Modrá'   ?'selected':''}>Modrá</option>
-            <option value="Červená" ${v.farba==='Červená' ?'selected':''}>Červená</option>
-            <option value="Zelená"  ${v.farba==='Zelená'  ?'selected':''}>Zelená</option>
-            <option value="Hnedá"   ${v.farba==='Hnedá'   ?'selected':''}>Hnedá</option>
-            <option value="Béžová"  ${v.farba==='Béžová'  ?'selected':''}>Béžová</option>
-            <option value="Žltá"    ${v.farba==='Žltá'    ?'selected':''}>Žltá</option>
-            <option value="Oranžová"${v.farba==='Oranžová'?'selected':''}>Oranžová</option>
-            <option value="Fialová" ${v.farba==='Fialová' ?'selected':''}>Fialová</option>
-            <option value="Iná"     ${v.farba==='Iná'     ?'selected':''}>Iná</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <!-- Sumarizácia vozidla -->
-      <div class="form-grid" style="margin-bottom:12px;">
+      <!-- Riadok 1: EČV, Číslo TP, VIN -->
+      <div class="form-grid cols-3" style="margin-bottom:12px;">
         <div class="field">
           <label>EČV</label>
           <input type="text" value="${v.ecv||'–'}" class="readonly" readonly>
         </div>
         <div class="field">
+          <label style="display:flex;justify-content:space-between;align-items:center;">
+            Číslo TP
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;text-transform:none;letter-spacing:0;cursor:pointer;">
+              <input type="checkbox" id="s3BezTp" ${v.bezTp ? 'checked' : ''} style="width:13px;height:13px;accent-color:var(--accent);cursor:pointer;">
+              Zatiaľ bez TP
+            </span>
+          </label>
+          <input type="text" id="s3Tp" placeholder="AB123456" value="${v.bezTp ? 'zatiaľ bez TP' : (v.tp||'')}" ${v.bezTp ? 'class="readonly" readonly' : ''}>
+        </div>
+        <div class="field">
           <label>VIN</label>
-          <input type="text" value="${v.vin||'–'}" class="readonly" readonly style="font-size:13px;letter-spacing:1px;">
+          <input type="text" value="${v.vin||'–'}" class="readonly" readonly style="font-size:15px;letter-spacing:1px;">
         </div>
       </div>
-      <div class="form-grid" style="margin-bottom:12px;">
+
+      <!-- Riadok 2: Typ, Farba, Dátum 1. registrácie -->
+      <div class="form-grid cols-3" style="margin-bottom:12px;">
+        <div class="field">
+          <label>Typ vozidla</label>
+          <input type="text" value="${v.typ||'–'}" class="readonly" readonly>
+        </div>
+        <div class="field">
+          <label>Farba vozidla</label>
+          <select id="s3Farba">
+            <option value="">– Vyberte –</option>
+            <option value="Biela"      ${v.farba==='Biela'      ?'selected':''}>Biela</option>
+            <option value="Čierna"     ${v.farba==='Čierna'     ?'selected':''}>Čierna</option>
+            <option value="Sivá"       ${v.farba==='Sivá'       ?'selected':''}>Sivá</option>
+            <option value="Strieborná" ${v.farba==='Strieborná' ?'selected':''}>Strieborná</option>
+            <option value="Modrá"      ${v.farba==='Modrá'      ?'selected':''}>Modrá</option>
+            <option value="Červená"    ${v.farba==='Červená'    ?'selected':''}>Červená</option>
+            <option value="Zelená"     ${v.farba==='Zelená'     ?'selected':''}>Zelená</option>
+            <option value="Hnedá"      ${v.farba==='Hnedá'      ?'selected':''}>Hnedá</option>
+            <option value="Béžová"     ${v.farba==='Béžová'     ?'selected':''}>Béžová</option>
+            <option value="Žltá"       ${v.farba==='Žltá'       ?'selected':''}>Žltá</option>
+            <option value="Oranžová"   ${v.farba==='Oranžová'   ?'selected':''}>Oranžová</option>
+            <option value="Fialová"    ${v.farba==='Fialová'    ?'selected':''}>Fialová</option>
+            <option value="Iná"        ${v.farba==='Iná'        ?'selected':''}>Iná</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Dátum 1. registrácie</label>
+          <input type="text" value="${formatDate(v.datumReg)}" class="readonly" readonly>
+        </div>
+      </div>
+
+      <!-- Riadok 3: Značka, Model, Palivo -->
+      <div class="form-grid cols-3" style="margin-bottom:12px;">
         <div class="field">
           <label>Značka</label>
           <input type="text" value="${v.znacka||'–'}" class="readonly" readonly>
@@ -1520,31 +1554,21 @@ function renderStep3() {
           <label>Model</label>
           <input type="text" value="${v.model||'–'}" class="readonly" readonly>
         </div>
-      </div>
-      <div class="form-grid" style="margin-bottom:12px;">
-        <div class="field">
-          <label>Typ vozidla</label>
-          <input type="text" value="${v.typ||'–'}" class="readonly" readonly>
-        </div>
         <div class="field">
           <label>Palivo</label>
           <input type="text" value="${v.palivo||'–'}" class="readonly" readonly>
         </div>
       </div>
-      <div class="form-grid" style="margin-bottom:12px;">
+
+      <!-- Riadok 4: Objem, Výkon, Hmotnosť -->
+      <div class="form-grid cols-3" style="margin-bottom:24px;">
         <div class="field">
-          <label>Dátum 1. registrácie</label>
-          <input type="text" value="${formatDate(v.datumReg)}" class="readonly" readonly>
+          <label>Objem motora</label>
+          <input type="text" value="${v.objem ? v.objem + ' cm³' : '–'}" class="readonly" readonly>
         </div>
         <div class="field">
           <label>Výkon motora</label>
           <input type="text" value="${v.vykon ? v.vykon + ' kW' : '–'}" class="readonly" readonly>
-        </div>
-      </div>
-      <div class="form-grid" style="margin-bottom:24px;">
-        <div class="field">
-          <label>Objem motora</label>
-          <input type="text" value="${v.objem ? v.objem + ' cm³' : '–'}" class="readonly" readonly>
         </div>
         <div class="field">
           <label>Maximálna hmotnosť</label>
@@ -1575,7 +1599,11 @@ function renderStep3() {
         const p = state.poistnik;
         if (p.typ === 'fo') {
           return `
-          <div class="form-grid" style="margin-bottom:12px;">
+          <div class="form-grid" style="grid-template-columns:1fr 2fr 2fr 1fr;margin-bottom:12px;">
+            <div class="field">
+              <label>Titul pred</label>
+              <input type="text" id="s3TitulPred" placeholder="Ing." value="${p.titulPred||''}">
+            </div>
             <div class="field">
               <label>Meno</label>
               <input type="text" value="${p.meno||'–'}" class="readonly" readonly>
@@ -1584,13 +1612,34 @@ function renderStep3() {
               <label>Priezvisko</label>
               <input type="text" value="${p.priezvisko||'–'}" class="readonly" readonly>
             </div>
-          </div>
-          <div class="form-grid" style="margin-bottom:12px;">
             <div class="field">
-              <label>${p.cudzinec ? 'Dátum narodenia' : 'Rodné číslo'}</label>
-              <input type="text" value="${p.cudzinec ? (p.datumNar||'–') : (p.rodneCislo||'–')}" class="readonly" readonly>
+              <label>Titul za</label>
+              <input type="text" id="s3TitulZa" placeholder="PhD." value="${p.titulZa||''}">
             </div>
-            <div class="field"></div>
+          </div>
+          <div class="form-grid cols-3" style="margin-bottom:12px;">
+            <div class="field">
+              <label>Rodné číslo</label>
+              <input type="text" value="${p.rodneCislo||'–'}" class="readonly" readonly>
+            </div>
+            <div class="field">
+              <label>Dátum narodenia</label>
+              <input type="text" value="${p.datumNar ? p.datumNar.split('-').reverse().join('.') : '–'}" class="readonly" readonly>
+            </div>
+            <div class="field">
+              <label style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Číslo OP / Povolenia na pobyt</label>
+              <input type="text" id="s3DokladCislo" placeholder="EA000000" value="${p.dokladCislo||''}">
+            </div>
+          </div>
+          <div class="form-grid cols-3" style="margin-bottom:12px;">
+            <div class="field" style="grid-column:span 2;">
+              <label>Ulica</label>
+              <input type="text" id="s3Ulica" placeholder="Hlavná" value="${p.ulica||''}">
+            </div>
+            <div class="field">
+              <label>Číslo</label>
+              <input type="text" id="s3Cislo" placeholder="12" value="${p.cislo||''}">
+            </div>
           </div>`;
         } else {
           return `
@@ -1603,8 +1652,8 @@ function renderStep3() {
           </div>`;
         }
       })()}
-      <div class="form-grid" style="margin-bottom:24px;">
-        <div class="field">
+      <div class="form-grid cols-3" style="margin-bottom:24px;">
+        <div class="field" style="grid-column:span 2;">
           <label>Obec</label>
           <input type="text" value="${state.poistnik.obec||'–'}" class="readonly" readonly>
         </div>
@@ -1730,6 +1779,7 @@ function attachListeners() {
     if (d.hmotnost)          state.vehicle.hmotnost = d.hmotnost;
     if (d.vin)               state.vehicle.vin      = d.vin;
     if (d.farba !== undefined) state.vehicle.farba  = d.farba; // uložiť, zobraziť na strane 3
+    if (d.tp)                  state.vehicle.tp     = d.tp;
     state.vehicle.x4 = (d.pohon === true);
     if (state.vehicle.ecv) {
       state.vehicle.maEcv     = true;
@@ -1924,6 +1974,9 @@ function attachListeners() {
       typ: 'fo', cudzinec: false,
       rodneCislo: '', datumNar: '', meno: '', priezvisko: '',
       ico: '', obec: '', psc: '',
+      dokladCislo: '', email: '', tel: '',
+      ulica: '', cislo: '',
+      titulPred: '', titulZa: '',
     };
     render();
   }
@@ -1977,6 +2030,12 @@ function attachListeners() {
   });
 
   // Checkbox cudzinec
+  document.getElementById('pRodneCislo')?.addEventListener('input', function() {
+    state.poistnik.rodneCislo = this.value;
+    const vypoc = datumNarFromRC(this.value);
+    if (vypoc) state.poistnik.datumNar = vypoc;
+  });
+
   document.getElementById('pCudzinec')?.addEventListener('change', function() {
     savePoistnikFields();
     state.poistnik.cudzinec = this.checked;
@@ -2086,6 +2145,11 @@ function attachListeners() {
     state.vehicle.tp = this.value;
   });
 
+  // Začiatok poistenia
+  document.getElementById('s3Zaciatok')?.addEventListener('change', function() {
+    state.zaciatok = this.value;
+  });
+
   // Email + telefón
   document.getElementById('s3Email')?.addEventListener('input', function() {
     state.poistnik.email = this.value;
@@ -2093,9 +2157,25 @@ function attachListeners() {
   document.getElementById('s3Tel')?.addEventListener('input', function() {
     state.poistnik.tel = this.value;
   });
+  document.getElementById('s3DokladCislo')?.addEventListener('input', function() {
+    state.poistnik.dokladCislo = this.value;
+  });
+  document.getElementById('s3TitulPred')?.addEventListener('input', function() {
+    state.poistnik.titulPred = this.value;
+  });
+  document.getElementById('s3TitulZa')?.addEventListener('input', function() {
+    state.poistnik.titulZa = this.value;
+  });
+  document.getElementById('s3Ulica')?.addEventListener('input', function() {
+    state.poistnik.ulica = this.value;
+  });
+  document.getElementById('s3Cislo')?.addEventListener('input', function() {
+    state.poistnik.cislo = this.value;
+  });
 
   const btnS3Next = document.getElementById('btnStep3Next');
   if (btnS3Next) btnS3Next.addEventListener('click', () => {
+    state.zaciatok       = document.getElementById('s3Zaciatok')?.value || state.zaciatok;
     state.vehicle.tp     = document.getElementById('s3Tp')?.value || state.vehicle.tp;
     state.vehicle.farba  = document.getElementById('s3Farba')?.value || state.vehicle.farba;
     state.poistnik.email = document.getElementById('s3Email')?.value || state.poistnik.email;
