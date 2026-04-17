@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Poistenie skla – Pillow</title>
+<title>poistenieskla</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -889,7 +889,7 @@
 
 <!-- ─── HEADER ──────────────────────────────────────────── -->
 <header>
-  <div class="logo">pillow<span>.</span></div>
+  <div class="logo">poistenieskla</div>
   <div style="font-size:13px;color:rgba(255,255,255,.4);">Zabezpečte svoje auto</div>
   <div id="devBar" style="display:flex;gap:8px;align-items:center;">
     <span style="font-size:11px;color:rgba(255,255,255,.3);">DEV:</span>
@@ -942,7 +942,7 @@ const CONFIG = {
   heroDesc: "Kompletná ochrana čelného skla, bočných okien aj panoramatickej strechy. Bez spoluúčasti, oprava alebo výmena.",
   heroFeatures: ["Čelné sklo", "Bočné okná", "Panorama strecha", "Bez spoluúčasti", "Mobilná oprava"],
   heroIcon: "🪟",
-  brandName: "Pillow Auto",
+  brandName: "poistenieskla",
   accentColor: "#2563EB",
 };
 
@@ -991,7 +991,7 @@ const state = {
     typ: 'fo',
     cudzinec: false,
     rodneCislo: '', datumNar: '', meno: '', priezvisko: '',
-    ico: '', obec: '', psc: '',
+    ico: '', nazov: '', obec: '', psc: '',
   },
   client: {},
   zaciatok: new Date().toISOString().slice(0,10),
@@ -1113,10 +1113,15 @@ function devGoto(step) {
     x4: true, automat: false, parkovaci: false,
     najazd: '15000',
   };
+  // Vždy zachovaj typ, nastav testovacie dáta
+  const devTyp = state.poistnik.typ || 'fo';
   state.poistnik = {
-    typ: 'fo', cudzinec: false,
-    rodneCislo: '8001011234', datumNar: '', meno: 'Ján', priezvisko: 'Novák',
-    ico: '', obec: 'Bratislava', psc: '81101',
+    typ: devTyp, cudzinec: false,
+    rodneCislo: '8001011234', datumNar: '1980-01-01', meno: 'Ján', priezvisko: 'Novák',
+    ico: '12345678', nazov: 'Test s.r.o.', obec: 'Bratislava', psc: '81101',
+    dokladCislo: '', email: 'jan.novak@test.sk', tel: '+421900123456',
+    ulica: 'Hlavná', cislo: '1',
+    titulPred: '', titulZa: '',
   };
   state.vehicleStatus = 'found';
   state.vehicleInfoText = 'BMW 320d (2021) · 110 kW · 1998 cm³';
@@ -1648,7 +1653,10 @@ function renderStep3() {
               <label>IČO</label>
               <input type="text" value="${p.ico||'–'}" class="readonly" readonly>
             </div>
-            <div class="field"></div>
+            <div class="field">
+              <label>Názov</label>
+              <input type="text" id="s3Nazov" placeholder="Názov firmy" value="${p.nazov||''}">
+            </div>
           </div>`;
         }
       })()}
@@ -1970,10 +1978,14 @@ function attachListeners() {
       najazd: '',
     };
     state.lookupDone = false;
+    state.vehicleStatus = null;
+    state.vehicleInfoText = '';
+    state.apiPrices = {};
+    state.selected = new Set();
     state.poistnik = {
       typ: 'fo', cudzinec: false,
       rodneCislo: '', datumNar: '', meno: '', priezvisko: '',
-      ico: '', obec: '', psc: '',
+      ico: '', nazov: '', obec: '', psc: '',
       dokladCislo: '', email: '', tel: '',
       ulica: '', cislo: '',
       titulPred: '', titulZa: '',
@@ -2011,6 +2023,8 @@ function attachListeners() {
   // Helper — uloží aktuálne hodnoty polí poistníka do state
   function savePoistnikFields() {
     const p = state.poistnik;
+    const activeSegment = document.querySelector('[data-segment].active');
+    if (activeSegment) p.typ = activeSegment.dataset.segment;
     p.rodneCislo  = document.getElementById('pRodneCislo')?.value  ?? p.rodneCislo;
     p.datumNar    = document.getElementById('pDatumNar')?.value    ?? p.datumNar;
     p.meno        = document.getElementById('pMeno')?.value        ?? p.meno;
@@ -2159,6 +2173,9 @@ function attachListeners() {
   });
   document.getElementById('s3DokladCislo')?.addEventListener('input', function() {
     state.poistnik.dokladCislo = this.value;
+  });
+  document.getElementById('s3Nazov')?.addEventListener('input', function() {
+    state.poistnik.nazov = this.value;
   });
   document.getElementById('s3TitulPred')?.addEventListener('input', function() {
     state.poistnik.titulPred = this.value;
