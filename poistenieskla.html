@@ -983,7 +983,7 @@ const state = {
     garazovane: false,    // true/false
     zmluvnyServis: false, // true/false
     x4: false, automat: false, parkovaci: false,
-    najazd: "",
+    najazd: "25000",
   },
   apiPrices: {},
   selected: new Set(),
@@ -1118,7 +1118,7 @@ function devGoto(step) {
     tp: 'AB123456', bezTp: false,
     garazovane: false, zmluvnyServis: false,
     x4: true, automat: false, parkovaci: false,
-    najazd: '15000',
+    najazd: '25000',
   };
   const devTyp = state.poistnik.typ || 'fo';
   state.poistnik = {
@@ -1319,7 +1319,7 @@ function renderStep1() {
         </div>
         <div class="field">
           <label>VIN číslo vozidla</label>
-          <input type="text" id="fVin" placeholder="WBA3A5C55FK123456" value="${v.vin}" maxlength="17" style="font-size:13px;letter-spacing:1px;">
+          <input type="text" id="fVin" placeholder="WBA3A5C55FK123456" value="${v.vin}" maxlength="17" style="text-transform:uppercase;letter-spacing:2px;font-weight:600;">
         </div>
       </div>
 
@@ -1680,7 +1680,7 @@ function renderStep3() {
           <div class="form-grid" style="margin-bottom:12px;">
             <div class="field">
               <label>Názov</label>
-              <input type="text" id="s3Nazov" placeholder="Názov firmy" value="${p.nazov||''}">
+              <input type="text" id="s3Nazov" placeholder="Názov" value="${p.nazov||''}">
             </div>
             <div class="field">
               <label>IČO</label>
@@ -2004,7 +2004,7 @@ function attachListeners() {
       x4: false, automat: false, parkovaci: false,
       farba: '',
       tp: '', bezTp: false,
-      najazd: '',
+      najazd: '25000',
     };
     state.lookupDone = false;
     state.vehicleStatus = null;
