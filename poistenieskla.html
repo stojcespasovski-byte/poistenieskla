@@ -187,29 +187,7 @@
   input.error { border-color: var(--danger); }
 
   /* ─── STEP 1 SPECIAL ──────────────────────────────────── */
-  .ecv-row {
-    display: flex;
-    gap: 12px;
-    align-items: flex-end;
-  }
-  .ecv-row input { font-size: 18px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; }
-  .ecv-lookup-btn {
-    height: 44px;
-    padding: 0 20px;
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    border-radius: var(--radius-sm);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: background .2s, transform .1s;
-    flex-shrink: 0;
-  }
-  .ecv-lookup-btn:hover { background: #1d4ed8; }
-  .ecv-lookup-btn:active { transform: scale(.97); }
+
 
   .vehicle-info {
     border-radius: var(--radius-sm);
@@ -814,6 +792,9 @@
     font-weight: 600;
     color: var(--text);
   }
+  .modal-vehicle-item--full {
+    grid-column: 1 / -1;
+  }
   .modal-btn-row {
     display: flex;
     gap: 10px;
@@ -965,6 +946,8 @@ const ALL_PRODUCTS = [
 const state = {
   step: 1,
   lookupDone: false,
+  vehicleStatus: null,   // null | 'loading' | 'found' | 'not-found'
+  vehicleInfoText: '',
   vehicle: {
     ecv: "", vin: "",
     novePredReg: null,   // true/false
@@ -975,8 +958,8 @@ const state = {
     znacka: "", model: "",
     objem: "", vykon: "", hmotnost: "",
     palivo: "benzin",
-    garazovane: null,    // true/false
-    zmluvnyServis: null, // true/false
+    garazovane: false,    // true/false
+    zmluvnyServis: false, // true/false
     x4: false, automat: false, parkovaci: false,
     najazd: "",
   },
@@ -1029,6 +1012,8 @@ async function apiLookupVehicle({ ecv, vin }) {
   // return await res.json(); // { found: true, data: {...} } alebo { found: false }
 
   await new Promise(r => setTimeout(r, 900));
+  // Mock: nenájdené pre testovací VIN
+  if (vin === '11111111111111111') return { found: false };
   // Mock: vráti vozidlo len ak EČV začína na "BA"
   if ((ecv && ecv.startsWith('BA')) || (vin && vin.length === 17)) {
     return {
@@ -1037,6 +1022,8 @@ async function apiLookupVehicle({ ecv, vin }) {
         znacka: 'BMW', model: '320d', datumReg: '2021-05-10',
         typ: 'osobne', palivo: 'diesel',
         vykon: '110', objem: '1998', hmotnost: '1650',
+        farba: 'Čierna', pohon: true,
+        vin: vin || 'WBA3A5C55FK123456',
       }
     };
   }
@@ -1113,7 +1100,6 @@ function toggleHtml(id, val) {
 function pillHtml(id, label, checked) {
   return `
     <label class="checkbox-pill ${checked ? 'checked' : ''}" data-pill="${id}">
-      <input type="checkbox" ${checked ? 'checked' : ''}>
       <span class="pill-check"></span>
       ${label}
     </label>`;
@@ -1223,10 +1209,7 @@ function renderStep1() {
       <div class="form-grid" style="margin-bottom:16px;">
         <div class="field">
           <label>Evidenčné číslo vozidla (EČV)</label>
-          <div class="ecv-row">
-            <input type="text" id="fEcv" placeholder="BA000AA" value="${v.ecv}" maxlength="10" style="flex:1;text-transform:uppercase;letter-spacing:2px;font-weight:600;">
-            <button class="ecv-lookup-btn" id="btnEcvLookup">🔍 Vyhľadať</button>
-          </div>
+          <input type="text" id="fEcv" placeholder="BA000AA" value="${v.ecv}" maxlength="10" style="text-transform:uppercase;letter-spacing:2px;font-weight:600;">
         </div>
         <div class="field">
           <label>VIN číslo vozidla</label>
@@ -1238,8 +1221,8 @@ function renderStep1() {
         <span id="vehicleInfoText"></span>
       </div>
       <div id="resetBtns" style="display:flex;gap:16px;align-items:center;">
-        <button type="button" class="btn-reset" id="btnResetVehicle">↩ Resetovať vozidlo</button>
-        <button type="button" class="btn-reset visible" id="btnResetAll">↺ Resetovať formulár</button>
+        <button type="button" class="btn-reset" id="btnResetVehicle">↩ Resetovať len vozidlo</button>
+        <button type="button" class="btn-reset visible" id="btnResetAll">↺ Resetovať celý formulár</button>
       </div>
 
       <!-- ROZBAĽOVACIA SEKCIA -->
@@ -1593,19 +1576,39 @@ function attachListeners() {
 
   function showVehicleInfo(type, text) {
     const icons = { loading: '⏳', found: '✅', 'not-found': '⚠️' };
+    state.vehicleStatus = type;
+    state.vehicleInfoText = text;
     vehicleInfo.className = `vehicle-info visible ${type}`;
     document.getElementById('vehicleInfoText').textContent = `${icons[type]} ${text}`;
   }
 
   function fillVehicleFields(d) {
-    if (d.znacka)   document.getElementById('fZnacka').value   = d.znacka;
-    if (d.model)    document.getElementById('fModel').value    = d.model;
-    if (d.datumReg) document.getElementById('fDatumReg').value = d.datumReg;
-    if (d.typ)      document.getElementById('fTyp').value      = d.typ;
-    if (d.palivo)   document.getElementById('fPalivo').value   = d.palivo;
-    if (d.vykon)    document.getElementById('fVykon').value    = d.vykon;
-    if (d.objem)    document.getElementById('fObjem').value    = d.objem;
-    if (d.hmotnost) document.getElementById('fHmotnost').value = d.hmotnost;
+    // Uložiť do state
+    if (d.znacka)            state.vehicle.znacka   = d.znacka;
+    if (d.model)             state.vehicle.model    = d.model;
+    if (d.datumReg)          state.vehicle.datumReg = d.datumReg;
+    if (d.typ)               state.vehicle.typ      = d.typ;
+    if (d.palivo)            state.vehicle.palivo   = d.palivo;
+    if (d.vykon)             state.vehicle.vykon    = d.vykon;
+    if (d.objem)             state.vehicle.objem    = d.objem;
+    if (d.hmotnost)          state.vehicle.hmotnost = d.hmotnost;
+    if (d.vin)               state.vehicle.vin      = d.vin;
+    if (d.farba !== undefined) state.vehicle.farba  = d.farba; // uložiť, zobraziť na strane 3
+    state.vehicle.x4 = (d.pohon === true);
+    if (state.vehicle.ecv) {
+      state.vehicle.maEcv     = true;
+      state.vehicle.novePredReg = false;
+    }
+
+    // Preplniť DOM polia
+    if (d.znacka)   document.getElementById('fZnacka')?.setAttribute('value', d.znacka);
+    if (d.model)    document.getElementById('fModel')?.setAttribute('value', d.model);
+    if (d.datumReg) document.getElementById('fDatumReg')?.setAttribute('value', d.datumReg);
+    if (d.typ)      { const el = document.getElementById('fTyp'); if (el) el.value = d.typ; }
+    if (d.palivo)   { const el = document.getElementById('fPalivo'); if (el) el.value = d.palivo; }
+    if (d.vykon)    document.getElementById('fVykon')?.setAttribute('value', d.vykon);
+    if (d.objem)    document.getElementById('fObjem')?.setAttribute('value', d.objem);
+    if (d.hmotnost) document.getElementById('fHmotnost')?.setAttribute('value', d.hmotnost);
   }
 
   function clearVehicleFields() {
@@ -1624,25 +1627,39 @@ function attachListeners() {
     overlay.className = 'modal-overlay';
     overlay.id = 'vehicleModal';
 
+    const formatDate = d => {
+      if (!d) return '–';
+      const [y, m, day] = d.split('-');
+      return `${day}.${m}.${y}`;
+    };
     const items = [
-      { label: 'Značka',      val: data.znacka },
-      { label: 'Model',       val: data.model },
-      { label: 'Rok reg.',    val: data.datumReg?.slice(0,4) },
-      { label: 'Palivo',      val: data.palivo },
-      { label: 'Výkon',       val: data.vykon ? data.vykon + ' kW' : '–' },
-      { label: 'Objem',       val: data.objem ? data.objem + ' cm³' : '–' },
-      { label: 'Hmotnosť',    val: data.hmotnost ? data.hmotnost + ' kg' : '–' },
-      { label: 'Typ',         val: data.typ },
+      { label: 'Značka',                val: data.znacka },
+      { label: 'Model',                 val: data.model },
+      { label: 'Typ',                   val: data.typ },
+      { label: 'Dátum 1. registrácie',  val: formatDate(data.datumReg) },
+      { label: 'Objem motora',          val: data.objem ? data.objem + ' cm³' : '–' },
+      { label: 'Výkon motora',          val: data.vykon ? data.vykon + ' kW' : '–' },
+      { label: 'Maximálna hmotnosť',    val: data.hmotnost ? data.hmotnost + ' kg' : '–' },
+      { label: 'Palivo',                val: data.palivo },
+      { label: 'Farba',                 val: data.farba },
+      { label: 'Pohon 4x4',            val: data.pohon === true ? 'Áno' : data.pohon === false ? 'Nie' : '–' },
     ].map(i => `
       <div class="modal-vehicle-item">
         <label>${i.label}</label>
         <span>${i.val || '–'}</span>
       </div>`).join('');
 
+    const vinRow = data.vin ? `
+      <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;">
+        <label style="display:block;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">VIN</label>
+        <span style="font-size:15px;font-weight:600;color:var(--text);font-family:monospace;letter-spacing:1px;">${data.vin}</span>
+      </div>` : '';
+
     overlay.innerHTML = `
       <div class="modal">
         <div class="modal-title">Je to vaše vozidlo?</div>
         <div class="modal-sub">Skontrolujte údaje. Ak niečo nesedí, môžete ich po potvrdení upraviť.</div>
+        ${vinRow}
         <div class="modal-vehicle-grid">${items}</div>
         <div class="modal-btn-row">
           <button class="btn-secondary" id="modalBtnOther">Vypísať iné</button>
@@ -1653,11 +1670,11 @@ function attachListeners() {
     document.body.appendChild(overlay);
 
     document.getElementById('modalBtnConfirm').addEventListener('click', () => {
-      vehicleDetails.classList.add('open');
       fillVehicleFields(data);
-      showVehicleInfo('found', `${data.znacka} ${data.model} (${data.datumReg?.slice(0,4)}) · ${data.vykon} kW · ${data.objem} cm³`);
-      btnReset.classList.add('visible');
+      state.vehicleStatus = 'found';
+      state.vehicleInfoText = `${data.znacka} ${data.model} (${data.datumReg?.slice(0,4)}) · ${data.vykon} kW · ${data.objem} cm³`;
       overlay.remove();
+      render();
     });
 
     document.getElementById('modalBtnOther').addEventListener('click', () => {
@@ -1679,10 +1696,41 @@ function attachListeners() {
     if (result.found) {
       showModal(result.data);
     } else {
-      vehicleDetails.classList.add('open');
-      showVehicleInfo('not-found', 'Vozidlo sa nenašlo v databáze. Vyplňte údaje ručne.');
-      btnReset.classList.add('visible');
+      showNewVehicleModal();
     }
+  }
+
+  function showNewVehicleModal() {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal">
+        <div class="modal-title">Nové vozidlo pred prvou registráciou?</div>
+        <div class="modal-btn-row" style="margin-top:24px;">
+          <button class="btn-secondary" id="modalNewVehicleNie">Nie</button>
+          <button class="btn-secondary" id="modalNewVehicleAno">Áno</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    document.getElementById('modalNewVehicleAno').addEventListener('click', () => {
+      state.vehicle.novePredReg = true;
+      state.vehicle.datumReg = today;
+      state.vehicleStatus = 'not-found';
+      state.vehicleInfoText = 'Vozidlo sa nenašlo v databáze. Vyplňte údaje ručne.';
+      overlay.remove();
+      render();
+    });
+
+    document.getElementById('modalNewVehicleNie').addEventListener('click', () => {
+      state.vehicle.novePredReg = false;
+      state.vehicleStatus = 'not-found';
+      state.vehicleInfoText = 'Vozidlo sa nenašlo v databáze. Vyplňte údaje ručne.';
+      overlay.remove();
+      render();
+    });
   }
 
   // Reset vozidla
@@ -1702,6 +1750,8 @@ function attachListeners() {
     state.vehicle.ecv = '';
     state.vehicle.vin = '';
     state.lookupDone = false;
+    state.vehicleStatus = null;
+    state.vehicleInfoText = '';
     state.vehicle.novePredReg = null;
     state.vehicle.maEcv = null;
     state.vehicle.garazovane = null;
@@ -1727,8 +1777,9 @@ function attachListeners() {
       datumReg: '', znacka: '', model: '',
       objem: '', vykon: '', hmotnost: '',
       palivo: 'benzin',
-      garazovane: null, zmluvnyServis: null,
+      garazovane: false, zmluvnyServis: false,
       x4: false, automat: false, parkovaci: false,
+      farba: '',
       najazd: '',
     };
     state.lookupDone = false;
@@ -1743,10 +1794,15 @@ function attachListeners() {
   document.getElementById('btnResetVehicle')?.addEventListener('click', resetVehicle);
   document.getElementById('btnResetAll')?.addEventListener('click', resetAll);
 
-  // Otvoriť automaticky ak už sú hodnoty (napr. po re-renderi)
+  // Obnoviť stav po re-renderi zo state
   if (state.vehicle.ecv || state.vehicle.vin) {
     vehicleDetails.classList.add('open');
     btnReset?.classList.add('visible');
+  }
+  if (state.vehicleStatus) {
+    const icons = { loading: '⏳', found: '✅', 'not-found': '⚠️' };
+    vehicleInfo.className = `vehicle-info visible ${state.vehicleStatus}`;
+    document.getElementById('vehicleInfoText').textContent = `${icons[state.vehicleStatus]} ${state.vehicleInfoText}`;
   }
 
   document.getElementById('fEcv')?.addEventListener('input', function() {
@@ -1761,15 +1817,6 @@ function attachListeners() {
     if (this.value.trim().length >= 17) triggerLookup('', this.value.trim());
   });
 
-  // Manuálne vyhľadanie / retry
-  const btnEcv = document.getElementById('btnEcvLookup');
-  if (btnEcv) btnEcv.addEventListener('click', () => {
-    const ecv = document.getElementById('fEcv').value.trim().toUpperCase();
-    const vin = document.getElementById('fVin').value.trim().toUpperCase();
-    if (!ecv && !vin) return;
-    state.lookupDone = false;
-    triggerLookup(ecv, vin);
-  });
 
   // Helper — uloží aktuálne hodnoty polí poistníka do state
   function savePoistnikFields() {
