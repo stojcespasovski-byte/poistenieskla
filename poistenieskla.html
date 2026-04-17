@@ -185,6 +185,13 @@
     box-shadow: 0 0 0 3px rgba(37,99,235,.1);
   }
   input.error { border-color: var(--danger); }
+  input.readonly {
+    background: var(--surface-2);
+    color: var(--text-muted);
+    border-color: transparent;
+    cursor: default;
+  }
+  input.readonly:focus { border-color: transparent; box-shadow: none; }
 
   /* ─── STEP 1 SPECIAL ──────────────────────────────────── */
 
@@ -620,6 +627,14 @@
     background: var(--border);
     margin: 24px 0;
   }
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
 
   /* ─── TOGGLE (Áno / Nie) ──────────────────────────────── */
   .toggle-group {
@@ -876,6 +891,13 @@
 <header>
   <div class="logo">pillow<span>.</span></div>
   <div style="font-size:13px;color:rgba(255,255,255,.4);">Zabezpečte svoje auto</div>
+  <div id="devBar" style="display:flex;gap:8px;align-items:center;">
+    <span style="font-size:11px;color:rgba(255,255,255,.3);">DEV:</span>
+    <button onclick="devGoto(1)" style="font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;cursor:pointer;">Krok 1</button>
+    <button onclick="devGoto(2)" style="font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;cursor:pointer;">Krok 2</button>
+    <button onclick="devGoto(3)" style="font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;cursor:pointer;">Krok 3</button>
+    <button onclick="devGoto(4)" style="font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;cursor:pointer;">Krok 4</button>
+  </div>
 </header>
 
 <!-- ─── STEPPER ────────────────────────────────────────── -->
@@ -1072,6 +1094,41 @@ function updatePriceBar() {
   document.getElementById('priceBarCount').textContent =
     count === 0 ? 'Žiadne poistenie nevybrané' :
     count === 1 ? '1 poistenie vybrané' : `${count} poistenia vybrané`;
+}
+
+/* ════════════════════════════════════════════════════════
+   DEV HELPERS
+════════════════════════════════════════════════════════ */
+function devGoto(step) {
+  // Naplniť state testovacími dátami
+  state.vehicle = {
+    ecv: 'BA123AB', vin: 'WBA3A5C55FK123456',
+    novePredReg: false, maEcv: true,
+    typ: 'osobne', vyuzitie: 'osobne',
+    datumReg: '2021-05-10', znacka: 'BMW', model: '320d',
+    objem: '1998', vykon: '110', hmotnost: '1650',
+    palivo: 'diesel', farba: 'Čierna',
+    garazovane: false, zmluvnyServis: false,
+    x4: true, automat: false, parkovaci: false,
+    najazd: '15000',
+  };
+  state.poistnik = {
+    typ: 'fo', cudzinec: false,
+    rodneCislo: '8001011234', datumNar: '', meno: 'Ján', priezvisko: 'Novák',
+    ico: '', obec: 'Bratislava', psc: '81101',
+  };
+  state.vehicleStatus = 'found';
+  state.vehicleInfoText = 'BMW 320d (2021) · 110 kW · 1998 cm³';
+  state.lookupDone = true;
+  state.apiPrices = {
+    sklo: { price: 4.90 }, asistencia: { price: 3.20 },
+    zivel: { price: 2.80 }, havaria: { price: 18.50 },
+    kradez: { price: 6.10 }, zver: { price: 2.40 },
+    uraz: { price: 3.80 }, batozina: { price: 2.10 },
+    vandalizmus: { price: 2.60 }, gap: { price: 8.90 },
+  };
+  state.step = step;
+  render();
 }
 
 /* ════════════════════════════════════════════════════════
@@ -1376,16 +1433,9 @@ function renderStep2() {
   <div class="step-screen">
     <div class="card">
       <div class="section-header">
-        <div class="card-title" style="margin-bottom:0;">Vyberte poistenia</div>
-        <div class="section-badge">Ceny od poisťovne</div>
+        <div class="card-title" style="margin-bottom:0;">Vyberte</div>
       </div>
 
-      <div class="vehicle-detail-row">
-        <div class="vehicle-detail-item"><label>EČV</label><span>${state.vehicle.ecv || '–'}</span></div>
-        <div class="vehicle-detail-item"><label>Rok výroby</label><span>${state.vehicle.rok || '–'}</span></div>
-        <div class="vehicle-detail-item"><label>Výkon</label><span>${state.vehicle.vykon ? state.vehicle.vykon + ' kW' : '–'}</span></div>
-        <div class="vehicle-detail-item"><label>Objem</label><span>${state.vehicle.objem ? state.vehicle.objem + ' ccm' : '–'}</span></div>
-      </div>
 
       ${heroHtml}
 
@@ -1404,78 +1454,163 @@ function renderStep2() {
 
 /* ─── STEP 3 ──────────────────────────────────────────── */
 function renderStep3() {
-  const c = state.client;
+  const v = state.vehicle;
+  const formatDate = d => {
+    if (!d) return '–';
+    const [y, m, day] = d.split('-');
+    return `${day}.${m}.${y}`;
+  };
   return `
   <div class="step-screen">
     <div class="card">
-      <div class="card-title">Údaje klienta a vozidla</div>
-      <div class="card-sub">Vyplňte osobné údaje poistníka a technické údaje vozidla potrebné pre vystavenie zmluvy.</div>
 
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-bottom:12px;">Osobné údaje</div>
+      <!-- ── SEKCIA: VOZIDLO ── -->
+      <div class="section-label">Vozidlo</div>
+
+      <!-- Riadok 1: nové polia -->
       <div class="form-grid" style="margin-bottom:16px;">
         <div class="field">
-          <label>Meno</label>
-          <input type="text" id="fMeno" placeholder="Ján" value="${c.meno||''}">
+          <label>Číslo technického preukazu</label>
+          <input type="text" id="s3Tp" placeholder="AB123456" value="${v.bezTp ? 'zatiaľ bez TP' : (v.tp||'')}" ${v.bezTp ? 'class="readonly" readonly' : ''}>
+          <label style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:500;color:var(--text-muted);cursor:pointer;margin-top:8px;text-transform:none;letter-spacing:0;">
+            <input type="checkbox" id="s3BezTp" ${v.bezTp ? 'checked' : ''} style="width:14px;height:14px;accent-color:var(--accent);cursor:pointer;">
+            Bez TP (pred prihlásením)
+          </label>
         </div>
         <div class="field">
-          <label>Priezvisko</label>
-          <input type="text" id="fPriezvisko" placeholder="Novák" value="${c.priezvisko||''}">
-        </div>
-        <div class="field">
-          <label>Dátum narodenia</label>
-          <input type="date" id="fDnar" value="${c.dnar||''}">
-        </div>
-        <div class="field">
-          <label>Rodné číslo</label>
-          <input type="text" id="fRc" placeholder="8001011234" value="${c.rc||''}">
-        </div>
-      </div>
-
-      <div class="form-grid cols-1" style="margin-bottom:16px;">
-        <div class="field">
-          <label>Adresa trvalého pobytu</label>
-          <input type="text" id="fAdresa" placeholder="Hlavná 1, 811 01 Bratislava" value="${c.adresa||''}">
-        </div>
-      </div>
-
-      <div class="form-grid" style="margin-bottom:24px;">
-        <div class="field">
-          <label>E-mail</label>
-          <input type="email" id="fEmail" placeholder="jan.novak@email.sk" value="${c.email||''}">
-        </div>
-        <div class="field">
-          <label>Telefón</label>
-          <input type="tel" id="fTel" placeholder="+421 900 123 456" value="${c.tel||''}">
+          <label>Farba vozidla</label>
+          <select id="s3Farba">
+            <option value="">– Vyberte farbu –</option>
+            <option value="Biela"   ${v.farba==='Biela'   ?'selected':''}>Biela</option>
+            <option value="Čierna"  ${v.farba==='Čierna'  ?'selected':''}>Čierna</option>
+            <option value="Sivá"    ${v.farba==='Sivá'    ?'selected':''}>Sivá</option>
+            <option value="Strieborná" ${v.farba==='Strieborná'?'selected':''}>Strieborná</option>
+            <option value="Modrá"   ${v.farba==='Modrá'   ?'selected':''}>Modrá</option>
+            <option value="Červená" ${v.farba==='Červená' ?'selected':''}>Červená</option>
+            <option value="Zelená"  ${v.farba==='Zelená'  ?'selected':''}>Zelená</option>
+            <option value="Hnedá"   ${v.farba==='Hnedá'   ?'selected':''}>Hnedá</option>
+            <option value="Béžová"  ${v.farba==='Béžová'  ?'selected':''}>Béžová</option>
+            <option value="Žltá"    ${v.farba==='Žltá'    ?'selected':''}>Žltá</option>
+            <option value="Oranžová"${v.farba==='Oranžová'?'selected':''}>Oranžová</option>
+            <option value="Fialová" ${v.farba==='Fialová' ?'selected':''}>Fialová</option>
+            <option value="Iná"     ${v.farba==='Iná'     ?'selected':''}>Iná</option>
+          </select>
         </div>
       </div>
 
       <div class="divider"></div>
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-bottom:12px;">Údaje o vozidle</div>
 
-      <div class="form-grid cols-3">
+      <!-- Sumarizácia vozidla -->
+      <div class="form-grid" style="margin-bottom:12px;">
         <div class="field">
-          <label>VIN</label>
-          <input type="text" id="fVin" placeholder="WBA3A5C55FK123456" value="${c.vin||''}" style="font-size:13px;" maxlength="17">
+          <label>EČV</label>
+          <input type="text" value="${v.ecv||'–'}" class="readonly" readonly>
         </div>
         <div class="field">
+          <label>VIN</label>
+          <input type="text" value="${v.vin||'–'}" class="readonly" readonly style="font-size:13px;letter-spacing:1px;">
+        </div>
+      </div>
+      <div class="form-grid" style="margin-bottom:12px;">
+        <div class="field">
           <label>Značka</label>
-          <input type="text" id="fZnacka" placeholder="BMW" value="${c.znacka||''}">
+          <input type="text" value="${v.znacka||'–'}" class="readonly" readonly>
         </div>
         <div class="field">
           <label>Model</label>
-          <input type="text" id="fModel" placeholder="320d" value="${c.model||''}">
+          <input type="text" value="${v.model||'–'}" class="readonly" readonly>
+        </div>
+      </div>
+      <div class="form-grid" style="margin-bottom:12px;">
+        <div class="field">
+          <label>Typ vozidla</label>
+          <input type="text" value="${v.typ||'–'}" class="readonly" readonly>
         </div>
         <div class="field">
-          <label>Farba</label>
-          <input type="text" id="fFarba" placeholder="Biela" value="${c.farba||''}">
+          <label>Palivo</label>
+          <input type="text" value="${v.palivo||'–'}" class="readonly" readonly>
+        </div>
+      </div>
+      <div class="form-grid" style="margin-bottom:12px;">
+        <div class="field">
+          <label>Dátum 1. registrácie</label>
+          <input type="text" value="${formatDate(v.datumReg)}" class="readonly" readonly>
         </div>
         <div class="field">
-          <label>Počet sedadiel</label>
-          <input type="number" id="fSedadla" placeholder="5" value="${c.sedadla||''}">
+          <label>Výkon motora</label>
+          <input type="text" value="${v.vykon ? v.vykon + ' kW' : '–'}" class="readonly" readonly>
+        </div>
+      </div>
+      <div class="form-grid" style="margin-bottom:24px;">
+        <div class="field">
+          <label>Objem motora</label>
+          <input type="text" value="${v.objem ? v.objem + ' cm³' : '–'}" class="readonly" readonly>
         </div>
         <div class="field">
-          <label>Nosnosť (kg)</label>
-          <input type="number" id="fNosnost" placeholder="450" value="${c.nosnost||''}">
+          <label>Maximálna hmotnosť</label>
+          <input type="text" value="${v.hmotnost ? v.hmotnost + ' kg' : '–'}" class="readonly" readonly>
+        </div>
+      </div>
+
+      <!-- ── SEKCIA: KLIENT ── -->
+      <div class="divider"></div>
+      <div class="section-label">Klient</div>
+
+      <!-- Nové polia -->
+      <div class="form-grid" style="margin-bottom:16px;">
+        <div class="field">
+          <label>E-mail</label>
+          <input type="email" id="s3Email" placeholder="jan.novak@email.sk" value="${state.poistnik.email||''}">
+        </div>
+        <div class="field">
+          <label>Telefón</label>
+          <input type="tel" id="s3Tel" placeholder="+421 900 123 456" value="${state.poistnik.tel||''}">
+        </div>
+      </div>
+
+      <div class="divider" style="margin:16px 0;"></div>
+
+      <!-- Sumarizácia podľa typu -->
+      ${(() => {
+        const p = state.poistnik;
+        if (p.typ === 'fo') {
+          return `
+          <div class="form-grid" style="margin-bottom:12px;">
+            <div class="field">
+              <label>Meno</label>
+              <input type="text" value="${p.meno||'–'}" class="readonly" readonly>
+            </div>
+            <div class="field">
+              <label>Priezvisko</label>
+              <input type="text" value="${p.priezvisko||'–'}" class="readonly" readonly>
+            </div>
+          </div>
+          <div class="form-grid" style="margin-bottom:12px;">
+            <div class="field">
+              <label>${p.cudzinec ? 'Dátum narodenia' : 'Rodné číslo'}</label>
+              <input type="text" value="${p.cudzinec ? (p.datumNar||'–') : (p.rodneCislo||'–')}" class="readonly" readonly>
+            </div>
+            <div class="field"></div>
+          </div>`;
+        } else {
+          return `
+          <div class="form-grid" style="margin-bottom:12px;">
+            <div class="field">
+              <label>IČO</label>
+              <input type="text" value="${p.ico||'–'}" class="readonly" readonly>
+            </div>
+            <div class="field"></div>
+          </div>`;
+        }
+      })()}
+      <div class="form-grid" style="margin-bottom:24px;">
+        <div class="field">
+          <label>Obec</label>
+          <input type="text" value="${state.poistnik.obec||'–'}" class="readonly" readonly>
+        </div>
+        <div class="field">
+          <label>PSČ</label>
+          <input type="text" value="${state.poistnik.psc||'–'}" class="readonly" readonly>
         </div>
       </div>
 
@@ -1569,6 +1704,7 @@ function renderSuccess(zmluvaId) {
    EVENT LISTENERS
 ════════════════════════════════════════════════════════ */
 function attachListeners() {
+  if (state.step === 1) {
   // STEP 1 — Expand + Lookup + Modal
   const vehicleDetails = document.getElementById('vehicleDetails');
   const vehicleInfo    = document.getElementById('vehicleInfo');
@@ -1780,6 +1916,7 @@ function attachListeners() {
       garazovane: false, zmluvnyServis: false,
       x4: false, automat: false, parkovaci: false,
       farba: '',
+      tp: '', bezTp: false,
       najazd: '',
     };
     state.lookupDone = false;
@@ -1899,6 +2036,7 @@ function attachListeners() {
     state.step = 2;
     render();
   });
+  } // end step 1
 
   // STEP 2 — hero toggle
   const heroCard = document.getElementById('heroCard');
@@ -1931,29 +2069,37 @@ function attachListeners() {
   const btnS3Back = document.getElementById('btnStep3Back');
   if (btnS3Back) btnS3Back.addEventListener('click', () => { state.step = 2; render(); });
 
+  // Checkbox bezTp
+  document.getElementById('s3BezTp')?.addEventListener('change', function() {
+    state.vehicle.bezTp = this.checked;
+    if (this.checked) state.vehicle.tp = '';
+    render();
+  });
+
+  // Farba dropdown
+  document.getElementById('s3Farba')?.addEventListener('change', function() {
+    state.vehicle.farba = this.value;
+  });
+
+  // TP input
+  document.getElementById('s3Tp')?.addEventListener('input', function() {
+    state.vehicle.tp = this.value;
+  });
+
+  // Email + telefón
+  document.getElementById('s3Email')?.addEventListener('input', function() {
+    state.poistnik.email = this.value;
+  });
+  document.getElementById('s3Tel')?.addEventListener('input', function() {
+    state.poistnik.tel = this.value;
+  });
+
   const btnS3Next = document.getElementById('btnStep3Next');
   if (btnS3Next) btnS3Next.addEventListener('click', () => {
-    const meno = document.getElementById('fMeno').value.trim();
-    const priezvisko = document.getElementById('fPriezvisko').value.trim();
-    const email = document.getElementById('fEmail').value.trim();
-    if (!meno || !priezvisko || !email) {
-      alert('Prosím vyplňte aspoň meno, priezvisko a e-mail.');
-      return;
-    }
-    state.client = {
-      meno, priezvisko,
-      dnar:     document.getElementById('fDnar').value,
-      rc:       document.getElementById('fRc').value,
-      adresa:   document.getElementById('fAdresa').value,
-      email,
-      tel:      document.getElementById('fTel').value,
-      vin:      document.getElementById('fVin').value,
-      znacka:   document.getElementById('fZnacka').value,
-      model:    document.getElementById('fModel').value,
-      farba:    document.getElementById('fFarba').value,
-      sedadla:  document.getElementById('fSedadla').value,
-      nosnost:  document.getElementById('fNosnost').value,
-    };
+    state.vehicle.tp     = document.getElementById('s3Tp')?.value || state.vehicle.tp;
+    state.vehicle.farba  = document.getElementById('s3Farba')?.value || state.vehicle.farba;
+    state.poistnik.email = document.getElementById('s3Email')?.value || state.poistnik.email;
+    state.poistnik.tel   = document.getElementById('s3Tel')?.value   || state.poistnik.tel;
     state.step = 4;
     render();
   });
