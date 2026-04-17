@@ -1,0 +1,1908 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poistenie skla – Pillow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ─── CONFIG-DRIVEN ACCENT ─────────────────────────────── */
+  :root {
+    --accent:        #2563EB;
+    --accent-light:  #EFF6FF;
+    --accent-mid:    #BFDBFE;
+    --hero-bg:       #0F172A;
+    --hero-text:     #F8FAFC;
+    --surface:       #FFFFFF;
+    --surface-2:     #F8FAFC;
+    --border:        #E2E8F0;
+    --text:          #0F172A;
+    --text-muted:    #64748B;
+    --danger:        #EF4444;
+    --success:       #10B981;
+    --radius:        14px;
+    --radius-sm:     8px;
+    --shadow:        0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+    --shadow-lg:     0 8px 32px rgba(0,0,0,.12);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--surface-2);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ─── HEADER ──────────────────────────────────────────── */
+  header {
+    background: var(--hero-bg);
+    padding: 0 24px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    color: #fff;
+    letter-spacing: -.3px;
+  }
+  .logo span { color: var(--accent); }
+
+  /* ─── STEPPER ─────────────────────────────────────────── */
+  .stepper {
+    background: var(--hero-bg);
+    padding: 0 24px 20px;
+    display: flex;
+    gap: 0;
+    max-width: 680px;
+    margin: 0 auto;
+  }
+  .step {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+  }
+  .step::before {
+    content: '';
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background: rgba(255,255,255,.15);
+  }
+  .step:last-child::before { display: none; }
+  .step-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.12);
+    border: 2px solid rgba(255,255,255,.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255,255,255,.5);
+    position: relative;
+    z-index: 1;
+    transition: all .3s;
+  }
+  .step.active .step-circle {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    box-shadow: 0 0 0 4px rgba(37,99,235,.3);
+  }
+  .step.done .step-circle {
+    background: var(--success);
+    border-color: var(--success);
+    color: #fff;
+  }
+  .step.done::before { background: var(--success); }
+  .step.active::before { background: rgba(255,255,255,.15); }
+  .step-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255,255,255,.35);
+    text-align: center;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+  }
+  .step.active .step-label { color: rgba(255,255,255,.9); }
+  .step.done .step-label { color: rgba(255,255,255,.6); }
+
+  /* ─── MAIN LAYOUT ─────────────────────────────────────── */
+  main {
+    max-width: 760px;
+    margin: 32px auto;
+    padding: 0 16px 80px;
+  }
+
+  /* ─── CARDS ───────────────────────────────────────────── */
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    padding: 32px;
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 26px;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .card-sub {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+    line-height: 1.5;
+  }
+
+  /* ─── FORM ────────────────────────────────────────────── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .form-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .form-grid.cols-1 { grid-template-columns: 1fr; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field.span2 { grid-column: span 2; }
+  .field.span3 { grid-column: span 3; }
+  label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+  input, select {
+    height: 44px;
+    padding: 0 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    color: var(--text);
+    background: var(--surface);
+    transition: border-color .2s, box-shadow .2s;
+    outline: none;
+    width: 100%;
+  }
+  input:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+  }
+  input.error { border-color: var(--danger); }
+
+  /* ─── STEP 1 SPECIAL ──────────────────────────────────── */
+  .ecv-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+  }
+  .ecv-row input { font-size: 18px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; }
+  .ecv-lookup-btn {
+    height: 44px;
+    padding: 0 20px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background .2s, transform .1s;
+    flex-shrink: 0;
+  }
+  .ecv-lookup-btn:hover { background: #1d4ed8; }
+  .ecv-lookup-btn:active { transform: scale(.97); }
+
+  .vehicle-info {
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+    font-size: 14px;
+    font-weight: 500;
+    display: none;
+  }
+  .vehicle-info.visible { display: flex; }
+  .vehicle-info.found {
+    background: var(--accent-light);
+    border: 1.5px solid var(--accent-mid);
+    color: var(--accent);
+  }
+  .vehicle-info.not-found {
+    background: #fffbeb;
+    border: 1.5px solid #fde68a;
+    color: #92400e;
+  }
+  .vehicle-info.loading {
+    background: var(--surface-2);
+    border: 1.5px solid var(--border);
+    color: var(--text-muted);
+  }
+  .vehicle-info svg { flex-shrink: 0; }
+
+  /* ─── STEP 2 — HERO INSURANCE ─────────────────────────── */
+  .hero-insurance {
+    background: linear-gradient(135deg, var(--hero-bg) 0%, #1e3a8a 100%);
+    border-radius: var(--radius);
+    padding: 28px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform .2s;
+    margin-bottom: 20px;
+    border: 2px solid transparent;
+  }
+  .hero-insurance::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 160px; height: 160px;
+    background: rgba(37,99,235,.25);
+    border-radius: 50%;
+  }
+  .hero-insurance::after {
+    content: '';
+    position: absolute;
+    bottom: -60px; left: 30%;
+    width: 220px; height: 220px;
+    background: rgba(255,255,255,.03);
+    border-radius: 50%;
+  }
+  .hero-insurance.selected {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 3px rgba(96,165,250,.2), var(--shadow-lg);
+  }
+  .hero-insurance:hover { transform: translateY(-2px); }
+  .hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    margin-bottom: 12px;
+    color: #93c5fd;
+  }
+  .hero-name {
+    font-family: 'Instrument Serif', serif;
+    font-size: 32px;
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 1;
+  }
+  .hero-desc {
+    font-size: 14px;
+    color: rgba(255,255,255,.7);
+    line-height: 1.6;
+    max-width: 480px;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 1;
+  }
+  .hero-price-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    position: relative;
+    z-index: 1;
+  }
+  .hero-price {
+    font-size: 36px;
+    font-weight: 300;
+    letter-spacing: -1px;
+  }
+  .hero-price strong { font-weight: 700; }
+  .hero-price-period {
+    font-size: 13px;
+    color: rgba(255,255,255,.5);
+    margin-bottom: 6px;
+  }
+  .hero-check {
+    margin-left: auto;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .2s;
+    background: rgba(255,255,255,.08);
+  }
+  .hero-insurance.selected .hero-check {
+    background: var(--success);
+    border-color: var(--success);
+  }
+  .hero-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+    position: relative;
+    z-index: 1;
+  }
+  .hero-feature {
+    background: rgba(255,255,255,.1);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: rgba(255,255,255,.8);
+  }
+
+  /* ─── ADD-ONS GRID ────────────────────────────────────── */
+  .addons-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+  .addons-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  @media (max-width: 600px) {
+    .addons-grid { grid-template-columns: repeat(2, 1fr); }
+    .form-grid, .form-grid.cols-3 { grid-template-columns: 1fr; }
+    .field.span2, .field.span3 { grid-column: span 1; }
+  }
+  .addon-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    cursor: pointer;
+    transition: all .2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .addon-card:hover {
+    border-color: var(--accent-mid);
+    background: var(--accent-light);
+    transform: translateY(-1px);
+  }
+  .addon-card.selected {
+    border-color: var(--accent);
+    background: var(--accent-light);
+    box-shadow: 0 0 0 2px rgba(37,99,235,.1);
+  }
+  .addon-card.loading {
+    opacity: .5;
+    pointer-events: none;
+  }
+  .addon-icon { font-size: 20px; margin-bottom: 6px; display: block; }
+  .addon-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+  .addon-price {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .addon-check {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .2s;
+  }
+  .addon-card.selected .addon-check {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .addon-card.selected .addon-check::after {
+    content: '';
+    width: 6px; height: 4px;
+    border-left: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    transform: rotate(-45deg) translateY(-1px);
+    display: block;
+  }
+
+  /* ─── PRICE SUMMARY BAR ───────────────────────────────── */
+  .price-bar {
+    position: sticky;
+    bottom: 0;
+    background: var(--hero-bg);
+    border-top: 1px solid rgba(255,255,255,.1);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 100;
+  }
+  .price-bar-label {
+    font-size: 12px;
+    color: rgba(255,255,255,.5);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+  .price-bar-total {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -.5px;
+  }
+  .price-bar-total span {
+    font-size: 13px;
+    font-weight: 400;
+    color: rgba(255,255,255,.5);
+    margin-left: 4px;
+  }
+  .price-bar-count {
+    font-size: 12px;
+    color: rgba(255,255,255,.4);
+  }
+
+  /* ─── BUTTONS ─────────────────────────────────────────── */
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 0 28px;
+    height: 48px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .2s, transform .1s, box-shadow .2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+  .btn-primary:hover { background: #1d4ed8; box-shadow: 0 4px 16px rgba(37,99,235,.35); }
+  .btn-primary:active { transform: scale(.97); }
+  .btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0 20px;
+    height: 48px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-row {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ─── SUMMARY ─────────────────────────────────────────── */
+  .summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .summary-item:last-child { border-bottom: none; }
+  .summary-item-name { font-size: 15px; font-weight: 500; }
+  .summary-item-name small {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 400;
+    margin-top: 2px;
+  }
+  .summary-item-price {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .summary-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--accent-light);
+    border: 1.5px solid var(--accent-mid);
+    border-radius: var(--radius-sm);
+    padding: 16px 20px;
+    margin-top: 16px;
+  }
+  .summary-total-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: .4px;
+  }
+  .summary-total-price {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -1px;
+  }
+  .summary-total-price span {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-left: 4px;
+  }
+
+  /* ─── INFO BOX ────────────────────────────────────────── */
+  .info-box {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .info-box-icon { font-size: 20px; flex-shrink: 0; }
+  .info-box p { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+  .info-box p strong { color: var(--text); }
+
+  /* ─── SUCCESS ─────────────────────────────────────────── */
+  .success-screen {
+    text-align: center;
+    padding: 48px 24px;
+  }
+  .success-icon {
+    width: 72px; height: 72px;
+    background: #dcfce7;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 32px;
+  }
+  .success-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 30px;
+    margin-bottom: 8px;
+  }
+  .success-sub {
+    color: var(--text-muted);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* ─── SPINNER ─────────────────────────────────────────── */
+  .spinner {
+    width: 20px; height: 20px;
+    border: 2px solid rgba(255,255,255,.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ─── SECTION HEADER ──────────────────────────────────── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .section-badge {
+    background: var(--accent);
+    color: #fff;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+
+  /* ─── DIVIDER ─────────────────────────────────────────── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 24px 0;
+  }
+
+  /* ─── TOGGLE (Áno / Nie) ──────────────────────────────── */
+  .toggle-group {
+    display: flex;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    height: 44px;
+  }
+  .toggle-group button {
+    flex: 1;
+    border: none;
+    background: var(--surface);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .toggle-group button:first-child {
+    border-right: 1.5px solid var(--border);
+  }
+  .toggle-group button.active-yes {
+    background: #dcfce7;
+    color: #15803d;
+    font-weight: 600;
+  }
+  .toggle-group button.active-no {
+    background: #fee2e2;
+    color: #b91c1c;
+    font-weight: 600;
+  }
+
+  /* ─── CHECKBOXES ──────────────────────────────────────── */
+  .checkbox-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .checkbox-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: var(--surface);
+    transition: all .15s;
+    user-select: none;
+  }
+  .checkbox-pill input { display: none; }
+  .checkbox-pill.checked {
+    border-color: var(--accent);
+    background: var(--accent-light);
+    color: var(--accent);
+  }
+  .checkbox-pill .pill-check {
+    width: 16px; height: 16px;
+    border-radius: 4px;
+    border: 2px solid var(--border);
+    background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all .15s;
+  }
+  .checkbox-pill.checked .pill-check {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .checkbox-pill.checked .pill-check::after {
+    content: '';
+    width: 5px; height: 3px;
+    border-left: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    transform: rotate(-45deg) translateY(-1px);
+    display: block;
+  }
+
+  /* ─── VEHICLE DETAIL ROW ──────────────────────────────── */
+  .vehicle-detail-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .vehicle-detail-item {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    flex: 1;
+    min-width: 100px;
+  }
+  .vehicle-detail-item label {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 10px;
+  }
+  .vehicle-detail-item span {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* ─── MODAL ───────────────────────────────────────────── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,42,.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+    animation: fadeIn .2s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    padding: 32px;
+    width: 100%;
+    max-width: 460px;
+    margin: 16px;
+    animation: slideUp .25s ease;
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .modal-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    margin-bottom: 6px;
+  }
+  .modal-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+  .modal-vehicle-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .modal-vehicle-item {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+  }
+  .modal-vehicle-item label {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-bottom: 3px;
+  }
+  .modal-vehicle-item span {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .modal-btn-row {
+    display: flex;
+    gap: 10px;
+  }
+  .modal-btn-row .btn-secondary { flex: 1; }
+  .modal-btn-row .btn-primary   { flex: 1; }
+
+  /* ─── RESET BUTTON ────────────────────────────────────── */
+  .btn-reset {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin-top: 8px;
+    transition: color .15s;
+  }
+  .btn-reset:hover { color: var(--danger); }
+  .btn-reset.visible { display: inline-flex; }
+
+  /* ─── SEGMENTED CONTROL (typ poistníka) ──────────────── */
+  .segment-control {
+    display: flex;
+    background: var(--surface-2);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    height: 44px;
+    margin-bottom: 16px;
+  }
+  .segment-control button {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background .15s, color .15s;
+    border-right: 1.5px solid var(--border);
+  }
+  .segment-control button:last-child { border-right: none; }
+  .segment-control button.active {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+  }
+
+  /* animations */
+  .step-screen { animation: fadeUp .35s ease both; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── EXPANDABLE SECTION ──────────────────────────────── */
+  .expandable {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height .4s ease, opacity .3s ease;
+  }
+  .expandable.open {
+    max-height: 1200px;
+    opacity: 1;
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── HEADER ──────────────────────────────────────────── -->
+<header>
+  <div class="logo">pillow<span>.</span></div>
+  <div style="font-size:13px;color:rgba(255,255,255,.4);">Zabezpečte svoje auto</div>
+</header>
+
+<!-- ─── STEPPER ────────────────────────────────────────── -->
+<div class="stepper" id="stepper">
+  <div class="step active" data-step="1">
+    <div class="step-circle">1</div>
+    <div class="step-label">Vozidlo</div>
+  </div>
+  <div class="step" data-step="2">
+    <div class="step-circle">2</div>
+    <div class="step-label">Poistenia</div>
+  </div>
+  <div class="step" data-step="3">
+    <div class="step-circle">3</div>
+    <div class="step-label">Údaje</div>
+  </div>
+  <div class="step" data-step="4">
+    <div class="step-circle">4</div>
+    <div class="step-label">Záver</div>
+  </div>
+</div>
+
+<!-- ─── MAIN ────────────────────────────────────────────── -->
+<main id="main"></main>
+
+<!-- ─── PRICE BAR (step 2 only) ─────────────────────────── -->
+<div class="price-bar" id="priceBar" style="display:none;">
+  <div>
+    <div class="price-bar-label">Celková cena</div>
+    <div class="price-bar-count" id="priceBarCount">0 poistení vybraných</div>
+  </div>
+  <div class="price-bar-total" id="priceBarTotal">0,00 €<span>/ mes.</span></div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════
+   CONFIG — zmeniť pre každú doménu
+════════════════════════════════════════════════════════ */
+const CONFIG = {
+  hero: "sklo",
+  heroTitle: "Poistenie skla",
+  heroDesc: "Kompletná ochrana čelného skla, bočných okien aj panoramatickej strechy. Bez spoluúčasti, oprava alebo výmena.",
+  heroFeatures: ["Čelné sklo", "Bočné okná", "Panorama strecha", "Bez spoluúčasti", "Mobilná oprava"],
+  heroIcon: "🪟",
+  brandName: "Pillow Auto",
+  accentColor: "#2563EB",
+};
+
+/* ════════════════════════════════════════════════════════
+   INSURANCE PRODUCTS DATA
+════════════════════════════════════════════════════════ */
+const ALL_PRODUCTS = [
+  { id: "sklo",      name: "Poistenie skla",       icon: "🪟", desc: "Čelné sklo, bočné okná, panorama" },
+  { id: "asistencia",name: "Cestná asistencia",     icon: "🚑", desc: "Odtiahnutie, náhradné vozidlo" },
+  { id: "zivel",     name: "Živelné pohromy",       icon: "⛈️",  desc: "Povodeň, grad, víchrica" },
+  { id: "havaria",   name: "Havarijné poistenie",   icon: "💥", desc: "Škody z dopravnej nehody" },
+  { id: "kradez",    name: "Krádež vozidla",        icon: "🔓", desc: "Odcudzenie celého vozidla" },
+  { id: "zver",      name: "Stret so zverou",       icon: "🦌", desc: "Škody po zrážke so zverou" },
+  { id: "uraz",      name: "Úrazové poistenie",     icon: "🏥", desc: "Vodič a spolujazdci" },
+  { id: "batozina",  name: "Batožina",              icon: "🧳", desc: "Veci prepravované vo vozidle" },
+  { id: "vandalizmus",name: "Vandalizmus",          icon: "🎨", desc: "Úmyselné poškodenie vozidla" },
+  { id: "gap",       name: "GAP poistenie",         icon: "📉", desc: "Rozdiel medzi hodnotou a úverom" },
+];
+
+/* ════════════════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════════════════ */
+const state = {
+  step: 1,
+  lookupDone: false,
+  vehicle: {
+    ecv: "", vin: "",
+    novePredReg: null,   // true/false
+    maEcv: null,         // true/false
+    typ: "osobne",
+    vyuzitie: "osobne",
+    datumReg: "",
+    znacka: "", model: "",
+    objem: "", vykon: "", hmotnost: "",
+    palivo: "benzin",
+    garazovane: null,    // true/false
+    zmluvnyServis: null, // true/false
+    x4: false, automat: false, parkovaci: false,
+    najazd: "",
+  },
+  apiPrices: {},
+  selected: new Set(),
+  poistnik: {
+    typ: 'fo',
+    cudzinec: false,
+    rodneCislo: '', datumNar: '', meno: '', priezvisko: '',
+    ico: '', obec: '', psc: '',
+  },
+  client: {},
+  submitting: false,
+};
+
+/* ════════════════════════════════════════════════════════
+   MOCK API — nahradiť reálnym fetch volaním
+════════════════════════════════════════════════════════ */
+async function apiGetPrices(vehicleData) {
+  // TODO: nahradiť reálnym API volaním
+  // const res = await fetch('https://api.pillow.sk/v1/kalkulacia', {
+  //   method: 'POST',
+  //   headers: { 'Content-Type': 'application/json', 'x-api-key': 'YOUR_KEY' },
+  //   body: JSON.stringify(vehicleData)
+  // });
+  // return await res.json();
+
+  await new Promise(r => setTimeout(r, 1400)); // simulácia latencie
+  return {
+    sklo:       { price: 4.90  },
+    asistencia: { price: 3.20  },
+    zivel:      { price: 2.80  },
+    havaria:    { price: 18.50 },
+    kradez:     { price: 6.10  },
+    zver:       { price: 2.40  },
+    uraz:       { price: 3.80  },
+    batozina:   { price: 2.10  },
+    vandalizmus:{ price: 2.60  },
+    gap:        { price: 8.90  },
+  };
+}
+
+async function apiLookupVehicle({ ecv, vin }) {
+  // TODO: nahradiť reálnym API volaním
+  // const res = await fetch('https://api.pillow.sk/v1/vozidlo', {
+  //   method: 'POST',
+  //   headers: { 'Content-Type': 'application/json' },
+  //   body: JSON.stringify({ ecv, vin })
+  // });
+  // return await res.json(); // { found: true, data: {...} } alebo { found: false }
+
+  await new Promise(r => setTimeout(r, 900));
+  // Mock: vráti vozidlo len ak EČV začína na "BA"
+  if ((ecv && ecv.startsWith('BA')) || (vin && vin.length === 17)) {
+    return {
+      found: true,
+      data: {
+        znacka: 'BMW', model: '320d', datumReg: '2021-05-10',
+        typ: 'osobne', palivo: 'diesel',
+        vykon: '110', objem: '1998', hmotnost: '1650',
+      }
+    };
+  }
+  return { found: false };
+}
+
+async function apiSubmit(payload) {
+  // TODO: nahradiť reálnym API volaním
+  // const res = await fetch('https://api.pillow.sk/v1/zmluva', { ... });
+  await new Promise(r => setTimeout(r, 1800));
+  return { success: true, zmluvaId: 'PLW-' + Math.floor(Math.random()*90000+10000) };
+}
+
+/* ════════════════════════════════════════════════════════
+   UTILITIES
+════════════════════════════════════════════════════════ */
+function fmt(num) {
+  return num.toFixed(2).replace('.', ',') + ' €';
+}
+
+function totalPrice() {
+  let t = 0;
+  state.selected.forEach(id => { t += (state.apiPrices[id]?.price || 0); });
+  return t;
+}
+
+function updateStepper() {
+  document.querySelectorAll('.step').forEach(el => {
+    const s = +el.dataset.step;
+    el.classList.remove('active','done');
+    if (s === state.step) el.classList.add('active');
+    if (s < state.step)  el.classList.add('done');
+    const circle = el.querySelector('.step-circle');
+    circle.textContent = s < state.step ? '✓' : s;
+  });
+}
+
+function updatePriceBar() {
+  const bar = document.getElementById('priceBar');
+  if (state.step !== 2) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  const total = totalPrice();
+  const count = state.selected.size;
+  document.getElementById('priceBarTotal').innerHTML =
+    `${fmt(total)}<span>/ mes.</span>`;
+  document.getElementById('priceBarCount').textContent =
+    count === 0 ? 'Žiadne poistenie nevybrané' :
+    count === 1 ? '1 poistenie vybrané' : `${count} poistenia vybrané`;
+}
+
+/* ════════════════════════════════════════════════════════
+   RENDER STEPS
+════════════════════════════════════════════════════════ */
+function render() {
+  updateStepper();
+  updatePriceBar();
+  const main = document.getElementById('main');
+  if (state.step === 1) main.innerHTML = renderStep1();
+  if (state.step === 2) main.innerHTML = renderStep2();
+  if (state.step === 3) main.innerHTML = renderStep3();
+  if (state.step === 4) main.innerHTML = renderStep4();
+  attachListeners();
+}
+
+/* ─── TOGGLE HELPER ───────────────────────────────────── */
+function toggleHtml(id, val) {
+  return `
+    <div class="toggle-group">
+      <button type="button" data-toggle="${id}" data-val="true"  class="${val===true  ? 'active-yes' : ''}">Áno</button>
+      <button type="button" data-toggle="${id}" data-val="false" class="${val===false ? 'active-no'  : ''}">Nie</button>
+    </div>`;
+}
+
+function pillHtml(id, label, checked) {
+  return `
+    <label class="checkbox-pill ${checked ? 'checked' : ''}" data-pill="${id}">
+      <input type="checkbox" ${checked ? 'checked' : ''}>
+      <span class="pill-check"></span>
+      ${label}
+    </label>`;
+}
+
+/* ─── STEP 1 ──────────────────────────────────────────── */
+function renderStep1() {
+  const v = state.vehicle;
+  const p = state.poistnik;
+  return `
+  <div class="step-screen">
+    <div class="card">
+      <div class="card-title">Parametre vozidla</div>
+      <div class="card-sub">Vyplňte údaje o vozidle. Na ich základe poisťovňa vypočíta cenu poistenia.</div>
+
+      <!-- POISTNÍK -->
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-bottom:10px;">Poistník</div>
+      <div class="segment-control" style="${p.typ==='fo' ? 'margin-bottom:6px;' : ''}">
+        <button type="button" data-segment="fo"   class="${p.typ==='fo'   ? 'active' : ''}">Fyzická osoba</button>
+        <button type="button" data-segment="szco" class="${p.typ==='szco' ? 'active' : ''}">SZČO</button>
+        <button type="button" data-segment="po"   class="${p.typ==='po'   ? 'active' : ''}">Právnická osoba</button>
+      </div>
+
+      ${p.typ === 'fo' ? `
+      <label style="display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:500;color:var(--text-muted);cursor:pointer;margin-bottom:14px;margin-left:15px;text-transform:none;letter-spacing:0;">
+        <input type="checkbox" id="pCudzinec" ${p.cudzinec ? 'checked' : ''} style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer;">
+        Som cudzinec
+      </label>
+
+      ${p.cudzinec ? `
+      <div class="form-grid cols-3" style="margin-bottom:10px;">
+        <div class="field">
+          <label>Dátum narodenia</label>
+          <input type="date" id="pDatumNar" value="${p.datumNar||''}">
+        </div>
+        <div class="field">
+          <label>Meno</label>
+          <input type="text" id="pMeno" placeholder="Ján" value="${p.meno||''}">
+        </div>
+        <div class="field">
+          <label>Priezvisko</label>
+          <input type="text" id="pPriezvisko" placeholder="Novák" value="${p.priezvisko||''}">
+        </div>
+      </div>
+      <div class="form-grid" style="margin-bottom:20px;">
+        <div class="field">
+          <label>Obec</label>
+          <input type="text" id="pObec" placeholder="Bratislava" value="${p.obec}">
+        </div>
+        <div class="field">
+          <label>PSČ</label>
+          <input type="text" id="pPsc" placeholder="811 01" value="${p.psc}" maxlength="6">
+        </div>
+      </div>
+      ` : `
+      <div class="form-grid cols-3" style="margin-bottom:20px;">
+        <div class="field">
+          <label>Rodné číslo</label>
+          <input type="text" id="pRodneCislo" placeholder="8001011234" value="${p.rodneCislo}">
+        </div>
+        <div class="field">
+          <label>Obec</label>
+          <input type="text" id="pObec" placeholder="Bratislava" value="${p.obec}">
+        </div>
+        <div class="field">
+          <label>PSČ</label>
+          <input type="text" id="pPsc" placeholder="811 01" value="${p.psc}" maxlength="6">
+        </div>
+      </div>
+      `}
+      ` : `
+      <div class="form-grid cols-3" style="margin-bottom:20px;">
+        <div class="field">
+          <label>IČO</label>
+          <input type="text" id="pIco" placeholder="12345678" value="${p.ico}" maxlength="8">
+        </div>
+        <div class="field">
+          <label>Obec</label>
+          <input type="text" id="pObec" placeholder="Bratislava" value="${p.obec}">
+        </div>
+        <div class="field">
+          <label>PSČ</label>
+          <input type="text" id="pPsc" placeholder="811 01" value="${p.psc}" maxlength="6">
+        </div>
+      </div>
+      `}
+
+      <div class="divider" style="margin-top:0;"></div>
+
+      <!-- Využitie + Ročný nájazd -->
+      <div class="form-grid" style="margin-bottom:16px;">
+        <div class="field">
+          <label>Využívanie vozidla</label>
+          <select id="fVyuzitie">
+            <option value="osobne"     ${v.vyuzitie==='osobne'     ?'selected':''}>Osobné</option>
+            <option value="podnikanie" ${v.vyuzitie==='podnikanie' ?'selected':''}>Podnikanie</option>
+            <option value="taxi"       ${v.vyuzitie==='taxi'       ?'selected':''}>Taxi / prenájom</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Ročný nájazd (km)</label>
+          <input type="number" id="fNajazd" placeholder="15000" value="${v.najazd}">
+        </div>
+      </div>
+
+      <!-- EČV + VIN -->
+      <div class="form-grid" style="margin-bottom:16px;">
+        <div class="field">
+          <label>Evidenčné číslo vozidla (EČV)</label>
+          <div class="ecv-row">
+            <input type="text" id="fEcv" placeholder="BA000AA" value="${v.ecv}" maxlength="10" style="flex:1;text-transform:uppercase;letter-spacing:2px;font-weight:600;">
+            <button class="ecv-lookup-btn" id="btnEcvLookup">🔍 Vyhľadať</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>VIN číslo vozidla</label>
+          <input type="text" id="fVin" placeholder="WBA3A5C55FK123456" value="${v.vin}" maxlength="17" style="font-size:13px;letter-spacing:1px;">
+        </div>
+      </div>
+
+      <div class="vehicle-info" id="vehicleInfo">
+        <span id="vehicleInfoText"></span>
+      </div>
+      <button type="button" class="btn-reset" id="btnResetVehicle">↩ Resetovať vozidlo</button>
+
+      <!-- ROZBAĽOVACIA SEKCIA -->
+      <div class="expandable" id="vehicleDetails">
+        <div class="divider"></div>
+
+        <!-- Toggles riadok 1 -->
+        <div class="form-grid" style="margin-bottom:16px;">
+          <div class="field">
+            <label>Nové vozidlo pred prvou registráciou</label>
+            ${toggleHtml('novePredReg', v.novePredReg)}
+          </div>
+          <div class="field">
+            <label>Vozidlo už má pridelené EČV</label>
+            ${toggleHtml('maEcv', v.maEcv)}
+          </div>
+        </div>
+
+        <!-- Typ + Dátum registrácie -->
+        <div class="form-grid" style="margin-bottom:16px;">
+          <div class="field">
+            <label>Typ vozidla</label>
+            <select id="fTyp">
+              <option value="osobne"  ${v.typ==='osobne'  ?'selected':''}>Osobný automobil</option>
+              <option value="suv"     ${v.typ==='suv'     ?'selected':''}>SUV / Crossover</option>
+              <option value="dodavka" ${v.typ==='dodavka' ?'selected':''}>Dodávka</option>
+              <option value="moto"    ${v.typ==='moto'    ?'selected':''}>Motocykel</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Dátum prvej registrácie</label>
+            <input type="date" id="fDatumReg" value="${v.datumReg}">
+          </div>
+        </div>
+
+        <!-- Značka + Model + Palivo -->
+        <div class="form-grid cols-3" style="margin-bottom:16px;">
+          <div class="field">
+            <label>Značka vozidla</label>
+            <input type="text" id="fZnacka" placeholder="BMW" value="${v.znacka}">
+          </div>
+          <div class="field">
+            <label>Model vozidla</label>
+            <input type="text" id="fModel" placeholder="320d" value="${v.model}">
+          </div>
+          <div class="field">
+            <label>Palivo</label>
+            <select id="fPalivo">
+              <option value="benzin"  ${v.palivo==='benzin'  ?'selected':''}>Benzín</option>
+              <option value="diesel"  ${v.palivo==='diesel'  ?'selected':''}>Diesel</option>
+              <option value="hybrid"  ${v.palivo==='hybrid'  ?'selected':''}>Hybrid</option>
+              <option value="elektro" ${v.palivo==='elektro' ?'selected':''}>Elektro</option>
+              <option value="lpg"     ${v.palivo==='lpg'     ?'selected':''}>LPG</option>
+              <option value="cng"     ${v.palivo==='cng'     ?'selected':''}>CNG</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Objem + Výkon + Hmotnosť -->
+        <div class="form-grid cols-3" style="margin-bottom:16px;">
+          <div class="field">
+            <label>Objem motora (cm³)</label>
+            <input type="number" id="fObjem" placeholder="1998" value="${v.objem}">
+          </div>
+          <div class="field">
+            <label>Výkon motora (kW)</label>
+            <input type="number" id="fVykon" placeholder="110" value="${v.vykon}">
+          </div>
+          <div class="field">
+            <label>Maximálna hmotnosť (kg)</label>
+            <input type="number" id="fHmotnost" placeholder="1850" value="${v.hmotnost}">
+          </div>
+        </div>
+
+        <!-- Checkboxy -->
+        <div class="field" style="margin-bottom:16px;">
+          <label>Výbava vozidla</label>
+          <div class="checkbox-group">
+            ${pillHtml('x4',       '4x4',               v.x4)}
+            ${pillHtml('automat',  'Automat',            v.automat)}
+            ${pillHtml('parkovaci','Parkovací asistent', v.parkovaci)}
+          </div>
+        </div>
+
+        <!-- Garážované + Zmluvný servis -->
+        <div class="form-grid" style="margin-bottom:16px;align-items:end;">
+          <div class="field">
+            <label>Vozidlo je garážované</label>
+            ${toggleHtml('garazovane', v.garazovane)}
+          </div>
+          <div class="field">
+            <label>Budete opravovať v zmluvnom servise?</label>
+            ${toggleHtml('zmluvnyServis', v.zmluvnyServis)}
+          </div>
+        </div>
+      </div><!-- end expandable -->
+
+      <div class="btn-row">
+        <button class="btn-primary" id="btnStep1Next">
+          Vypočítať cenu &nbsp;→
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ─── STEP 2 ──────────────────────────────────────────── */
+function renderStep2() {
+  const hero = ALL_PRODUCTS.find(p => p.id === CONFIG.hero);
+  const addons = ALL_PRODUCTS.filter(p => p.id !== CONFIG.hero);
+  const prices = state.apiPrices;
+  const loading = Object.keys(prices).length === 0;
+
+  const heroPrice = prices[hero.id]?.price;
+  const heroSelected = state.selected.has(hero.id);
+
+  const heroHtml = `
+    <div class="hero-insurance ${heroSelected ? 'selected' : ''}" id="heroCard" data-id="${hero.id}">
+      <div class="hero-tag">⭐ Odporúčané poistenie</div>
+      <div class="hero-name">${CONFIG.heroIcon} ${CONFIG.heroTitle}</div>
+      <div class="hero-desc">${CONFIG.heroDesc}</div>
+      <div class="hero-price-row">
+        <div>
+          <div class="hero-price">
+            ${loading ? '<div class="spinner" style="border-color:rgba(255,255,255,.3);border-top-color:#fff;width:28px;height:28px;"></div>' : `<strong>${fmt(heroPrice)}</strong>`}
+          </div>
+          <div class="hero-price-period">za mesiac</div>
+        </div>
+        <div class="hero-check">
+          ${heroSelected ? '<svg width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>' : ''}
+        </div>
+      </div>
+      <div class="hero-features">
+        ${CONFIG.heroFeatures.map(f => `<div class="hero-feature">✓ ${f}</div>`).join('')}
+      </div>
+    </div>`;
+
+  const addonsHtml = addons.map(p => {
+    const price = prices[p.id]?.price;
+    const sel = state.selected.has(p.id);
+    return `
+      <div class="addon-card ${sel ? 'selected' : ''} ${loading ? 'loading' : ''}" data-id="${p.id}">
+        <div class="addon-check"></div>
+        <span class="addon-icon">${p.icon}</span>
+        <div class="addon-name">${p.name}</div>
+        <div class="addon-price">${loading ? '...' : fmt(price)}<span style="font-size:11px;font-weight:400;color:var(--text-muted);">/mes.</span></div>
+      </div>`;
+  }).join('');
+
+  return `
+  <div class="step-screen">
+    <div class="card">
+      <div class="section-header">
+        <div class="card-title" style="margin-bottom:0;">Vyberte poistenia</div>
+        <div class="section-badge">Ceny od poisťovne</div>
+      </div>
+
+      <div class="vehicle-detail-row">
+        <div class="vehicle-detail-item"><label>EČV</label><span>${state.vehicle.ecv || '–'}</span></div>
+        <div class="vehicle-detail-item"><label>Rok výroby</label><span>${state.vehicle.rok || '–'}</span></div>
+        <div class="vehicle-detail-item"><label>Výkon</label><span>${state.vehicle.vykon ? state.vehicle.vykon + ' kW' : '–'}</span></div>
+        <div class="vehicle-detail-item"><label>Objem</label><span>${state.vehicle.objem ? state.vehicle.objem + ' ccm' : '–'}</span></div>
+      </div>
+
+      ${heroHtml}
+
+      <div class="addons-title">Doplnkové poistenia</div>
+      <div class="addons-grid">${addonsHtml}</div>
+
+      <div class="btn-row">
+        <button class="btn-secondary" id="btnStep2Back">← Späť</button>
+        <button class="btn-primary" id="btnStep2Next" ${state.selected.size === 0 ? 'disabled' : ''}>
+          Pokračovať &nbsp;→
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ─── STEP 3 ──────────────────────────────────────────── */
+function renderStep3() {
+  const c = state.client;
+  return `
+  <div class="step-screen">
+    <div class="card">
+      <div class="card-title">Údaje klienta a vozidla</div>
+      <div class="card-sub">Vyplňte osobné údaje poistníka a technické údaje vozidla potrebné pre vystavenie zmluvy.</div>
+
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-bottom:12px;">Osobné údaje</div>
+      <div class="form-grid" style="margin-bottom:16px;">
+        <div class="field">
+          <label>Meno</label>
+          <input type="text" id="fMeno" placeholder="Ján" value="${c.meno||''}">
+        </div>
+        <div class="field">
+          <label>Priezvisko</label>
+          <input type="text" id="fPriezvisko" placeholder="Novák" value="${c.priezvisko||''}">
+        </div>
+        <div class="field">
+          <label>Dátum narodenia</label>
+          <input type="date" id="fDnar" value="${c.dnar||''}">
+        </div>
+        <div class="field">
+          <label>Rodné číslo</label>
+          <input type="text" id="fRc" placeholder="8001011234" value="${c.rc||''}">
+        </div>
+      </div>
+
+      <div class="form-grid cols-1" style="margin-bottom:16px;">
+        <div class="field">
+          <label>Adresa trvalého pobytu</label>
+          <input type="text" id="fAdresa" placeholder="Hlavná 1, 811 01 Bratislava" value="${c.adresa||''}">
+        </div>
+      </div>
+
+      <div class="form-grid" style="margin-bottom:24px;">
+        <div class="field">
+          <label>E-mail</label>
+          <input type="email" id="fEmail" placeholder="jan.novak@email.sk" value="${c.email||''}">
+        </div>
+        <div class="field">
+          <label>Telefón</label>
+          <input type="tel" id="fTel" placeholder="+421 900 123 456" value="${c.tel||''}">
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-bottom:12px;">Údaje o vozidle</div>
+
+      <div class="form-grid cols-3">
+        <div class="field">
+          <label>VIN</label>
+          <input type="text" id="fVin" placeholder="WBA3A5C55FK123456" value="${c.vin||''}" style="font-size:13px;" maxlength="17">
+        </div>
+        <div class="field">
+          <label>Značka</label>
+          <input type="text" id="fZnacka" placeholder="BMW" value="${c.znacka||''}">
+        </div>
+        <div class="field">
+          <label>Model</label>
+          <input type="text" id="fModel" placeholder="320d" value="${c.model||''}">
+        </div>
+        <div class="field">
+          <label>Farba</label>
+          <input type="text" id="fFarba" placeholder="Biela" value="${c.farba||''}">
+        </div>
+        <div class="field">
+          <label>Počet sedadiel</label>
+          <input type="number" id="fSedadla" placeholder="5" value="${c.sedadla||''}">
+        </div>
+        <div class="field">
+          <label>Nosnosť (kg)</label>
+          <input type="number" id="fNosnost" placeholder="450" value="${c.nosnost||''}">
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-secondary" id="btnStep3Back">← Späť</button>
+        <button class="btn-primary" id="btnStep3Next">Pokračovať &nbsp;→</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ─── STEP 4 ──────────────────────────────────────────── */
+function renderStep4() {
+  const c = state.client;
+  const selectedProducts = ALL_PRODUCTS.filter(p => state.selected.has(p.id));
+
+  const itemsHtml = selectedProducts.map(p => `
+    <div class="summary-item">
+      <div class="summary-item-name">
+        ${p.icon} ${p.name}
+        <small>${p.desc}</small>
+      </div>
+      <div class="summary-item-price">${fmt(state.apiPrices[p.id]?.price || 0)}/mes.</div>
+    </div>`).join('');
+
+  return `
+  <div class="step-screen">
+    <div class="card">
+      <div class="card-title">Súhrn a potvrdenie</div>
+      <div class="card-sub">Skontrolujte vybrané poistenia a klientske údaje pred odoslaním zmluvy.</div>
+
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-bottom:12px;">Vybrané poistenia</div>
+      ${itemsHtml}
+      <div class="summary-total">
+        <div class="summary-total-label">Celkom mesačne</div>
+        <div class="summary-total-price">${fmt(totalPrice())}<span>/mes.</span></div>
+      </div>
+
+      <div class="divider"></div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-bottom:12px;">Klient</div>
+      <div style="font-size:14px;color:var(--text);line-height:1.8;">
+        <strong>${c.meno||''} ${c.priezvisko||''}</strong><br>
+        ${c.adresa||''}<br>
+        ${c.email||''} &nbsp;·&nbsp; ${c.tel||''}
+      </div>
+
+      <div class="divider"></div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-bottom:12px;">Vozidlo</div>
+      <div style="font-size:14px;color:var(--text);line-height:1.8;">
+        <strong>${c.znacka||''} ${c.model||''}</strong> &nbsp;·&nbsp; ${state.vehicle.ecv||''}<br>
+        VIN: ${c.vin||'–'} &nbsp;·&nbsp; Rok výroby: ${state.vehicle.rok||'–'}
+      </div>
+
+      <div class="info-box" style="margin-top:20px;margin-bottom:0;">
+        <div class="info-box-icon">🔒</div>
+        <p>Odoslaním potvrdzujem, že som sa oboznámil/a s <strong>podmienkami poistenia</strong> a súhlasím so spracovaním osobných údajov v zmysle GDPR.</p>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-secondary" id="btnStep4Back">← Späť</button>
+        <button class="btn-primary" id="btnStep4Submit" ${state.submitting?'disabled':''}>
+          ${state.submitting ? '<span class="spinner"></span> Odosielam...' : '✅ Potvrdiť a odoslať'}
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ─── SUCCESS SCREEN ──────────────────────────────────── */
+function renderSuccess(zmluvaId) {
+  document.getElementById('priceBar').style.display = 'none';
+  document.getElementById('main').innerHTML = `
+  <div class="step-screen">
+    <div class="card">
+      <div class="success-screen">
+        <div class="success-icon">✅</div>
+        <div class="success-title">Zmluva bola odoslaná!</div>
+        <div class="success-sub">
+          Číslo zmluvy: <strong>${zmluvaId}</strong><br><br>
+          Potvrdenie sme odoslali na <strong>${state.client.email||'váš e-mail'}</strong>.<br>
+          Váš sprostredkovateľ vás bude kontaktovať do 24 hodín.
+        </div>
+      </div>
+    </div>
+  </div>`;
+  // update stepper to show all done
+  document.querySelectorAll('.step').forEach(el => el.classList.add('done'));
+}
+
+/* ════════════════════════════════════════════════════════
+   EVENT LISTENERS
+════════════════════════════════════════════════════════ */
+function attachListeners() {
+  // STEP 1 — Expand + Lookup + Modal
+  const vehicleDetails = document.getElementById('vehicleDetails');
+  const vehicleInfo    = document.getElementById('vehicleInfo');
+  const btnReset       = document.getElementById('btnResetVehicle');
+
+  function showVehicleInfo(type, text) {
+    const icons = { loading: '⏳', found: '✅', 'not-found': '⚠️' };
+    vehicleInfo.className = `vehicle-info visible ${type}`;
+    document.getElementById('vehicleInfoText').textContent = `${icons[type]} ${text}`;
+  }
+
+  function fillVehicleFields(d) {
+    if (d.znacka)   document.getElementById('fZnacka').value   = d.znacka;
+    if (d.model)    document.getElementById('fModel').value    = d.model;
+    if (d.datumReg) document.getElementById('fDatumReg').value = d.datumReg;
+    if (d.typ)      document.getElementById('fTyp').value      = d.typ;
+    if (d.palivo)   document.getElementById('fPalivo').value   = d.palivo;
+    if (d.vykon)    document.getElementById('fVykon').value    = d.vykon;
+    if (d.objem)    document.getElementById('fObjem').value    = d.objem;
+    if (d.hmotnost) document.getElementById('fHmotnost').value = d.hmotnost;
+  }
+
+  function clearVehicleFields() {
+    ['fZnacka','fModel','fDatumReg','fVykon','fObjem','fHmotnost'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    const fTyp = document.getElementById('fTyp');
+    if (fTyp) fTyp.value = 'osobne';
+    const fPalivo = document.getElementById('fPalivo');
+    if (fPalivo) fPalivo.value = 'benzin';
+  }
+
+  function showModal(data) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'vehicleModal';
+
+    const items = [
+      { label: 'Značka',      val: data.znacka },
+      { label: 'Model',       val: data.model },
+      { label: 'Rok reg.',    val: data.datumReg?.slice(0,4) },
+      { label: 'Palivo',      val: data.palivo },
+      { label: 'Výkon',       val: data.vykon ? data.vykon + ' kW' : '–' },
+      { label: 'Objem',       val: data.objem ? data.objem + ' cm³' : '–' },
+      { label: 'Hmotnosť',    val: data.hmotnost ? data.hmotnost + ' kg' : '–' },
+      { label: 'Typ',         val: data.typ },
+    ].map(i => `
+      <div class="modal-vehicle-item">
+        <label>${i.label}</label>
+        <span>${i.val || '–'}</span>
+      </div>`).join('');
+
+    overlay.innerHTML = `
+      <div class="modal">
+        <div class="modal-title">Je to vaše vozidlo?</div>
+        <div class="modal-sub">Skontrolujte údaje. Ak niečo nesedí, môžete ich po potvrdení upraviť.</div>
+        <div class="modal-vehicle-grid">${items}</div>
+        <div class="modal-btn-row">
+          <button class="btn-secondary" id="modalBtnOther">Vypísať iné</button>
+          <button class="btn-primary"   id="modalBtnConfirm">✓ Potvrdiť</button>
+        </div>
+      </div>`;
+
+    document.body.appendChild(overlay);
+
+    document.getElementById('modalBtnConfirm').addEventListener('click', () => {
+      vehicleDetails.classList.add('open');
+      fillVehicleFields(data);
+      showVehicleInfo('found', `${data.znacka} ${data.model} (${data.datumReg?.slice(0,4)}) · ${data.vykon} kW · ${data.objem} cm³`);
+      btnReset.classList.add('visible');
+      overlay.remove();
+    });
+
+    document.getElementById('modalBtnOther').addEventListener('click', () => {
+      vehicleDetails.classList.add('open');
+      clearVehicleFields();
+      showVehicleInfo('not-found', 'Vyplňte údaje vozidla ručne.');
+      btnReset.classList.add('visible');
+      overlay.remove();
+    });
+  }
+
+  async function triggerLookup(ecv, vin) {
+    if (state.lookupDone) return;
+    state.lookupDone = true;
+    showVehicleInfo('loading', 'Vyhľadávam vozidlo...');
+
+    const result = await apiLookupVehicle({ ecv, vin });
+
+    if (result.found) {
+      showModal(result.data);
+    } else {
+      vehicleDetails.classList.add('open');
+      showVehicleInfo('not-found', 'Vozidlo sa nenašlo v databáze. Vyplňte údaje ručne.');
+      btnReset.classList.add('visible');
+    }
+  }
+
+  // Reset vozidla
+  function resetVehicle() {
+    state.vehicle.ecv = '';
+    state.vehicle.vin = '';
+    state.lookupDone = false;
+    document.getElementById('fEcv').value = '';
+    document.getElementById('fVin').value = '';
+    clearVehicleFields();
+    vehicleDetails.classList.remove('open');
+    vehicleInfo.className = 'vehicle-info';
+    btnReset.classList.remove('visible');
+    lookupDone = false;
+    state.vehicle.novePredReg = null;
+    state.vehicle.maEcv = null;
+    state.vehicle.garazovane = null;
+    state.vehicle.zmluvnyServis = null;
+    state.vehicle.x4 = false;
+    state.vehicle.automat = false;
+    state.vehicle.parkovaci = false;
+    render();
+  }
+
+  btnReset?.addEventListener('click', resetVehicle);
+
+  // Otvoriť automaticky ak už sú hodnoty (napr. po re-renderi)
+  if (state.vehicle.ecv || state.vehicle.vin) {
+    vehicleDetails.classList.add('open');
+    btnReset?.classList.add('visible');
+  }
+
+  document.getElementById('fEcv')?.addEventListener('input', function() {
+    this.value = this.value.toUpperCase();
+    state.vehicle.ecv = this.value.trim();
+    if (this.value.trim().length >= 7) triggerLookup(this.value.trim(), '');
+  });
+
+  document.getElementById('fVin')?.addEventListener('input', function() {
+    this.value = this.value.toUpperCase();
+    state.vehicle.vin = this.value.trim();
+    if (this.value.trim().length >= 17) triggerLookup('', this.value.trim());
+  });
+
+  // Manuálne vyhľadanie / retry
+  const btnEcv = document.getElementById('btnEcvLookup');
+  if (btnEcv) btnEcv.addEventListener('click', () => {
+    const ecv = document.getElementById('fEcv').value.trim().toUpperCase();
+    const vin = document.getElementById('fVin').value.trim().toUpperCase();
+    if (!ecv && !vin) return;
+    state.lookupDone = false;
+    triggerLookup(ecv, vin);
+  });
+
+  // Helper — uloží aktuálne hodnoty polí poistníka do state
+  function savePoistnikFields() {
+    const p = state.poistnik;
+    p.rodneCislo  = document.getElementById('pRodneCislo')?.value  ?? p.rodneCislo;
+    p.datumNar    = document.getElementById('pDatumNar')?.value    ?? p.datumNar;
+    p.meno        = document.getElementById('pMeno')?.value        ?? p.meno;
+    p.priezvisko  = document.getElementById('pPriezvisko')?.value  ?? p.priezvisko;
+    p.ico         = document.getElementById('pIco')?.value         ?? p.ico;
+    p.obec        = document.getElementById('pObec')?.value        ?? p.obec;
+    p.psc         = document.getElementById('pPsc')?.value         ?? p.psc;
+  }
+
+  // Segment control — typ poistníka
+  document.querySelectorAll('[data-segment]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      savePoistnikFields();
+      state.poistnik.typ = btn.dataset.segment;
+      render();
+    });
+  });
+
+  // Checkbox cudzinec
+  document.getElementById('pCudzinec')?.addEventListener('change', function() {
+    savePoistnikFields();
+    state.poistnik.cudzinec = this.checked;
+    render();
+  });
+
+  // Toggles (Áno/Nie)
+  document.querySelectorAll('[data-toggle]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.toggle;
+      const val = btn.dataset.val === 'true';
+      state.vehicle[key] = val;
+      render();
+    });
+  });
+
+  // Checkbox pills
+  document.querySelectorAll('[data-pill]').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const key = pill.dataset.pill;
+      state.vehicle[key] = !state.vehicle[key];
+      render();
+    });
+  });
+
+  const btnS1Next = document.getElementById('btnStep1Next');
+  if (btnS1Next) btnS1Next.addEventListener('click', async () => {
+    const v = state.vehicle;
+    // Zbieranie hodnôt z formulára
+    v.ecv      = (document.getElementById('fEcv')?.value      || '').trim().toUpperCase();
+    v.vin      = (document.getElementById('fVin')?.value      || '').trim().toUpperCase();
+    v.typ      = document.getElementById('fTyp')?.value      || v.typ;
+    v.vyuzitie = document.getElementById('fVyuzitie')?.value  || v.vyuzitie;
+    v.datumReg = document.getElementById('fDatumReg')?.value  || '';
+    v.znacka   = document.getElementById('fZnacka')?.value    || '';
+    v.model    = document.getElementById('fModel')?.value     || '';
+    v.objem    = document.getElementById('fObjem')?.value     || '';
+    v.vykon    = document.getElementById('fVykon')?.value     || '';
+    v.hmotnost = document.getElementById('fHmotnost')?.value  || '';
+    v.palivo   = document.getElementById('fPalivo')?.value    || v.palivo;
+    v.najazd   = document.getElementById('fNajazd')?.value    || '';
+
+    savePoistnikFields();
+
+    if (!v.objem || !v.vykon) {
+      alert('Prosím vyplňte aspoň objem a výkon motora.');
+      return;
+    }
+
+    btnS1Next.disabled = true;
+    btnS1Next.innerHTML = '<span class="spinner"></span> Kalkulujem...';
+
+    const prices = await apiGetPrices(state.vehicle);
+    state.apiPrices = prices;
+    state.selected.add(CONFIG.hero);
+
+    state.step = 2;
+    render();
+  });
+
+  // STEP 2 — hero toggle
+  const heroCard = document.getElementById('heroCard');
+  if (heroCard) heroCard.addEventListener('click', () => {
+    const id = heroCard.dataset.id;
+    state.selected.has(id) ? state.selected.delete(id) : state.selected.add(id);
+    render();
+  });
+
+  // STEP 2 — addon toggles
+  document.querySelectorAll('.addon-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const id = card.dataset.id;
+      state.selected.has(id) ? state.selected.delete(id) : state.selected.add(id);
+      render();
+    });
+  });
+
+  const btnS2Back = document.getElementById('btnStep2Back');
+  if (btnS2Back) btnS2Back.addEventListener('click', () => { state.step = 1; render(); });
+
+  const btnS2Next = document.getElementById('btnStep2Next');
+  if (btnS2Next) btnS2Next.addEventListener('click', () => {
+    if (state.selected.size === 0) return;
+    state.step = 3;
+    render();
+  });
+
+  // STEP 3
+  const btnS3Back = document.getElementById('btnStep3Back');
+  if (btnS3Back) btnS3Back.addEventListener('click', () => { state.step = 2; render(); });
+
+  const btnS3Next = document.getElementById('btnStep3Next');
+  if (btnS3Next) btnS3Next.addEventListener('click', () => {
+    const meno = document.getElementById('fMeno').value.trim();
+    const priezvisko = document.getElementById('fPriezvisko').value.trim();
+    const email = document.getElementById('fEmail').value.trim();
+    if (!meno || !priezvisko || !email) {
+      alert('Prosím vyplňte aspoň meno, priezvisko a e-mail.');
+      return;
+    }
+    state.client = {
+      meno, priezvisko,
+      dnar:     document.getElementById('fDnar').value,
+      rc:       document.getElementById('fRc').value,
+      adresa:   document.getElementById('fAdresa').value,
+      email,
+      tel:      document.getElementById('fTel').value,
+      vin:      document.getElementById('fVin').value,
+      znacka:   document.getElementById('fZnacka').value,
+      model:    document.getElementById('fModel').value,
+      farba:    document.getElementById('fFarba').value,
+      sedadla:  document.getElementById('fSedadla').value,
+      nosnost:  document.getElementById('fNosnost').value,
+    };
+    state.step = 4;
+    render();
+  });
+
+  // STEP 4
+  const btnS4Back = document.getElementById('btnStep4Back');
+  if (btnS4Back) btnS4Back.addEventListener('click', () => { state.step = 3; render(); });
+
+  const btnS4Submit = document.getElementById('btnStep4Submit');
+  if (btnS4Submit) btnS4Submit.addEventListener('click', async () => {
+    state.submitting = true;
+    render();
+    const payload = {
+      vehicle: state.vehicle,
+      client: state.client,
+      products: Array.from(state.selected),
+      prices: state.apiPrices,
+    };
+    const result = await apiSubmit(payload);
+    state.submitting = false;
+    if (result.success) {
+      renderSuccess(result.zmluvaId);
+    } else {
+      alert('Chyba pri odosielaní. Skúste znova.');
+      render();
+    }
+  });
+}
+
+/* ════════════════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════════════════ */
+render();
+</script>
+</body>
+</html>
