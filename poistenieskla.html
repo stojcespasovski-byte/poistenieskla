@@ -1237,7 +1237,10 @@ function renderStep1() {
       <div class="vehicle-info" id="vehicleInfo">
         <span id="vehicleInfoText"></span>
       </div>
-      <button type="button" class="btn-reset" id="btnResetVehicle">↩ Resetovať vozidlo</button>
+      <div id="resetBtns" style="display:flex;gap:16px;align-items:center;">
+        <button type="button" class="btn-reset" id="btnResetVehicle">↩ Resetovať vozidlo</button>
+        <button type="button" class="btn-reset visible" id="btnResetAll">↺ Resetovať formulár</button>
+      </div>
 
       <!-- ROZBAĽOVACIA SEKCIA -->
       <div class="expandable" id="vehicleDetails">
@@ -1683,17 +1686,22 @@ function attachListeners() {
   }
 
   // Reset vozidla
+  function syncPoistnikFromDOM() {
+    const p = state.poistnik;
+    p.rodneCislo  = document.getElementById('pRodneCislo')?.value  ?? p.rodneCislo;
+    p.datumNar    = document.getElementById('pDatumNar')?.value    ?? p.datumNar;
+    p.meno        = document.getElementById('pMeno')?.value        ?? p.meno;
+    p.priezvisko  = document.getElementById('pPriezvisko')?.value  ?? p.priezvisko;
+    p.ico         = document.getElementById('pIco')?.value         ?? p.ico;
+    p.obec        = document.getElementById('pObec')?.value        ?? p.obec;
+    p.psc         = document.getElementById('pPsc')?.value         ?? p.psc;
+  }
+
   function resetVehicle() {
+    syncPoistnikFromDOM();
     state.vehicle.ecv = '';
     state.vehicle.vin = '';
     state.lookupDone = false;
-    document.getElementById('fEcv').value = '';
-    document.getElementById('fVin').value = '';
-    clearVehicleFields();
-    vehicleDetails.classList.remove('open');
-    vehicleInfo.className = 'vehicle-info';
-    btnReset.classList.remove('visible');
-    lookupDone = false;
     state.vehicle.novePredReg = null;
     state.vehicle.maEcv = null;
     state.vehicle.garazovane = null;
@@ -1701,10 +1709,39 @@ function attachListeners() {
     state.vehicle.x4 = false;
     state.vehicle.automat = false;
     state.vehicle.parkovaci = false;
+    state.vehicle.znacka = '';
+    state.vehicle.model = '';
+    state.vehicle.datumReg = '';
+    state.vehicle.palivo = 'benzin';
+    state.vehicle.vykon = '';
+    state.vehicle.objem = '';
+    state.vehicle.hmotnost = '';
     render();
   }
 
-  btnReset?.addEventListener('click', resetVehicle);
+  function resetAll() {
+    state.vehicle = {
+      ecv: '', vin: '',
+      novePredReg: null, maEcv: null,
+      typ: 'osobne', vyuzitie: 'osobne',
+      datumReg: '', znacka: '', model: '',
+      objem: '', vykon: '', hmotnost: '',
+      palivo: 'benzin',
+      garazovane: null, zmluvnyServis: null,
+      x4: false, automat: false, parkovaci: false,
+      najazd: '',
+    };
+    state.lookupDone = false;
+    state.poistnik = {
+      typ: 'fo', cudzinec: false,
+      rodneCislo: '', datumNar: '', meno: '', priezvisko: '',
+      ico: '', obec: '', psc: '',
+    };
+    render();
+  }
+
+  document.getElementById('btnResetVehicle')?.addEventListener('click', resetVehicle);
+  document.getElementById('btnResetAll')?.addEventListener('click', resetAll);
 
   // Otvoriť automaticky ak už sú hodnoty (napr. po re-renderi)
   if (state.vehicle.ecv || state.vehicle.vin) {
