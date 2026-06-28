@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prihlásenie — poistenieskla.sk</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --accent:       #2563EB;
+      --accent-light: #EFF6FF;
+      --hero-bg:      #0F172A;
+      --surface:      #FFFFFF;
+      --surface-2:    #F8FAFC;
+      --border:       #E2E8F0;
+      --text:         #0F172A;
+      --text-muted:   #64748B;
+      --danger:       #EF4444;
+      --radius:       14px;
+      --shadow:       0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+      --shadow-lg:    0 8px 32px rgba(0,0,0,.12);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--surface-2);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: var(--hero-bg);
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+    }
+    .logo {
+      font-family: 'Instrument Serif', serif;
+      font-size: 22px;
+      color: #fff;
+      letter-spacing: -.3px;
+    }
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      padding: 40px;
+      width: 100%;
+      max-width: 400px;
+    }
+    .card-logo {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+    .card-logo img {
+      max-height: 56px;
+      max-width: 180px;
+      object-fit: contain;
+    }
+    .card-logo-placeholder {
+      font-family: 'Instrument Serif', serif;
+      font-size: 26px;
+      color: var(--hero-bg);
+      letter-spacing: -.3px;
+    }
+    h1 {
+      font-family: 'Instrument Serif', serif;
+      font-size: 24px;
+      font-weight: 400;
+      color: var(--text);
+      margin-bottom: 6px;
+      text-align: center;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--surface);
+      outline: none;
+      transition: border-color .15s;
+      margin-bottom: 20px;
+    }
+    input:focus { border-color: var(--accent); }
+    input.error { border-color: var(--danger); }
+    .btn {
+      width: 100%;
+      padding: 12px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn:hover { opacity: .9; }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .error-msg {
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      color: var(--danger);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="logo">poistenieskla.sk</span>
+  </header>
+  <main>
+    <div class="card">
+      <div class="card-logo">
+        <span class="card-logo-placeholder">Prihlásenie</span>
+      </div>
+      <h1>Vitajte</h1>
+      <p class="subtitle">Prihláste sa do portálu pre autoservisy</p>
+
+      <div class="error-msg" id="errMsg"></div>
+
+      <form id="loginForm" autocomplete="on">
+        <label for="login">Prihlasovacie meno</label>
+        <input type="text" id="login" name="username" autocomplete="username" placeholder="meno.priezvisko" required>
+
+        <label for="password">Heslo</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" placeholder="••••••••" required>
+
+        <button class="btn" type="submit" id="btnLogin">
+          Prihlásiť sa
+        </button>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    const API = 'https://api.pripoisti.sk';
+
+    // ak už má platný token, rovno na hlavnú
+    (function checkExistingSession() {
+      const raw = localStorage.getItem('ps_token');
+      if (!raw) return;
+      try {
+        const payload = JSON.parse(atob(raw.split('.')[1]));
+        if (payload.exp * 1000 > Date.now()) {
+          window.location.replace('poistenieskla.html');
+        }
+      } catch (_) {}
+    })();
+
+    const form    = document.getElementById('loginForm');
+    const btnLogin = document.getElementById('btnLogin');
+    const errMsg  = document.getElementById('errMsg');
+    const loginIn = document.getElementById('login');
+    const passIn  = document.getElementById('password');
+
+    function showError(msg) {
+      errMsg.textContent = msg;
+      errMsg.style.display = 'block';
+      loginIn.classList.add('error');
+      passIn.classList.add('error');
+    }
+
+    function clearError() {
+      errMsg.style.display = 'none';
+      loginIn.classList.remove('error');
+      passIn.classList.remove('error');
+    }
+
+    function setLoading(on) {
+      if (on) {
+        btnLogin.disabled = true;
+        btnLogin.innerHTML = '<span class="spinner"></span> Prihlasujem…';
+      } else {
+        btnLogin.disabled = false;
+        btnLogin.textContent = 'Prihlásiť sa';
+      }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearError();
+      setLoading(true);
+
+      try {
+        const resp = await fetch(`${API}/bcrm/auth`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            login:    loginIn.value.trim(),
+            password: passIn.value,
+          }),
+        });
+
+        if (!resp.ok) {
+          showError('Nesprávne meno alebo heslo.');
+          return;
+        }
+
+        const data = await resp.json();
+
+        localStorage.setItem('ps_token',   data.token);
+        localStorage.setItem('ps_meno',    data.meno    || '');
+        localStorage.setItem('ps_rola',    data.rola    || '');
+        localStorage.setItem('ps_pobocka', data.pobocka || '');
+        if (data.logo) localStorage.setItem('ps_logo', data.logo);
+        else           localStorage.removeItem('ps_logo');
+
+        window.location.replace('poistenieskla.html');
+
+      } catch (err) {
+        showError('Chyba pripojenia. Skontrolujte internet a skúste znova.');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    });
+  </script>
+</body>
+</html>

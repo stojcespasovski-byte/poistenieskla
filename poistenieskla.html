@@ -1284,7 +1284,7 @@ const state = {
   step: 0,
   view: 'login',   // 'login' | 'form' | 'dashboard'
   dashTab: 0,
-  user: { username: '', meno: '', rola: '', firmaId: null, prevadzkaId: null },
+  user: { uid: '', meno: '', rola: '', pobocka: '' },
   lookupDone: false,
   vehicleStatus: null,   // null | 'loading' | 'found' | 'not-found'
   vehicleInfoText: '',
@@ -4396,7 +4396,7 @@ function renderStep0() {
 function updateHeader() {
   const right = document.getElementById('headerRight');
   if (!right) return;
-  if (!state.user.username) { right.innerHTML = ''; return; }
+  if (!state.user.uid) { right.innerHTML = ''; return; }
   const rola = state.user.rola;
   const isPrac = rola === 'pracovnik';
   const isAdmin = rola === 'admin';
@@ -5402,10 +5402,8 @@ function renderSuccess(zmluvaId) {
   const v = state.vehicle;
   state.zmluvy.unshift({
     cislo:      zmluvaId,
-    firmaId:    state.user.firmaId,
-    prevadzkaId:state.user.prevadzkaId,
     pracovnik:  state.user.meno,
-    pobocka:    state.user.meno,
+    pobocka:    state.user.pobocka || state.user.meno,
     datum,
     klient:     [p.meno, p.priezvisko].filter(Boolean).join(' ') || p.nazov || '—',
     tel:        p.tel || '—',
@@ -5429,7 +5427,7 @@ function renderSuccess(zmluvaId) {
         <div class="success-title">Zmluva bola odoslaná!</div>
         <div class="success-sub">
           Číslo zmluvy: <strong>${zmluvaId}</strong>${varSymRow}<br><br>
-          Potvrdenie sme odoslali na <strong>${state.client.email||'váš e-mail'}</strong>.<br>
+          Potvrdenie sme odoslali na <strong>${state.poistnik.email||'váš e-mail'}</strong>.<br>
           Váš sprostredkovateľ vás bude kontaktovať do 24 hodín.
         </div>
       </div>
@@ -5624,44 +5622,10 @@ function setupObecAutocomplete(inputId, pscInputId) {
 ════════════════════════════════════════════════════════ */
 function attachListeners() {
 
-  // ── LOGIN ────────────────────────────────────────────────
-  if (state.view === 'login') {
-    function doLogin() {
-      const username = document.getElementById('loginUsername')?.value.trim().toLowerCase();
-      const heslo    = document.getElementById('loginHeslo')?.value;
-      const errEl    = document.getElementById('loginError');
-      const user     = MOCK_USERS[username];
-      if (user && user.heslo === heslo) {
-        state.user = { username, meno: user.meno, rola: user.rola,
-                       firmaId: user.firmaId || null, prevadzkaId: user.prevadzkaId || null };
-        if (user.rola === 'pracovnik') {
-          state.view = 'form';
-          if (state.step < 1) state.step = 1;
-          // ak máme rozpracovaný formulár, znova načítaj ceny (calcId mohol expirovaný)
-          if (state.step >= 2 && state.vehicle.ecv) {
-            state.priceCache = {};
-            render();
-            prefetchAllPrices().then(() => render()).catch(() => {});
-          }
-        } else {
-          state.view = 'dashboard'; state.dashTab = 0;
-        }
-        render();
-      } else {
-        errEl?.classList.add('visible');
-      }
-    }
-    document.getElementById('btnLogin')?.addEventListener('click', doLogin);
-    document.getElementById('loginHeslo')?.addEventListener('keydown', e => {
-      if (e.key === 'Enter') doLogin();
-    });
-  }
-
   // ── LOGOUT ───────────────────────────────────────────────
   document.getElementById('btnLogout')?.addEventListener('click', () => {
-    state.user = { username:'', meno:'', rola:'', firmaId:null, prevadzkaId:null };
-    state.view = 'login'; state.step = 0; state.dashTab = 0;
-    render();
+    ['ps_token','ps_meno','ps_rola','ps_pobocka','ps_logo'].forEach(k => localStorage.removeItem(k));
+    window.location.replace('login.html');
   });
 
   // ── HEADER CONTEXT BUTTONS ───────────────────────────────
@@ -6586,8 +6550,32 @@ function renderZmluvyTable(zmluvy = MOCK_ZMLUVY) {
 }
 
 /* ════════════════════════════════════════════════════════
-   INIT
+   INIT — JWT auth
 ════════════════════════════════════════════════════════ */
+(function initAuth() {
+  const token = localStorage.getItem('ps_token');
+  if (!token) { window.location.replace('login.html'); return; }
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    if (payload.exp * 1000 < Date.now()) {
+      localStorage.removeItem('ps_token');
+      window.location.replace('login.html');
+      return;
+    }
+    state.user = {
+      uid:     payload.sub  || '',
+      meno:    payload.meno || localStorage.getItem('ps_meno')    || '',
+      rola:    payload.rola || localStorage.getItem('ps_rola')    || 'pracovnik',
+      pobocka: payload.pobocka || localStorage.getItem('ps_pobocka') || '',
+    };
+    state.view = 'form';
+    if (state.step < 1) state.step = 1;
+  } catch (_) {
+    window.location.replace('login.html');
+    return;
+  }
+})();
+
 loadState();
 render();
 </script>
