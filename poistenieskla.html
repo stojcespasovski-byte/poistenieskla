@@ -5747,11 +5747,8 @@ function renderStep3() {
             <div class="field"><label>VIN</label><input type="text" id="s3Vin" class="mono" value="${v.vin||''}" style="font-size:13px;" readonly></div>
             <div class="field"><label>EČV</label><input type="text" class="mono" value="${v.ecv||''}" readonly></div>
             <div class="field field-db">
-              <label style="display:flex;justify-content:space-between;align-items:center;">Číslo TP
-                <span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--ink-3);cursor:pointer;">
-                  <input type="checkbox" id="s3BezTp" ${v.bezTp ? 'checked' : ''} style="width:12px;height:12px;accent-color:var(--teal-dark);">bez TP</span>
-              </label>
-              <input type="text" id="s3Tp" class="mono" placeholder="AB123456" value="${v.bezTp ? '' : (v.tp||'')}" ${v.bezTp ? 'readonly' : ''}>
+              <label>Číslo TP</label>
+              <input type="text" id="s3Tp" class="mono" placeholder="Pred prihlásením" value="${v.tp||''}">
               ${EDIT_ICON}
             </div>
             <div class="field field-db">
@@ -6878,13 +6875,6 @@ function attachListeners() {
     render();
   });
 
-  // Checkbox bezTp
-  document.getElementById('s3BezTp')?.addEventListener('change', function() {
-    state.vehicle.bezTp = this.checked;
-    if (this.checked) state.vehicle.tp = '';
-    render();
-  });
-
   // Farba dropdown
   document.getElementById('s3Farba')?.addEventListener('change', function() {
     state.vehicle.farba = this.value;
@@ -6976,7 +6966,6 @@ function attachListeners() {
     }
     if (!state.poistnik.email)              markS3('s3Email');
     if (!state.poistnik.tel)                markS3('s3Tel');
-    if (!state.vehicle.bezTp && !state.vehicle.tp) markS3('s3Tp');
 
     if (s3errors.length > 0) {
       s3errors[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
