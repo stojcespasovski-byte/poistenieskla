@@ -1573,10 +1573,10 @@
   .s4 .block-title { font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--ink-3);white-space:nowrap; }
   .s4 .block-rule { flex:1;height:1px;background:var(--border); }
   .s4 .row { display:grid;gap:8px;margin-bottom:8px; }
-  .s4 .row.c4 { grid-template-columns:1fr 1fr 1fr 1fr; }
+  .s4 .row.c4 { grid-template-columns:repeat(4,minmax(0,1fr)); }
   .s4 .row:last-child { margin-bottom:0; }
   .s4 .fv label { display:block;font-size:11px;font-weight:600;letter-spacing:.45px;text-transform:uppercase;color:var(--teal-dark);margin-bottom:2px; }
-  .s4 .fv .val { font-size:16px;color:var(--ink);padding:4px 0;border-bottom:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+  .s4 .fv .val { font-size:15px;color:var(--ink);padding:4px 0;border-bottom:1px solid var(--border);overflow-wrap:anywhere;min-width:0; }
   .s4 .fv .val.mono { font-variant-numeric:tabular-nums; }
   .s4 .fv .val.empty { color:var(--ink-4); }
   .s4 .poistenie-row { display:flex;align-items:flex-start;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);gap:8px; }
@@ -1588,13 +1588,13 @@
   .s4 .celkom-row { display:flex;justify-content:space-between;align-items:baseline;padding:10px 0 0;border-top:2px solid var(--teal-dark);margin-top:4px; }
   .s4 .celkom-lbl { font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-3); }
   .s4 .celkom-val { font-size:22px;font-weight:800;color:var(--teal-dark);letter-spacing:-.5px; }
-  .s4 .doc-item { display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--teal-dark);cursor:pointer;text-decoration:none;padding:6px 0;border-bottom:1px solid var(--border);line-height:1.3; }
+  .s4 .doc-item { display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:500;text-transform:none;color:var(--teal-dark);cursor:pointer;text-decoration:none;padding:6px 0;border-bottom:1px solid var(--border);line-height:1.35; }
   .s4 .doc-item:last-child { border-bottom:none; }
   .s4 .doc-item:hover { color:var(--teal-accent); }
-  .s4 .suhlas-item { display:flex;align-items:flex-start;gap:9px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--ink-2);cursor:pointer;line-height:1.3; }
+  .s4 .suhlas-item { display:flex;align-items:flex-start;gap:9px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12.5px;font-weight:500;text-transform:none;color:var(--teal-dark);cursor:pointer;line-height:1.35; }
   .s4 .suhlas-item:last-child { border-bottom:none; }
   .s4 .suhlas-item input { width:14px;height:14px;accent-color:var(--teal-dark);flex-shrink:0;margin-top:1px;cursor:pointer; }
-  .s4 .suhlas-link { color:var(--teal-dark);text-decoration:none; }
+  .s4 .suhlas-link { font-size:12.5px;font-weight:500;text-transform:none;color:var(--teal-dark);text-decoration:none; }
   .s4 .card-foot { padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center; }
   .s4 .btn-back { display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border:1px solid var(--border-strong);border-radius:5px;background:#fff;font-size:13px;font-weight:500;color:var(--ink-3);cursor:pointer;font-family:inherit; }
   .s4 .btn-back:hover { border-color:var(--teal-dark);color:var(--teal-dark); }
@@ -5916,7 +5916,7 @@ function renderStep4() {
 
         <div class="card"><div class="card-body">
           <div class="block-hd"><div class="block-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#13616b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="9" width="22" height="9" rx="2"/><path d="M5 9V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></div><div class="block-title">Vozidlo</div><div class="block-rule"></div></div>
-          <div class="row c4">${fvr('VIN',v.vin,true)}${fvr('EČV',v.ecv,true)}${fvr('Číslo TP',v.tp,true)}${fvr('Farba',getColorName(v.farba))}</div>
+          <div class="row c4"><div class="fv"><label>VIN</label><div class="val mono${v.vin?'':' empty'}" style="font-size:11.5px;letter-spacing:0;white-space:nowrap;">${v.vin||'–'}</div></div>${fvr('EČV',v.ecv,true)}${fvr('Číslo TP',v.tp,true)}${fvr('Farba',getColorName(v.farba))}</div>
           <div class="row c4">${fvr('Typ vozidla',v.typ)}${fvr('Značka',v.znacka)}${fvr('Model',v.model)}${fvr('Dátum registrácie',dDot(v.datumReg))}</div>
           <div class="row c4">${fvr('Palivo',v.palivo)}${fvr('Objem motora',v.objem?v.objem+' cm³':'',true)}${fvr('Výkon motora',v.vykon?v.vykon+' kW':'',true)}${fvr('Max. hmotnosť',v.hmotnost?v.hmotnost+' kg':'',true)}</div>
         </div></div>
