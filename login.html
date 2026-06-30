@@ -209,8 +209,12 @@ body{
       localStorage.setItem('ps_meno',    data.meno    || '');
       localStorage.setItem('ps_rola',    data.rola    || '');
       localStorage.setItem('ps_pobocka', data.pobocka || '');
-      if (data.logo) localStorage.setItem('ps_logo', data.logo);
-      else           localStorage.removeItem('ps_logo');
+      if (data.logo)  localStorage.setItem('ps_logo', data.logo);
+      else            localStorage.removeItem('ps_logo');
+      if (data.farba) localStorage.setItem('ps_farba', data.farba);
+      else            localStorage.removeItem('ps_farba');
+      if (data.firma) localStorage.setItem('ps_firma', data.firma);
+      else            localStorage.removeItem('ps_firma');
       window.location.replace('poistenieskla.html');
     } catch (err) {
       showError('Chyba pripojenia. Skontrolujte internet a skúste znova.');

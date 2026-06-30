@@ -7397,6 +7397,43 @@ function renderZmluvyTable(zmluvy = MOCK_ZMLUVY) {
 }
 
 /* ════════════════════════════════════════════════════════
+   WHITE-LABEL — logo + akcentová farba firmy (z BCRM cez login)
+════════════════════════════════════════════════════════ */
+function _mixHex(a, b, t) {
+  const pa = [1,3,5].map(i => parseInt(a.slice(i,i+2),16));
+  const pb = [1,3,5].map(i => parseInt(b.slice(i,i+2),16));
+  return '#' + pa.map((x,i) => Math.round(x + (pb[i]-x)*t).toString(16).padStart(2,'0')).join('');
+}
+function _hexRgba(hex, alpha) {
+  const p = [1,3,5].map(i => parseInt(hex.slice(i,i+2),16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${alpha})`;
+}
+function applyBranding() {
+  // 1) Logo firmy (white-label) — nahradí placeholder „LOGO" vľavo hore
+  const logo  = (localStorage.getItem('ps_logo')  || '').trim();
+  const firma = (localStorage.getItem('ps_firma') || '').trim();
+  const wrap  = document.getElementById('topbarLogoWrap');
+  if (wrap) {
+    if (logo) {
+      wrap.innerHTML = `<img src="${logo}" alt="${firma || 'Logo'}" style="max-height:38px;max-width:180px;object-fit:contain;display:block;" onerror="this.style.display='none'">`;
+    } else if (firma) {
+      wrap.innerHTML = `<div style="font-weight:700;font-size:16px;letter-spacing:-.2px;color:var(--teal-dark);">${firma}</div>`;
+    }
+    // bez loga aj firmy → ostane pôvodný dashed placeholder
+  }
+  // 2) Akcentová farba firmy — prebije teal tokeny (musí byť #RRGGBB)
+  const farba = (localStorage.getItem('ps_farba') || '').trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(farba)) {
+    const r = document.documentElement.style;
+    r.setProperty('--teal-dark',   farba);
+    r.setProperty('--teal-mid',    _mixHex(farba, '#ffffff', 0.18));
+    r.setProperty('--teal-accent', _mixHex(farba, '#ffffff', 0.40));
+    r.setProperty('--teal-tint',   _mixHex(farba, '#ffffff', 0.92));
+    r.setProperty('--teal-ring',   _hexRgba(_mixHex(farba, '#ffffff', 0.40), 0.18));
+  }
+}
+
+/* ════════════════════════════════════════════════════════
    INIT — JWT auth
 ════════════════════════════════════════════════════════ */
 (function initAuth() {
@@ -7424,6 +7461,7 @@ function renderZmluvyTable(zmluvy = MOCK_ZMLUVY) {
 })();
 
 loadState();
+applyBranding();
 render();
 
 // návrat z platobnej brány?
