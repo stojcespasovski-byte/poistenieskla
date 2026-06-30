@@ -5691,7 +5691,7 @@ function renderStep3() {
   if (p.typ === 'po') {
     klientTitle = 'Klient — Právnická osoba'; klientIcon = ICON_COMPANY;
     klientBody = `
-      <div class="row" style="grid-template-columns:160px 1fr 1fr 1fr;">
+      <div class="row c4">
         <div class="field"><label>IČO</label><input type="text" id="s3Ico" class="mono" value="${p.ico||''}"></div>
         <div class="field"><label>Názov firmy</label><input type="text" id="s3Nazov" placeholder="Názov s.r.o." value="${p.nazov||''}"></div>
         <div class="field"><label>Telefón</label><input type="text" id="s3Tel" class="mono" placeholder="+421900123456" value="${p.tel||''}"></div>
@@ -5701,9 +5701,9 @@ function renderStep3() {
   } else if (p.typ === 'szco') {
     klientTitle = 'Klient — SZČO'; klientIcon = ICON_PERSON;
     klientBody = `
-      <div class="row" style="grid-template-columns:160px 1fr;">
+      <div class="row c4">
         <div class="field"><label>IČO</label><input type="text" id="s3Ico" class="mono" value="${p.ico||''}"></div>
-        <div class="field"><label>Názov živnosti</label><input type="text" id="s3Nazov" placeholder="Moja živnosť" value="${p.nazov||''}"></div>
+        <div class="field" style="grid-column:span 3;"><label>Názov živnosti</label><input type="text" id="s3Nazov" placeholder="Moja živnosť" value="${p.nazov||''}"></div>
       </div>
       ${menoRow}
       ${kontaktRow('szco')}
