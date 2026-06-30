@@ -5986,6 +5986,7 @@ function renderSuccess(zmluvaId) {
   const datum = `${pad(now.getDate())}.${pad(now.getMonth()+1)}.${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
   const p = state.poistnik;
   const v = state.vehicle;
+  state.lastZmluvaId = zmluvaId;
   state.zmluvy.unshift({
     cislo:      zmluvaId,
     pracovnik:  state.user.meno,
@@ -6116,6 +6117,7 @@ async function zaplatitKartou(btn) {
   if (!vs) { alert('Chýba variabilný symbol platby. Skúste obnoviť stránku.'); return; }
   const origLabel = btn ? btn.innerHTML : '';
   if (btn) { btn.disabled = true; btn.innerHTML = 'Presmerúvam…'; }
+  const returnUrl = location.origin + location.pathname + '?payreturn=1';
   try {
     const res = await fetch('https://api.pripoisti.sk/bcrm/payment/create', {
       method: 'POST',
@@ -6125,19 +6127,97 @@ async function zaplatitKartou(btn) {
         amount: state.paySuma,                // suma v EUR
         method: 'card',                       // CARD / APPLE_PAY / GOOGLE_PAY
         currency: 'EUR',
-        returnUrl: window.location.href,      // sem sa klient vráti po platbe
+        returnUrl,                            // sem sa klient vráti po platbe (s markerom)
         policyId: state.policyId || null,
         brand: (typeof PILLOW_CONFIG !== 'undefined' && PILLOW_CONFIG.BRAND) || 'poistenieskla',
       }),
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
-    if (data.payURL) { window.location.href = data.payURL; return; }
+    if (data.payURL) {
+      // zapamätať platbu, aby sme po návrate vedeli zistiť jej stav
+      try {
+        localStorage.setItem('ps_pending_pay', JSON.stringify({
+          objId:    data.objId || data.transactionId || '',
+          zmluvaId: state.lastZmluvaId || '',
+          vs,
+          amount:   state.paySuma,
+        }));
+      } catch (_) {}
+      window.location.href = data.payURL; return;
+    }
     throw new Error('Backend nevrátil payURL');
   } catch (err) {
     if (btn) { btn.disabled = false; btn.innerHTML = origLabel; }
     alert('Platbu sa nepodarilo spustiť: ' + err.message + '\n(Backend endpoint /bcrm/payment/create ešte nemusí byť nasadený.)');
   }
+}
+
+/* Po návrate z platobnej brány — zistí stav platby a zobrazí výsledok */
+async function handlePaymentReturn() {
+  let pend = null;
+  try { pend = JSON.parse(localStorage.getItem('ps_pending_pay') || 'null'); } catch (_) {}
+  // odstrániť marker z URL, nech sa to po refreshe nespúšťa znova
+  try { history.replaceState(null, '', location.origin + location.pathname); } catch (_) {}
+
+  if (!pend || !pend.objId) { renderPaymentResult('unknown', pend); return; }
+
+  renderPaymentResult('loading', pend);
+  try {
+    const res = await fetch('https://api.pripoisti.sk/bcrm/payment/state?paymentUid=' + encodeURIComponent(pend.objId));
+    const raw = await res.json();
+    const st  = (raw.state || raw.status || raw.paymentState || raw.result || '').toString().toUpperCase();
+    const paid = raw.paid === true || ['PAID','DONE','OK','SUCCESS','COMPLETED','TRUE'].includes(st);
+    renderPaymentResult(paid ? 'paid' : 'unpaid', pend, raw);
+  } catch (_) {
+    renderPaymentResult('error', pend);
+  } finally {
+    try { localStorage.removeItem('ps_pending_pay'); } catch (_) {}
+  }
+}
+
+function renderPaymentResult(status, pend, raw) {
+  pend = pend || {};
+  const cislo = pend.zmluvaId || '';
+  const ICN = {
+    check:  '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>',
+    x:      '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>',
+    info:   '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+  };
+  let icon, color, title, sub, actions;
+  if (status === 'loading') {
+    icon = ICN.info; color = 'var(--teal-dark)';
+    title = 'Overujem stav platby…'; sub = 'Moment prosím.'; actions = '';
+  } else if (status === 'paid') {
+    icon = ICN.check; color = '#16a34a';
+    title = 'Platba prebehla úspešne';
+    sub = cislo ? `Zmluva ${cislo} je uhradená. Potvrdenie sme poslali na e-mail.` : 'Vaša platba bola prijatá.';
+    actions = `<button class="btn-pri" onclick="novaZmluva()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7-7 7 7"/></svg> Nová zmluva</button>`;
+  } else if (status === 'unpaid') {
+    state.varSym = pend.vs; state.paySuma = pend.amount;
+    icon = ICN.x; color = '#d97706';
+    title = 'Platba neprebehla';
+    sub = 'Platba nebola dokončená. Skúste to znova alebo uhraďte prevodom cez QR kód v potvrdzovacom e-maile.';
+    actions = `<button class="btn-sec" onclick="novaZmluva()">Nová zmluva</button>
+               <button class="btn-pri" onclick="zaplatitKartou(this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Skúsiť znova</button>`;
+  } else { // unknown / error
+    icon = ICN.info; color = 'var(--ink-3)';
+    title = 'Stav platby sa nepodarilo zistiť';
+    sub = 'Skontrolujte e-mail s potvrdením, alebo to skúste znova.';
+    actions = `<button class="btn-pri" onclick="novaZmluva()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7-7 7 7"/></svg> Nová zmluva</button>`;
+  }
+
+  document.getElementById('main').innerHTML = `
+  <div class="s5"><div class="card"><div class="card-accent"></div>
+    <div class="card-body" style="text-align:center;">
+      <div class="success-icon" style="background:${color};margin-left:auto;margin-right:auto;">${icon}</div>
+      <div class="success-title">${title}</div>
+      ${sub ? `<div class="success-subtitle">${sub}</div>` : ''}
+      ${cislo ? `<div class="box" style="margin-top:14px;display:inline-block;text-align:left;"><div style="padding:9px 18px;"><div class="detail-label">Číslo zmluvy</div><div class="detail-val" style="font-size:16px;">${cislo}</div></div></div>` : ''}
+      ${actions ? `<div class="actions" style="justify-content:center;margin-top:18px;">${actions}</div>` : ''}
+    </div>
+  </div></div>`;
+  document.querySelectorAll('.sn-step').forEach(el => { el.classList.remove('active','todo'); el.classList.add('done'); const n=el.querySelector('.sn-num'); if(n) n.textContent='✓'; });
 }
 
 /*═══════════════════════════════════════════════════════════
@@ -7328,6 +7408,11 @@ function renderZmluvyTable(zmluvy = MOCK_ZMLUVY) {
 
 loadState();
 render();
+
+// návrat z platobnej brány?
+if (new URLSearchParams(location.search).has('payreturn')) {
+  handlePaymentReturn();
+}
 </script>
 
 <!-- ─── ZMLUVY PANEL ───────────────────────────────────── -->
