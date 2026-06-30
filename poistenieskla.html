@@ -1815,6 +1815,9 @@ const PILLOW_CONFIG = {
   USER:      'automanager_ws_sk',
   PASS:      '7Qvmfpiz5o6J',
   AGENT_ID1: '771',
+  PAY_API:   'https://api.pripoisti.sk/bcrm/payment',
+  IBAN:      '',                       // zobrazený IBAN (doplniť keď bude pevný účet Pillow)
+  BENEFICIARY: 'Pillow Insurance a.s.',
 };
 
 /* ─── Mapovanie: ID produktu → kód rizika Pillow ─── */
@@ -6025,6 +6028,13 @@ function renderSuccess(zmluvaId) {
   const QR = `<svg width="100" height="100" viewBox="0 0 70 70" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="30" height="30" rx="2" fill="#13616b"/><rect x="5" y="5" width="20" height="20" rx="1" fill="white"/><rect x="9" y="9" width="12" height="12" fill="#13616b"/><rect x="40" y="0" width="30" height="30" rx="2" fill="#13616b"/><rect x="45" y="5" width="20" height="20" rx="1" fill="white"/><rect x="49" y="9" width="12" height="12" fill="#13616b"/><rect x="0" y="40" width="30" height="30" rx="2" fill="#13616b"/><rect x="5" y="45" width="20" height="20" rx="1" fill="white"/><rect x="9" y="49" width="12" height="12" fill="#13616b"/><rect x="40" y="40" width="6" height="6" fill="#13616b"/><rect x="50" y="40" width="6" height="6" fill="#13616b"/><rect x="60" y="40" width="10" height="6" fill="#13616b"/><rect x="40" y="50" width="10" height="6" fill="#13616b"/><rect x="55" y="50" width="6" height="6" fill="#13616b"/><rect x="40" y="60" width="6" height="10" fill="#13616b"/><rect x="50" y="60" width="10" height="10" fill="#13616b"/><rect x="64" y="60" width="6" height="10" fill="#13616b"/></svg>`;
   const DOC_ICON = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
   const vs = state.varSym || '–';
+  // reálny pay-by-square QR z backendu (placeholder SVG ako fallback)
+  const qrVs = state.varSym || '';
+  const qrUrl = `${PILLOW_CONFIG.PAY_API}/qr?amount=${total.toFixed(2)}&vs=${encodeURIComponent(qrVs)}&due=${encodeURIComponent(state.zaciatok || '')}`;
+  const qrImg = qrVs
+    ? `<img src="${qrUrl}" width="118" height="118" alt="QR platba" style="display:block;border-radius:3px;" onerror="qrFallback(this)">`
+    : QR;
+  const ibanTxt = PILLOW_CONFIG.IBAN || 'SK12 1234 5678 9012 3456 7890';
 
   document.getElementById('main').innerHTML = `
   <div class="s5">
@@ -6054,14 +6064,14 @@ function renderSuccess(zmluvaId) {
           <div style="display:grid;grid-template-columns:1fr 140px;">
             <div style="padding:10px 14px;display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;">
               <div><div class="detail-label">Názov poisťovne</div><div class="detail-val">Pillow Insurance a.s.</div></div>
-              <div><div class="detail-label">IBAN</div><div class="detail-val" style="font-variant-numeric:tabular-nums;letter-spacing:.2px;">SK12 1234 5678 9012 3456 7890</div></div>
+              <div><div class="detail-label">IBAN</div><div class="detail-val" style="font-variant-numeric:tabular-nums;letter-spacing:.2px;">${ibanTxt}</div></div>
               <div><div class="detail-label">Variabilný symbol</div><div class="detail-val" style="font-variant-numeric:tabular-nums;">${vs}</div></div>
               <div><div class="detail-label">Suma</div><div class="detail-val">${fmt(total)}</div></div>
               <div><div class="detail-label">Dátum splatnosti</div><div class="detail-val">${dDot(state.zaciatok)}</div></div>
               <div><div class="detail-label">Frekvencia</div><div class="detail-val">${fc.label}</div></div>
             </div>
             <div style="display:flex;align-items:center;justify-content:center;border-left:1px solid var(--border);padding:8px;">
-              <div style="width:120px;height:120px;background:var(--bg);border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;">${QR}</div>
+              <div style="width:120px;height:120px;background:#fff;border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;">${qrImg}</div>
             </div>
           </div>
           <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;">
@@ -6086,6 +6096,13 @@ function renderSuccess(zmluvaId) {
     </div>
   </div>`;
   document.querySelectorAll('.sn-step').forEach(el => { el.classList.remove('active','todo'); el.classList.add('done'); const n=el.querySelector('.sn-num'); if(n) n.textContent='✓'; });
+}
+
+/* QR fallback — ak backend QR endpoint nie je dostupný / IBAN nie je nastavený */
+function qrFallback(img) {
+  img.outerHTML = '<div style="width:118px;height:118px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--ink-3);font-size:10.5px;text-align:center;line-height:1.3;">'
+    + '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 14v.01M17 21h.01M21 21v.01M21 17v.01"/></svg>'
+    + 'QR kód<br>nedostupný</div>';
 }
 
 /* Globálne akcie pre success obrazovku */
