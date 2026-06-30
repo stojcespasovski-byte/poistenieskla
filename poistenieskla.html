@@ -1428,6 +1428,101 @@
 
   /* Page wrap pre krok1 */
   .page-new { max-width:820px;margin:0 auto; }
+
+  /* ═══ KROK 2 (Cena) ═══ */
+  .ps2 { max-width:1060px;margin:0 auto;display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start; }
+  @media (max-width:920px){ .ps2{grid-template-columns:1fr;} }
+
+  /* Hero */
+  .hero2 { position:relative;border-radius:16px;overflow:hidden;
+    background:linear-gradient(120deg,#15707b 0%,#0e4c57 60%,#0b3d47 100%);
+    box-shadow:0 8px 24px rgba(11,61,71,.22); }
+  .hero2::before { content:"";position:absolute;top:0;left:0;right:0;height:3px;
+    background:linear-gradient(90deg,#13616b,#3bc4d4);z-index:3; }
+  .hero2-body { display:flex;align-items:stretch;min-height:230px; }
+  .hero2-left { padding:22px 26px;display:flex;flex-direction:column;justify-content:flex-start;flex:1;z-index:2; }
+  .hero2-title { color:#fff;font-size:26px;font-weight:800;letter-spacing:-.4px;margin-bottom:14px; }
+  .hero2-bullets { display:flex;flex-direction:column;gap:12px; }
+  .h2b { display:flex;align-items:flex-start;gap:10px;color:#eef8fa;font-size:15px;font-weight:600;line-height:1.3;white-space:nowrap; }
+  .h2b svg { flex-shrink:0;margin-top:2px;width:18px;height:18px; }
+  .h2b .sub { display:block;color:#a9d9e0;font-size:12.5px;font-weight:500;margin-top:4px;white-space:normal; }
+  .h2-badge { display:inline-block;background:#fff;color:var(--teal-dark);font-weight:800;font-size:12px;padding:2px 8px;border-radius:6px;margin-left:3px; }
+  .h2-badge-note { color:#a9d9e0;font-size:12.5px;font-weight:500; }
+  .hero2-car { position:absolute;right:14px;top:29%;transform:translateY(-50%);width:43%;z-index:1;pointer-events:none; }
+  .hero2-car img { width:100%;display:block;filter:drop-shadow(0 9px 9px rgba(0,0,0,.28)); }
+
+  /* Freq bar */
+  .freq2 { display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid rgba(255,255,255,.10);background:rgba(6,38,44,.45); }
+  .freq2 .f2 { padding:11px 6px 10px;text-align:center;color:#cfeaee;cursor:pointer;position:relative;border-right:1px solid rgba(255,255,255,.08);transition:background .15s; }
+  .freq2 .f2:last-child { border-right:none; }
+  .freq2 .f2:hover { background:rgba(255,255,255,.05); }
+  .freq2 .f2.active,.freq2 .f2.active:hover { background:rgba(59,196,212,.12);color:#fff; }
+  .freq2 .f2.active::before { content:"";position:absolute;top:0;left:0;right:0;height:3px;background:#3bc4d4; }
+  .freq2 .f2 .lab2 { font-size:10.5px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px; }
+  .freq2 .f2 .price2 { font-size:19px;font-weight:800; }
+  .freq2 .f2.active .price2 { color:#5fd6e4; }
+  .freq2 .f2 .note2 { font-size:11px;margin-top:3px;color:#9fd4dc;white-space:nowrap;letter-spacing:-.1px; }
+  .freq2 .f2.active .note2 { color:#bfe6ec; }
+  .rad2 { position:absolute;top:10px;right:10px;width:13px;height:13px;border-radius:50%;border:1.5px solid rgba(255,255,255,.25);display:inline-flex;align-items:center;justify-content:center; }
+  .rad2.on { border-color:#3bc4d4;background:#3bc4d4; }
+  .rad2.on::after { content:"";width:7px;height:7px;border-radius:50%;background:var(--teal-dark); }
+
+  /* Doplnky collapse */
+  .doplnky2 { margin-top:14px;border:1px solid var(--border-strong);border-radius:10px;background:#fff;overflow:hidden; }
+  .doplnky-head { display:flex;align-items:center;gap:12px;padding:9px 14px;background:#fff; }
+  .dh-left { display:flex;align-items:center;gap:10px;cursor:pointer;padding:5px 7px;margin:-5px -7px;border-radius:6px; }
+  .dh-left:hover { background:var(--teal-tint); }
+  .doplnky-head .dh-plus { width:20px;height:20px;border-radius:5px;background:rgba(19,97,107,.09);color:var(--teal-dark);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0; }
+  .doplnky-head .dh-title { font-size:12px;font-weight:500;color:var(--ink-2);letter-spacing:.2px;white-space:nowrap; }
+  .doplnky-head .dh-count { font-size:12.5px;font-weight:600;color:var(--teal-dark); }
+  .doplnky-head .dh-chev { color:var(--ink-4);transition:transform .2s;display:inline-flex; }
+  .doplnky-head.open .dh-chev { transform:rotate(180deg); }
+  .dh-spolu { margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:nowrap; }
+  .dh-spolu .sp-lbl2 { font-size:11px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--teal-dark);white-space:nowrap; }
+  .doplnky-body { padding:0 14px 14px;border-top:1px solid var(--border); }
+
+  .sp-opts { display:flex;gap:6px; }
+  .sp-opt { display:flex;align-items:center;gap:5px;padding:4px 9px;border:1px solid var(--border-strong);border-radius:7px;cursor:pointer;font-size:12px;font-weight:500;color:var(--ink-2);transition:all .12s;background:#fff;white-space:nowrap; }
+  .sp-opt:hover { border-color:var(--teal-accent); }
+  .sp-opt.on { border-color:var(--teal-dark);background:var(--teal-tint);color:var(--teal-dark);font-weight:600; }
+  .sp-opt .sp-rad { width:12px;height:12px;border-radius:50%;border:1.5px solid var(--border-strong);flex-shrink:0;display:inline-flex;align-items:center;justify-content:center; }
+  .sp-opt.on .sp-rad { border-color:var(--teal-dark); }
+  .sp-opt.on .sp-rad::after { content:"";width:6px;height:6px;border-radius:50%;background:var(--teal-dark); }
+
+  .addons2 { display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:14px; }
+  @media (max-width:720px){ .addons2{grid-template-columns:1fr 1fr;} }
+  .addon2 { position:relative;border:1px solid var(--border-strong);border-radius:9px;padding:9px 11px;cursor:pointer;background:#fff;transition:all .12s; }
+  .addon2:hover { border-color:var(--teal-accent); }
+  .addon2.on { border-color:var(--teal-dark);background:var(--teal-tint);box-shadow:0 0 0 1px var(--teal-dark) inset; }
+  .addon2 .a2-check { position:absolute;top:9px;right:9px;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border-strong);display:flex;align-items:center;justify-content:center;background:#fff; }
+  .addon2.on .a2-check { border-color:var(--teal-dark);background:var(--teal-dark); }
+  .addon2 .a2-name { font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:3px;padding-right:20px;line-height:1.2; }
+  .addon2 .a2-desc { font-size:10.5px;color:var(--ink-3);line-height:1.3;margin-bottom:6px;min-height:27px; }
+  .addon2 .a2-price { font-size:12.5px;font-weight:700;color:var(--teal-dark); }
+  .addon2 .a2-price span { font-size:10px;font-weight:400;color:var(--ink-3); }
+
+  .gap2 { display:flex;align-items:center;gap:12px;margin-top:12px;padding:12px 14px;border-radius:10px;cursor:pointer;transition:all .12s; }
+
+  /* Summary */
+  .summary2 { position:sticky;top:14px;border:1px solid var(--border-strong);border-radius:12px;background:#fff;overflow:hidden; }
+  .summary2 .sm-hd { padding:14px 16px 10px;font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--ink-3);border-bottom:1px solid var(--border); }
+  .summary2 .sm-lines { padding:6px 16px; }
+  .sm-line { display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;font-size:13.5px;border-bottom:1px solid var(--border); }
+  .sm-line:last-child { border-bottom:none; }
+  .sm-line .sm-nm { color:var(--ink-2); }
+  .sm-line.hero .sm-nm { font-weight:700;color:var(--teal-dark); }
+  .sm-line .sm-amt { font-weight:600;color:var(--ink);white-space:nowrap; }
+  .sm-total { padding:14px 16px;background:var(--teal-tint);display:flex;justify-content:space-between;align-items:baseline; }
+  .sm-total .sm-tl { font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--ink-3); }
+  .sm-total .sm-tl small { display:block;font-size:12px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--ink-3);margin-top:2px; }
+  .sm-total .sm-tv { font-size:24px;font-weight:800;color:var(--teal-dark); }
+  .summary2 .sm-foot { padding:14px 16px;display:flex;flex-direction:column;gap:8px; }
+  .sm-cta { width:100%;height:44px;border:none;border-radius:8px;background:var(--teal-dark);color:#fff;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background .15s; }
+  .sm-cta:hover { background:var(--teal-mid); }
+  .sm-cta:disabled { opacity:.5;cursor:not-allowed; }
+  .sm-back { background:none;border:none;color:var(--ink-3);font-size:13px;cursor:pointer;font-family:inherit;padding:4px; }
+  .sm-back:hover { color:var(--teal-dark); }
+  .sm-empty { padding:10px 0;font-size:13px;color:var(--ink-4);text-align:center; }
 </style>
 </head>
 <body>
@@ -1518,6 +1613,11 @@ const CONFIG = {
   accentColor: "#2563EB",
 };
 
+/* SVG ikony pre Krok 2 */
+const CHK = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3bc4d4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+const CHK_SM = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+const CHEV = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+
 /* ════════════════════════════════════════════════════════
    INSURANCE PRODUCTS DATA
 ════════════════════════════════════════════════════════ */
@@ -1575,6 +1675,7 @@ const state = {
   selectedVariants: {},  // { productId: variantCode } — len pre AS2 a podobné
   spoluUcast: '300',    // globálna spoluúčasť: '150' | '300' | '600'
   withGAP: false,
+  doplnkyOpen: false,   // Krok 2 — zbalenie/rozbalenie doplnkových pripoistení
   priceCache: {},       // [su][asistCode][freq] → { prices, calcId }
 
   poistnik: {
@@ -4541,6 +4642,11 @@ function updateStepper() {
 
 function updatePriceBar() {
   const bar = document.getElementById('priceBar');
+  if (!bar) return;
+  // Krok 2 má teraz vlastný pravý súhrn — starý spodný pruh nezobrazujeme
+  bar.style.display = 'none';
+  return;
+  // eslint-disable-next-line no-unreachable
   if (state.step !== 2) { bar.style.display = 'none'; return; }
   bar.style.display = 'flex';
   const fc    = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[12];
@@ -5255,8 +5361,152 @@ function renderStep1() {
   </div><!-- page-new -->`;
 }
 
-/* ─── STEP 2 ──────────────────────────────────────────── */
+/* ─── STEP 2 (nový dizajn) ─────────────────────────────── */
+function vybranePlural(n){
+  if (n === 1) return '1 vybrané';
+  if (n >= 2 && n <= 4) return n + ' vybrané';
+  return n + ' vybraných';
+}
+
 function renderStep2() {
+  const hero    = ALL_PRODUCTS.find(p => p.id === CONFIG.hero);
+  if (!state.selected.has(hero.id)) state.selected.add(hero.id); // sklo vždy vybraté
+  const prices  = state.apiPrices;
+  const loading = Object.keys(prices).length === 0;
+  const fc      = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[12];
+  const pp      = id => { const m = prices[id]?.price; return (m != null && !isNaN(m)) ? m * fc.mult : null; };
+  const has     = id => state.selected.has(id);
+
+  // ── Hero: frekvenčné dlaždice (cena skla per perióda + dopočítaná prirážka) ──
+  const annualMin = (state.allFreqPrices[1]?.[hero.id]?.price ?? null);
+  const freqHtml = FREQ_ORDER.map(f => {
+    const mpF = state.allFreqPrices[f]?.[hero.id]?.price ?? null;
+    const amt = mpF != null ? mpF * FREQ_CONFIG[f].mult : null;
+    let note;
+    if (f === 1) note = 'najvýhodnejšia cena';
+    else if (mpF != null && annualMin != null && annualMin > 0) {
+      const diff = (mpF - annualMin) * 12;
+      const pct  = Math.round(diff / (annualMin * 12) * 100);
+      note = `navyše ${pct}% = ${fmt(diff)}/rok`;
+    } else note = '';
+    const active = state.paymentFreq === f;
+    return `<div class="f2${active ? ' active' : ''}" data-freq="${f}">
+        <span class="rad2${active ? ' on' : ''}"></span>
+        <div class="lab2">${FREQ_CONFIG[f].label}</div>
+        <div class="price2">${fmt(amt)}</div>
+        <div class="note2">${note}</div>
+      </div>`;
+  }).join('');
+
+  const heroHtml = `
+    <div class="hero2">
+      <div class="hero2-body">
+        <div class="hero2-left">
+          <div class="hero2-title">Poistenie skla</div>
+          <div class="hero2-bullets">
+            <div class="h2b">${CHK}<div><span>Všetky sklá a okná</span><span class="sub">čelné, bočné, panorama, strešné, zadné</span></div></div>
+            <div class="h2b">${CHK}<div>Spoluúčasť iba <span class="h2-badge">10%</span> <span class="h2-badge-note">(do obhliadky 90%)</span></div></div>
+            <div class="h2b">${CHK}<div>Rýchla online likvidácia</div></div>
+            <div class="h2b">${CHK}<div>Originál diely vrátane senzorov a kalibrácie</div></div>
+          </div>
+        </div>
+        <div class="hero2-car"><img src="hero_car.png" alt="Poistenie skla"></div>
+      </div>
+      <div class="freq2">${freqHtml}</div>
+    </div>`;
+
+  // ── Doplnkové karty (combo Havária+Stret, exklúzia) ──
+  const comboOn = has('havaria');
+  const zverSolo = has('zver') && !has('havaria');
+  const CARDS = [
+    { id:'zver',  role:'zverSolo', name:'Stret so zverou', desc:'Náhrada škody pri zrážke s voľne žijúcou zverou', price:pp('zver'), on:zverSolo },
+    { id:'havaria', role:'combo',  name:'Havária a Stret so zverou', desc:'Rozšírené krytie havárie vrátane stretu so zverou', price:(pp('havaria')!=null&&pp('zver')!=null)?pp('havaria')+pp('zver'):null, on:comboOn },
+    { id:'zivel',     name:'Živel',       desc:'Krytie poškodenia živelnou udalosťou (búrka, krupobitie…)', price:pp('zivel'),     on:has('zivel') },
+    { id:'kradez',    name:'Krádež',      desc:'Poistenie vozidla alebo jeho častí pri krádeži',           price:pp('kradez'),    on:has('kradez') },
+    { id:'vandalizmus', name:'Vandalizmus', desc:'Náhrada škody spôsobenej úmyselným poškodením',          price:pp('vandalizmus'), on:has('vandalizmus') },
+    { id:'asistencia', name:'Asistencia', desc:'Cestná asistencia a odtiahnutie vozidla 24/7',             price:pp('asistencia'), on:has('asistencia') },
+    { id:'batozina',  name:'Batožina',    desc:'Poistenie osobných vecí prepravovaných vo vozidle',        price:pp('batozina'),  on:has('batozina') },
+    { id:'uraz',      name:'Úraz',        desc:'Poistenie vodiča a posádky pre prípad úrazu',              price:pp('uraz'),      on:has('uraz') },
+  ];
+
+  const addonsHtml = CARDS.map(c => `
+    <div class="addon2${c.on ? ' on' : ''}" data-id="${c.id}" data-role="${c.role||'plain'}">
+      <div class="a2-check">${c.on ? CHK_SM : ''}</div>
+      <div class="a2-name">${c.name}</div>
+      <div class="a2-desc">${c.desc}</div>
+      <div class="a2-price">${loading ? '…' : fmt(c.price)} <span>/ mes.</span></div>
+    </div>`).join('');
+
+  // počet vybraných doplnkových KARIET (combo = 1 karta)
+  const selAddons = [...state.selected].filter(id => id !== hero.id);
+  const cardCount = selAddons.length - (comboOn ? 1 : 0);
+  const countTxt  = cardCount > 0 ? ` · ${vybranePlural(cardCount)}` : '';
+  const open = state.doplnkyOpen;
+
+  const spoluOptsHtml = ['150','300','600'].map(v => `
+    <div class="sp-opt${state.spoluUcast===v?' on':''}" data-spolu="${v}"><span class="sp-rad"></span>${v} €</div>`).join('');
+
+  const vehicleNew = isVehicleNew();
+  const gapHtml = vehicleNew ? `
+    <div class="gap2" id="gapToggleRow" style="border:1px solid ${state.withGAP?'var(--teal-dark)':'var(--border-strong)'};background:${state.withGAP?'var(--teal-tint)':'#fff'};">
+      <div style="width:36px;height:20px;border-radius:10px;background:${state.withGAP?'var(--teal-dark)':'var(--border-strong)'};position:relative;flex-shrink:0;transition:background .2s;">
+        <div style="position:absolute;top:2px;left:${state.withGAP?'18px':'2px'};width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s;"></div>
+      </div>
+      <div>
+        <div style="font-weight:700;font-size:14px;color:${state.withGAP?'var(--teal-dark)':'var(--ink)'};">GAP poistenie</div>
+        <div style="font-size:12px;color:var(--ink-3);">Krytie rozdielu medzi hodnotou vozidla a výškou úveru</div>
+      </div>
+    </div>` : '';
+
+  const doplnkyHtml = `
+    <div class="doplnky2">
+      <div class="doplnky-head${open?' open':''}">
+        <div class="dh-left" id="doplnkyToggle">
+          <span class="dh-plus">${open?'–':'+'}</span>
+          <span class="dh-title">Doplnkové pripoistenia<span class="dh-count">${countTxt}</span></span>
+          <span class="dh-chev">${CHEV}</span>
+        </div>
+        ${open ? `<div class="dh-spolu">
+          <span class="sp-lbl2">Spoluúčasť</span>
+          <div class="sp-opts">${spoluOptsHtml}</div>
+        </div>` : ''}
+      </div>
+      ${open ? `<div class="doplnky-body"><div class="addons2">${addonsHtml}</div>${gapHtml}</div>` : ''}
+    </div>`;
+
+  // ── Pravý súhrn ──
+  const lines = [];
+  lines.push({ nm:'Poistenie skla', amt:pp(hero.id), hero:true });
+  if (comboOn) lines.push({ nm:'Havária a Stret so zverou', amt:(pp('havaria')!=null&&pp('zver')!=null)?pp('havaria')+pp('zver'):null });
+  else if (has('zver')) lines.push({ nm:'Stret so zverou', amt:pp('zver') });
+  ['zivel','kradez','vandalizmus','asistencia','batozina','uraz'].forEach(id => { if (has(id)) lines.push({ nm:CARDS.find(c=>c.id===id)?.name||id, amt:pp(id) }); });
+  if (state.withGAP && vehicleNew) lines.push({ nm:'GAP poistenie', amt:null });
+
+  let total = 0; state.selected.forEach(id => { total += (prices[id]?.price || 0); });
+  total = total * fc.mult;
+
+  const summaryHtml = `
+    <div class="summary2">
+      <div class="sm-hd">Vybrané poistenia</div>
+      <div class="sm-lines">
+        ${lines.map(l => `<div class="sm-line${l.hero?' hero':''}"><span class="sm-nm">${l.nm}</span><span class="sm-amt">${loading?'…':fmt(l.amt)}</span></div>`).join('')}
+      </div>
+      <div class="sm-total"><div class="sm-tl">Celkom<small>${fc.label.toLowerCase()}</small></div><div class="sm-tv">${loading?'…':fmt(total)}</div></div>
+      <div class="sm-foot">
+        <button class="sm-cta" id="btnStep2Next">Pokračovať →</button>
+        <button class="sm-back" id="btnStep2Back">← Späť na parametre</button>
+      </div>
+    </div>`;
+
+  return `
+  <div class="ps2">
+    <div class="ps2-main">${heroHtml}${doplnkyHtml}</div>
+    <div class="ps2-side">${summaryHtml}</div>
+  </div>`;
+}
+
+/* ─── STEP 2 (starý) ───────────────────────────────────── */
+function renderStep2_OLD() {
   const hero    = ALL_PRODUCTS.find(p => p.id === CONFIG.hero);
   const addons  = ALL_PRODUCTS.filter(p => p.id !== CONFIG.hero);
   const prices  = state.apiPrices;
@@ -6565,11 +6815,9 @@ function attachListeners() {
 
   } // end step 1
 
-  // STEP 2 — hero toggle
-  // STEP 2 — frekvenčné dlaždice v hero karte
-  document.querySelectorAll('.freq-price-tile').forEach(tile => {
-    tile.addEventListener('click', e => {
-      e.stopPropagation(); // nezakliknúť/odkliknúť hero kartu
+  // STEP 2 — frekvenčné dlaždice
+  document.querySelectorAll('.f2').forEach(tile => {
+    tile.addEventListener('click', () => {
       const f = parseInt(tile.dataset.freq);
       state.paymentFreq = f;
       state.apiPrices   = state.allFreqPrices[f] || {};
@@ -6577,43 +6825,50 @@ function attachListeners() {
     });
   });
 
-  // hero karta je vždy vybraná — toggle nie je
-
-  // STEP 2 — addon toggles
-  document.querySelectorAll('.addon-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const id = card.dataset.id;
-      const wasSelected = state.selected.has(id);
-      wasSelected ? state.selected.delete(id) : state.selected.add(id);
-      // Nastaviť default variant ak prvýkrát selected
-      if (!wasSelected) {
-        const prod = ALL_PRODUCTS.find(p => p.id === id);
-        if (prod?.variants && !state.selectedVariants[id]) {
-          const def = prod.variants.find(v => v.default) || prod.variants[0];
-          state.selectedVariants[id] = def.code;
-        }
-      }
-      render();
-    });
+  // STEP 2 — zbalenie/rozbalenie doplnkov
+  const doplnkyToggle = document.getElementById('doplnkyToggle');
+  if (doplnkyToggle) doplnkyToggle.addEventListener('click', () => {
+    state.doplnkyOpen = !state.doplnkyOpen;
+    render();
   });
 
-  document.querySelectorAll('.variant-btn').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      const pid   = btn.dataset.pid;
-      const vcode = btn.dataset.vcode;
-      if (state.selectedVariants[pid] === vcode) return;
-      state.selectedVariants[pid] = vcode;
+  // STEP 2 — radio spoluúčasť
+  document.querySelectorAll('.sp-opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+      state.spoluUcast = opt.dataset.spolu;
       applyCachedPrices();
       render();
     });
   });
 
-  const spoluUcastSel = document.getElementById('spoluUcastSelect');
-  if (spoluUcastSel) spoluUcastSel.addEventListener('change', () => {
-    state.spoluUcast = spoluUcastSel.value;
-    applyCachedPrices();
-    render();
+  // STEP 2 — doplnkové karty (s combo exklúziou Havária+Stret)
+  document.querySelectorAll('.addon2').forEach(card => {
+    card.addEventListener('click', () => {
+      const id   = card.dataset.id;
+      const role = card.dataset.role;
+      if (role === 'combo') {
+        // "Havária a Stret so zverou" = havaria + zver
+        if (state.selected.has('havaria')) { state.selected.delete('havaria'); state.selected.delete('zver'); }
+        else { state.selected.add('havaria'); state.selected.add('zver'); }
+      } else if (role === 'zverSolo') {
+        // "Stret so zverou" = len zver; vylúči combo
+        const soloActive = state.selected.has('zver') && !state.selected.has('havaria');
+        if (soloActive) { state.selected.delete('zver'); }
+        else { state.selected.add('zver'); state.selected.delete('havaria'); }
+      } else {
+        const was = state.selected.has(id);
+        was ? state.selected.delete(id) : state.selected.add(id);
+        if (!was) {
+          const prod = ALL_PRODUCTS.find(p => p.id === id);
+          if (prod?.variants && !state.selectedVariants[id]) {
+            const def = prod.variants.find(v => v.default) || prod.variants[0];
+            state.selectedVariants[id] = def.code;
+          }
+        }
+      }
+      applyCachedPrices();
+      render();
+    });
   });
 
   const btnS2Back = document.getElementById('btnStep2Back');
@@ -6628,7 +6883,12 @@ function attachListeners() {
 
   // STEP 3
   const btnS3Back = document.getElementById('btnStep3Back');
-  if (btnS3Back) btnS3Back.addEventListener('click', () => { state.step = 2; render(); });
+  if (btnS3Back) btnS3Back.addEventListener('click', () => {
+    state.step = 2;
+    const selAddons = [...state.selected].filter(id => id !== CONFIG.hero);
+    if (selAddons.length > 0) state.doplnkyOpen = true; // vráti sa s vybranými → rozbalené
+    render();
+  });
 
   // Checkbox bezTp
   document.getElementById('s3BezTp')?.addEventListener('change', function() {
