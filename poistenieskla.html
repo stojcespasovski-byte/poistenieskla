@@ -6019,6 +6019,7 @@ function renderSuccess(zmluvaId) {
   const ADD = {zivel:'Živel',kradez:'Krádež',vandalizmus:'Vandalizmus',asistencia:'Asistencia',batozina:'Batožina',uraz:'Úraz'};
   Object.entries(ADD).forEach(([id,nm])=>{ if(has(id)) plines.push(`<div class="prow"><span class="nm">${nm}</span><span class="amt">${fmt(pp(id))}</span></div>`); });
   let total=0; state.selected.forEach(id=>{ total += (state.apiPrices[id]?.price||0); }); total*=fc.mult;
+  state.paySuma = +total.toFixed(2);
 
   const QR = `<svg width="100" height="100" viewBox="0 0 70 70" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="30" height="30" rx="2" fill="#13616b"/><rect x="5" y="5" width="20" height="20" rx="1" fill="white"/><rect x="9" y="9" width="12" height="12" fill="#13616b"/><rect x="40" y="0" width="30" height="30" rx="2" fill="#13616b"/><rect x="45" y="5" width="20" height="20" rx="1" fill="white"/><rect x="49" y="9" width="12" height="12" fill="#13616b"/><rect x="0" y="40" width="30" height="30" rx="2" fill="#13616b"/><rect x="5" y="45" width="20" height="20" rx="1" fill="white"/><rect x="9" y="49" width="12" height="12" fill="#13616b"/><rect x="40" y="40" width="6" height="6" fill="#13616b"/><rect x="50" y="40" width="6" height="6" fill="#13616b"/><rect x="60" y="40" width="10" height="6" fill="#13616b"/><rect x="40" y="50" width="10" height="6" fill="#13616b"/><rect x="55" y="50" width="6" height="6" fill="#13616b"/><rect x="40" y="60" width="6" height="10" fill="#13616b"/><rect x="50" y="60" width="10" height="10" fill="#13616b"/><rect x="64" y="60" width="6" height="10" fill="#13616b"/></svg>`;
   const DOC_ICON = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
@@ -6062,6 +6063,10 @@ function renderSuccess(zmluvaId) {
               <div style="width:120px;height:120px;background:var(--bg);border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;">${QR}</div>
             </div>
           </div>
+          <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;">
+            <span style="font-size:12px;color:var(--ink-3);">Zaplaťte hneď online kartou, alebo prevodom cez QR kód.</span>
+            <button class="btn-pri" id="btnZaplatit" onclick="zaplatitKartou(this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Zaplatiť kartou</button>
+          </div>
         </div>
 
         <div class="box" style="margin-top:12px;">
@@ -6103,6 +6108,36 @@ function stiahnutZmluvu() {
     const a = document.createElement('a'); a.href = url; a.download = 'poistna_zmluva.pdf'; a.click();
     setTimeout(()=>URL.revokeObjectURL(url), 4000);
   }).catch(err => alert('Stiahnutie zlyhalo: '+err.message));
+}
+
+/* Online platba kartou — cez náš backend → Pillow thePay (THEPAY20) */
+async function zaplatitKartou(btn) {
+  const vs = state.varSym;
+  if (!vs) { alert('Chýba variabilný symbol platby. Skúste obnoviť stránku.'); return; }
+  const origLabel = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = 'Presmerúvam…'; }
+  try {
+    const res = await fetch('https://api.pripoisti.sk/bcrm/payment/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        vs,                                   // clientAccountNr (VS klienta zo save)
+        amount: state.paySuma,                // suma v EUR
+        method: 'card',                       // CARD / APPLE_PAY / GOOGLE_PAY
+        currency: 'EUR',
+        returnUrl: window.location.href,      // sem sa klient vráti po platbe
+        policyId: state.policyId || null,
+        brand: (typeof PILLOW_CONFIG !== 'undefined' && PILLOW_CONFIG.BRAND) || 'poistenieskla',
+      }),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (data.payURL) { window.location.href = data.payURL; return; }
+    throw new Error('Backend nevrátil payURL');
+  } catch (err) {
+    if (btn) { btn.disabled = false; btn.innerHTML = origLabel; }
+    alert('Platbu sa nepodarilo spustiť: ' + err.message + '\n(Backend endpoint /bcrm/payment/create ešte nemusí byť nasadený.)');
+  }
 }
 
 /*═══════════════════════════════════════════════════════════
