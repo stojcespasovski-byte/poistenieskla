@@ -1557,6 +1557,50 @@
   .s3 .btn-back:hover { border-color:var(--teal-dark);color:var(--teal-dark); }
   .s3 .cta { display:inline-flex;align-items:center;gap:7px;background:var(--teal-dark);color:#fff;border:none;border-radius:5px;padding:0 22px;height:38px;font-size:14px;font-weight:600;transition:background .15s;cursor:pointer;font-family:inherit; }
   .s3 .cta:hover { background:var(--teal-mid); }
+
+  /* ═══ KROK 4 (Súhrn) — scopnuté pod .s4 ═══ */
+  .s4 { max-width:1060px;margin:0 auto; }
+  .s4 .s4-intro { font-size:11px;color:var(--ink-4);margin-bottom:10px; }
+  .s4 .s4-grid { display:grid;grid-template-columns:1fr 280px;gap:12px;align-items:start; }
+  @media (max-width:920px){ .s4 .s4-grid{grid-template-columns:1fr;} }
+  .s4 .s4-col { display:flex;flex-direction:column;gap:10px; }
+  .s4 .s4-side { display:flex;flex-direction:column;gap:10px;position:sticky;top:12px; }
+  .s4 .card { background:#fff;border-radius:12px;border:1px solid var(--border);overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.05); }
+  .s4 .card-accent { height:2px;background:linear-gradient(90deg,var(--teal-dark),var(--teal-accent)); }
+  .s4 .card-body { padding:14px 18px; }
+  .s4 .block-hd { display:flex;align-items:center;gap:7px;margin-bottom:10px; }
+  .s4 .block-icon { width:18px;height:18px;border-radius:4px;background:rgba(19,97,107,.09);display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+  .s4 .block-title { font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--ink-3);white-space:nowrap; }
+  .s4 .block-rule { flex:1;height:1px;background:var(--border); }
+  .s4 .row { display:grid;gap:8px;margin-bottom:8px; }
+  .s4 .row.c4 { grid-template-columns:1fr 1fr 1fr 1fr; }
+  .s4 .row:last-child { margin-bottom:0; }
+  .s4 .fv label { display:block;font-size:11px;font-weight:600;letter-spacing:.45px;text-transform:uppercase;color:var(--teal-dark);margin-bottom:2px; }
+  .s4 .fv .val { font-size:16px;color:var(--ink);padding:4px 0;border-bottom:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+  .s4 .fv .val.mono { font-variant-numeric:tabular-nums; }
+  .s4 .fv .val.empty { color:var(--ink-4); }
+  .s4 .poistenie-row { display:flex;align-items:flex-start;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);gap:8px; }
+  .s4 .poistenie-row:last-child { border-bottom:none; }
+  .s4 .poistenie-name { font-size:13px;font-weight:600;color:var(--ink); }
+  .s4 .poistenie-name.hero { color:var(--teal-dark);font-weight:700; }
+  .s4 .poistenie-desc { font-size:10px;color:var(--ink-4);margin-top:2px; }
+  .s4 .poistenie-price { font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap;flex-shrink:0; }
+  .s4 .celkom-row { display:flex;justify-content:space-between;align-items:baseline;padding:10px 0 0;border-top:2px solid var(--teal-dark);margin-top:4px; }
+  .s4 .celkom-lbl { font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-3); }
+  .s4 .celkom-val { font-size:22px;font-weight:800;color:var(--teal-dark);letter-spacing:-.5px; }
+  .s4 .doc-item { display:flex;align-items:center;gap:6px;font-size:14px;color:var(--teal-dark);cursor:pointer;text-decoration:none;padding:7px 0;border-bottom:1px solid var(--border); }
+  .s4 .doc-item:last-child { border-bottom:none; }
+  .s4 .doc-item:hover { color:var(--teal-accent); }
+  .s4 .suhlas-item { display:flex;align-items:flex-start;gap:9px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--ink-2);cursor:pointer; }
+  .s4 .suhlas-item:last-child { border-bottom:none; }
+  .s4 .suhlas-item input { width:14px;height:14px;accent-color:var(--teal-dark);flex-shrink:0;margin-top:1px;cursor:pointer; }
+  .s4 .suhlas-link { color:var(--teal-dark);text-decoration:none; }
+  .s4 .card-foot { padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center; }
+  .s4 .btn-back { display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border:1px solid var(--border-strong);border-radius:5px;background:#fff;font-size:13px;font-weight:500;color:var(--ink-3);cursor:pointer;font-family:inherit; }
+  .s4 .btn-back:hover { border-color:var(--teal-dark);color:var(--teal-dark); }
+  .s4 .cta { display:inline-flex;align-items:center;gap:7px;background:var(--teal-dark);color:#fff;border:none;border-radius:5px;padding:0 20px;height:36px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s; }
+  .s4 .cta:hover:not(:disabled) { background:var(--teal-mid); }
+  .s4 .cta:disabled { opacity:.45;cursor:not-allowed; }
 </style>
 </head>
 <body>
@@ -1710,6 +1754,7 @@ const state = {
   spoluUcast: '300',    // globálna spoluúčasť: '150' | '300' | '600'
   withGAP: false,
   doplnkyOpen: false,   // Krok 2 — zbalenie/rozbalenie doplnkových pripoistení
+  suhlasy: [false,false,false,false,false], // Krok 4 — 5 súhlasov pred odoslaním
   priceCache: {},       // [su][asistCode][freq] → { prices, calcId }
 
   poistnik: {
@@ -5808,111 +5853,89 @@ function renderStep3() {
 function renderStep4() {
   const v = state.vehicle;
   const p = state.poistnik;
-  const selectedProducts = ALL_PRODUCTS.filter(pr => state.selected.has(pr.id));
-
   const fc = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[12];
+  const has = id => state.selected.has(id);
+  const pp = id => { const m = state.apiPrices[id]?.price; return (m!=null && !isNaN(m)) ? m*fc.mult : null; };
+  const dDot = d => d ? d.split('-').reverse().join('.') : '';
+  const fvr = (label, val, mono) => `<div class="fv"><label>${label}</label><div class="val${mono?' mono':''}${val?'':' empty'}">${val||'–'}</div></div>`;
 
-  const itemsHtml = selectedProducts.map(pr => `
-    <div class="summary-item">
-      <div class="summary-item-name">${pr.icon} ${pr.name}<small>${pr.desc}</small></div>
-      <div class="summary-item-price">${fmt((state.apiPrices[pr.id]?.price || 0) * fc.mult)}/${fc.period}</div>
-    </div>`).join('');
+  const ICON_PERSON = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#13616b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>';
+  const ICON_COMPANY = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#13616b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>';
+  const adresaFv = `${fvr('Ulica',p.ulica)}${fvr('Číslo domu',p.cislo)}${fvr('Obec',p.obec)}${fvr('PSČ',p.psc,true)}`;
 
-  const sgf = (label, value) => `
-    <div class="sg-field">
-      <div class="sg-label">${label}</div>
-      <div class="sg-value">${value || '–'}</div>
-    </div>`;
+  let klientTitle, klientIcon, klientFv;
+  if (p.typ === 'po') {
+    klientTitle='Klient — Právnická osoba'; klientIcon=ICON_COMPANY;
+    klientFv = `<div class="row c4">${fvr('IČO',p.ico,true)}${fvr('Názov firmy',p.nazov)}${fvr('Telefón',p.tel,true)}${fvr('E-mail',p.email)}</div><div class="row c4">${adresaFv}</div>`;
+  } else if (p.typ === 'szco') {
+    klientTitle='Klient — SZČO'; klientIcon=ICON_PERSON;
+    klientFv = `<div class="row c4">${fvr('IČO',p.ico,true)}${fvr('Názov živnosti',p.nazov)}${fvr('Telefón',p.tel,true)}${fvr('E-mail',p.email)}</div>
+      <div class="row c4">${fvr('Titul pred',p.titulPred)}${fvr('Meno',p.meno)}${fvr('Priezvisko',p.priezvisko)}${fvr('Titul za',p.titulZa)}</div>
+      <div class="row c4">${fvr('Rodné číslo',p.rodneCislo,true)}${fvr('Číslo dokladu',p.dokladCislo,true)}${fvr('Ulica',p.ulica)}${fvr('Číslo domu',p.cislo)}</div>
+      <div class="row c4">${fvr('Obec',p.obec)}${fvr('PSČ',p.psc,true)}<div class="fv"></div><div class="fv"></div></div>`;
+  } else {
+    klientTitle = p.cudzinec ? 'Klient — Cudzinec' : 'Klient — Fyzická osoba'; klientIcon=ICON_PERSON;
+    const idFv = p.cudzinec ? fvr('Dátum narodenia', dDot(p.datumNar)) : fvr('Rodné číslo',p.rodneCislo,true);
+    klientFv = `<div class="row c4">${fvr('Titul pred',p.titulPred)}${fvr('Meno',p.meno)}${fvr('Priezvisko',p.priezvisko)}${fvr('Titul za',p.titulZa)}</div>
+      <div class="row c4">${idFv}${fvr('Číslo dokladu',p.dokladCislo,true)}${fvr('Telefón',p.tel,true)}${fvr('E-mail',p.email)}</div>
+      <div class="row c4">${adresaFv}</div>`;
+  }
 
-  const docs = [
-    'Návrh poistnej zmluvy',
-    'Všeobecné poistné podmienky',
-    'Informačný dokument o poistnom produkte',
-    'Informácie poskytované klientovi pred uzatvorením zmluvy',
-    'Obchodné podmienky pre službu poistenie online',
-    'Podmienky spracovania osobných údajov',
-    'Záznam o sprostredkovaní finančnej služby',
-    'Záznam o dopravnej nehode',
-  ].map(d => `<a href="#" class="s4-doc-link"><span class="doc-icon">📄</span>${d}</a>`).join('');
+  // Vybraté poistenia (hero + combo grouping + ostatné)
+  const lines = [`<div class="poistenie-row"><div><div class="poistenie-name hero">Poistenie skla</div><div class="poistenie-desc">Všetky sklá · Originálny diel</div></div><div class="poistenie-price">${fmt(pp('sklo'))}</div></div>`];
+  if (has('havaria')) lines.push(`<div class="poistenie-row"><div><div class="poistenie-name">Havária a Stret so zverou</div></div><div class="poistenie-price">${fmt((pp('havaria')||0)+(pp('zver')||0))}</div></div>`);
+  else if (has('zver')) lines.push(`<div class="poistenie-row"><div><div class="poistenie-name">Stret so zverou</div></div><div class="poistenie-price">${fmt(pp('zver'))}</div></div>`);
+  const ADDON_NAMES = {zivel:'Živel',kradez:'Krádež',vandalizmus:'Vandalizmus',asistencia:'Asistencia',batozina:'Batožina',uraz:'Úraz'};
+  Object.entries(ADDON_NAMES).forEach(([id,nm])=>{ if(has(id)) lines.push(`<div class="poistenie-row"><div><div class="poistenie-name">${nm}</div></div><div class="poistenie-price">${fmt(pp(id))}</div></div>`); });
+  let total=0; state.selected.forEach(id=>{ total += (state.apiPrices[id]?.price||0); }); total*=fc.mult;
+
+  const DOCS = ['Návrh poistnej zmluvy (s VPP a IPID)','Obchodné podmienky','Informácie poskytnuté klientovi pred uzatvorením zmluvy','Podmienky spracúvania OÚ','Záznam o sprostredkovaní','Záznam o dopravnej nehode'];
+  const DOC_ICON = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+  const docsHtml = DOCS.map((d,i)=>`<a class="doc-item" ${i===0?'id="s4DocNavrh"':'href="#"'}>${DOC_ICON} ${d}</a>`).join('');
+
+  const SUHLASY = ['Súhlas s elektronickou komunikáciou','Súhlas so spracovaním osobných údajov','Súhlas k vyjadreniu k ročnému nájazdu km','Súhlas k vyjadreniu k zmluve o poskytnutí finančnej služby','Súhlas s vyjadrením na účely finančného sprostredkovania'];
+  const suhlasyHtml = SUHLASY.map((s,i)=>`<label class="suhlas-item"><input type="checkbox" class="s4-suhlas" data-idx="${i}" ${state.suhlasy[i]?'checked':''}><span class="suhlas-link">${s}</span></label>`).join('');
+  const allOk = state.suhlasy.every(Boolean);
 
   return `
-  <div class="step-screen">
-    <div class="card">
-      <div class="card-title">Súhrn a potvrdenie</div>
-      <div class="card-sub">Skontrolujte údaje pred odoslaním zmluvy.</div>
+  <div class="s4">
+    <div class="s4-intro">Skontrolujte údaje pred odoslaním zmluvy.</div>
+    <div class="s4-grid">
+      <div class="s4-col">
+        <div class="card"><div class="card-accent"></div><div class="card-body">
+          <div class="block-hd"><div class="block-icon">${klientIcon}</div><div class="block-title">${klientTitle}</div><div class="block-rule"></div></div>
+          ${klientFv}
+        </div></div>
 
-      <!-- Vybraté poistenia -->
-      <div class="section-label" style="margin-top:8px;">Vybraté poistenia</div>
-      ${itemsHtml}
-      <div class="summary-total">
-        <div class="summary-total-label">Celkom za ${fc.period}</div>
-        <div class="summary-total-price">${fmt(totalPrice())}<span>/${fc.period}</span></div>
-      </div>
-      ${state.bonusVerified != null ? `<div class="bonus-verified-badge ${state.bonusVerified === 'true' ? 'bv-yes' : 'bv-no'}">
-        Bonus overený: ${state.bonusVerified === 'true' ? '✓ Áno' : '✗ Nie'}
-      </div>` : ''}
+        <div class="card"><div class="card-body">
+          <div class="block-hd"><div class="block-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#13616b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="9" width="22" height="9" rx="2"/><path d="M5 9V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></div><div class="block-title">Vozidlo</div><div class="block-rule"></div></div>
+          <div class="row c4">${fvr('VIN',v.vin,true)}${fvr('EČV',v.ecv,true)}${fvr('Číslo TP',v.tp,true)}${fvr('Farba',getColorName(v.farba))}</div>
+          <div class="row c4">${fvr('Typ vozidla',v.typ)}${fvr('Značka',v.znacka)}${fvr('Model',v.model)}${fvr('Dátum registrácie',dDot(v.datumReg))}</div>
+          <div class="row c4">${fvr('Palivo',v.palivo)}${fvr('Objem motora',v.objem?v.objem+' cm³':'',true)}${fvr('Výkon motora',v.vykon?v.vykon+' kW':'',true)}${fvr('Max. hmotnosť',v.hmotnost?v.hmotnost+' kg':'',true)}</div>
+        </div></div>
 
-      <div class="divider"></div>
-
-      <!-- Klient -->
-      <div class="section-label">Klient</div>
-      <div class="summary-grid" style="margin-bottom:12px;">
-        ${sgf('Titul pred', p.titulPred)}
-        ${sgf('Meno', p.meno)}
-        ${sgf('Priezvisko', p.priezvisko)}
-        ${sgf('Titul za', p.titulZa)}
-        ${sgf('Rodné číslo', p.rodneCislo)}
-        ${sgf('Dátum narodenia', p.datumNar ? p.datumNar.split('-').reverse().join('.') : '')}
-        ${sgf('Číslo OP', p.dokladCislo)}
-        ${sgf('Typ', p.typ === 'fo' ? 'Fyzická osoba' : p.typ === 'po' ? 'Právnická osoba' : 'SZČO')}
-        ${sgf('E-mail', p.email)}
-        ${sgf('Telefón', p.tel)}
-        ${sgf('Obec', p.obec)}
-        ${sgf('PSČ', p.psc)}
-        ${sgf('Ulica', p.ulica ? p.ulica + ' ' + (p.cislo||'') : '')}
+        <div class="card"><div class="card-accent"></div><div class="card-body">
+          <div class="block-hd"><div class="block-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#13616b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="block-title">Vybraté poistenia</div><div class="block-rule"></div><div style="font-size:10px;color:var(--ink-4);white-space:nowrap;margin-left:6px;">${fc.label}</div></div>
+          ${lines.join('')}
+          <div class="celkom-row"><div class="celkom-lbl">Celkom</div><div class="celkom-val">${fmt(total)}</div></div>
+        </div></div>
       </div>
 
-      <div class="divider"></div>
+      <div class="s4-side">
+        <div class="card"><div class="card-body">
+          <div class="block-hd"><div class="block-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#13616b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div class="block-title">Dokumenty</div><div class="block-rule"></div></div>
+          ${docsHtml}
+        </div></div>
 
-      <!-- Vozidlo -->
-      <div class="section-label">Vozidlo</div>
-      <div class="summary-grid" style="margin-bottom:16px;">
-        ${sgf('EČV', v.ecv)}
-        ${sgf('VIN', v.vin)}
-        ${sgf('Dátum registrácie', v.datumReg ? v.datumReg.split('-').reverse().join('.') : '')}
-        ${sgf('Typ', v.typ)}
-        ${sgf('Značka', v.znacka)}
-        ${sgf('Model', v.model)}
-        ${sgf('Palivo', v.palivo)}
-        ${sgf('Farba', getColorName(v.farba))}
-        ${sgf('Objem', v.objem ? v.objem + ' cm³' : '')}
-        ${sgf('Výkon', v.vykon ? v.vykon + ' kW' : '')}
-        ${sgf('Hmotnosť', v.hmotnost ? v.hmotnost + ' kg' : '')}
-        ${sgf('Číslo TP', v.bezTp ? 'Zatiaľ bez TP' : v.tp)}
-      </div>
+        <div class="card"><div class="card-body">
+          <div class="block-hd"><div class="block-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#13616b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div class="block-title">Súhlasy</div><div class="block-rule"></div></div>
+          ${suhlasyHtml}
+        </div></div>
 
-      <div class="divider"></div>
-
-      <!-- Náhľad zmluvy -->
-      <div class="section-label">Náhľad zmluvy</div>
-      <div id="s4PdfContainer" style="margin-bottom:24px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;min-height:120px;display:flex;align-items:center;justify-content:center;background:#f9fafb;">
-        <div id="s4PdfLoading" style="color:var(--text-muted);font-size:14px;">
-          <span class="spinner" style="display:inline-block;margin-right:8px;"></span>Načítavam náhľad zmluvy...
-        </div>
-      </div>
-
-      <!-- Dokumenty -->
-      <div class="section-label">Dokumenty na stiahnutie</div>
-      <div class="s4-docs-grid">
-        ${docs}
-      </div>
-
-      <!-- Tlačidlá -->
-      <div class="s4-btn-row">
-        <button class="btn-secondary" id="btnStep4Back">← Späť</button>
-        <button class="btn-primary" id="btnStep4Submit" ${state.submitting?'disabled':''}>
-          ${state.submitting ? '<span class="spinner"></span> Odosielam...' : '✅ Potvrdiť a odoslať'}
-        </button>
+        <div class="card"><div class="card-foot">
+          <button class="btn-back" id="btnStep4Back">← Späť</button>
+          <button class="cta" id="btnStep4Submit" ${(!allOk||state.submitting)?'disabled':''}>${state.submitting?'Odosielam…':'✓ Potvrdiť a odoslať'}</button>
+        </div></div>
       </div>
     </div>
   </div>`;
@@ -7008,8 +7031,35 @@ function attachListeners() {
     }
   }
 
+  // Súhlasy (gating odoslania)
+  document.querySelectorAll('.s4-suhlas').forEach(cb => {
+    cb.addEventListener('change', function() {
+      state.suhlasy[+this.dataset.idx] = this.checked;
+      const btn = document.getElementById('btnStep4Submit');
+      if (btn) btn.disabled = !state.suhlasy.every(Boolean) || state.submitting;
+    });
+  });
+
+  // Návrh zmluvy → otvoriť PDF náhľad v novom okne
+  document.getElementById('s4DocNavrh')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const calcId = state.allFreqCalcIds[state.paymentFreq] || state.calculationId;
+    if (!calcId) { alert('Náhľad nie je dostupný — najprv dokončite kalkuláciu.'); return; }
+    try {
+      const uid = await pillowAuth();
+      const res = await fetch(`${PILLOW_CONFIG.BASE_URL}/par/policies/print/AP2/policyPreview/${calcId}/print`, {
+        method: 'POST', headers: { 'Content-Type': 'text/xml; charset=utf-8', 'RestUid': uid },
+      });
+      pillowLogout(uid);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const url = URL.createObjectURL(await res.blob());
+      window.open(url, '_blank');
+    } catch (err) { alert('Náhľad nie je dostupný: ' + err.message); }
+  });
+
   const btnS4Submit = document.getElementById('btnStep4Submit');
   if (btnS4Submit) btnS4Submit.addEventListener('click', async () => {
+    if (!state.suhlasy.every(Boolean)) return;
     state.submitting = true;
     render();
     try {
