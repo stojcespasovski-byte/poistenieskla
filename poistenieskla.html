@@ -6046,6 +6046,7 @@ function renderSuccess(zmluvaId) {
         <div class="success-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
         <div class="success-title">Návrh poistnej zmluvy <span style="color:var(--teal-dark);">${zmluvaId}</span> bol úspešne odoslaný.</div>
         <div class="success-subtitle">Všetky doklady nájdete v e-maile: ${state.poistnik.email || '–'}</div>
+        <div id="emailStatus" style="font-size:12.5px;font-weight:500;margin-top:4px;min-height:16px;"></div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;">
           <div class="box">
@@ -6097,6 +6098,56 @@ function renderSuccess(zmluvaId) {
     </div>
   </div>`;
   document.querySelectorAll('.sn-step').forEach(el => { el.classList.remove('active','todo'); el.classList.add('done'); const n=el.querySelector('.sn-num'); if(n) n.textContent='✓'; });
+  odoslatEmailKlientovi(zmluvaId);   // fire-and-forget: e-mail klientovi s PDF + QR
+}
+
+/* Odoslanie e-mailu klientovi (PDF + QR + odkaz) cez náš backend — best-effort */
+async function odoslatEmailKlientovi(zmluvaId) {
+  const to = ((state.poistnik && state.poistnik.email) || '').trim();
+  if (!to) return;  // bez e-mailu neposielame
+  const setStatus = (txt, color) => {
+    const el = document.getElementById('emailStatus');
+    if (el) { el.textContent = txt; el.style.color = color || 'var(--ink-3)'; }
+  };
+
+  // 1) PDF návrhu zo Pillow (best-effort — keď zlyhá, pošleme bez prílohy)
+  let pdfBase64 = null;
+  try {
+    const calcId = state.allFreqCalcIds[state.paymentFreq] || state.calculationId;
+    if (calcId) {
+      const uid = await pillowAuth();
+      const res = await fetch(`${PILLOW_CONFIG.BASE_URL}/par/policies/print/AP2/policyPreview/${calcId}/print`, {
+        method: 'POST', headers: { 'Content-Type': 'text/xml; charset=utf-8', 'RestUid': uid },
+      });
+      await pillowLogout(uid);
+      if (res.ok) {
+        const blob = await res.blob();
+        pdfBase64 = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
+      }
+    }
+  } catch (_) { /* ignorujeme — pošleme bez PDF */ }
+
+  // 2) odoslať e-mail cez backend (bez SendGrid kľúča vráti no-op)
+  try {
+    const fc = FREQ_CONFIG[state.paymentFreq] || {};
+    const res = await fetch('https://api.pripoisti.sk/bcrm/email/send-offer', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to,
+        brand: (typeof PILLOW_CONFIG !== 'undefined' && PILLOW_CONFIG.BRAND) || 'poistenieskla',
+        meno: [state.poistnik.meno, state.poistnik.priezvisko].filter(Boolean).join(' ') || state.poistnik.nazov || '',
+        zmluvaId,
+        suma: state.paySuma,
+        vs: state.varSym || '',
+        splatnost: state.zaciatok || '',
+        frekvencia: fc.label || '',
+        pdfBase64,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data && data.sent) setStatus('E-mail s dokladmi bol odoslaný klientovi ✓', '#16a34a');
+    // no-op (kým nie je SendGrid kľúč) → status nezobrazujeme
+  } catch (_) { /* ticho — e-mail je doplnková akcia */ }
 }
 
 /* QR fallback — ak backend QR endpoint nie je dostupný / IBAN nie je nastavený */
