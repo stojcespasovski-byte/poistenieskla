@@ -6676,7 +6676,7 @@ function attachListeners() {
 
     let keepEcv = data.ecv ? true : null;
 
-    if (data.ecv) {
+    if (data.ecv && lookedUpByVin) {
       const btnConfirm = document.getElementById('modalBtnConfirm');
       const setEcv = (val) => {
         keepEcv = val;
