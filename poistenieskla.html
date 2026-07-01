@@ -1069,6 +1069,29 @@
   }
 
   /* ─── MODAL ───────────────────────────────────────────── */
+  /* Modál — zoznam zmluvných servisov (opravovní) */
+  .srv-ov { position:fixed; inset:0; background:rgba(15,23,42,.5); backdrop-filter:blur(4px);
+    display:none; align-items:center; justify-content:center; z-index:950; padding:20px; }
+  .srv-ov.open { display:flex; animation:fadeIn .2s ease; }
+  .srv-modal { background:var(--surface); border-radius:14px; box-shadow:var(--shadow-lg);
+    width:100%; max-width:900px; height:85vh; display:flex; flex-direction:column; overflow:hidden;
+    animation:slideUp .25s ease; }
+  .srv-hd { display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
+    padding:16px 22px; border-bottom:1px solid var(--border); }
+  .srv-hd h3 { font-size:16.5px; font-weight:700; color:var(--ink); margin:0; }
+  .srv-hd p { font-size:12.5px; color:var(--ink-3); margin:3px 0 0; }
+  .srv-x { flex-shrink:0; width:32px; height:32px; border:1px solid var(--border-strong);
+    border-radius:8px; background:#fff; color:var(--ink-3); cursor:pointer; display:flex;
+    align-items:center; justify-content:center; transition:color .12s,border-color .12s; }
+  .srv-x:hover { color:var(--ink); border-color:var(--ink-3); }
+  .srv-body { flex:1; min-height:0; background:var(--bg); }
+  .srv-body iframe { width:100%; height:100%; border:0; display:block; }
+  .srv-ft { padding:11px 22px; border-top:1px solid var(--border); display:flex; gap:18px;
+    align-items:center; justify-content:flex-end; }
+  .srv-ft a { font-size:12.5px; color:var(--teal-dark); font-weight:600; text-decoration:none;
+    display:inline-flex; align-items:center; gap:5px; }
+  .srv-ft a:hover { color:var(--teal-accent); }
+
   .modal-overlay {
     position: fixed;
     inset: 0;
@@ -5461,7 +5484,7 @@ function renderStep1() {
           <div class="fld">
             <label>Zmluvný servis?</label>
             ${toggleNewHtml('zmluvnyServis', v.zmluvnyServis)}
-            <a class="servis-link-new" href="https://www.mypillow.sk/pillow-dokumenty/Poistenie_vozidiel/Pillow_Vozidla_Zoznam_zmluvnych_opravovni.pdf" target="_blank" style="justify-content:center;">
+            <a class="servis-link-new" href="#" onclick="openServisy();return false;" style="justify-content:center;">
               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
               Zoznam zmluvných servisov
             </a>
@@ -7408,6 +7431,23 @@ function closeZmluvy() {
 document.addEventListener('click', e => {
   if (e.target.id === 'btnZmluvy') openZmluvy();
   if (e.target.id === 'zmluvyClose' || e.target.id === 'zmluvyOverlay') closeZmluvy();
+  if (e.target.id === 'srvOverlay') closeServisy();   // klik na tmavé pozadie zavrie modál
+});
+
+/* Modál zmluvných servisov — PDF sa načíta až pri prvom otvorení (lazy) */
+const SERVIS_PDF = 'https://www.mypillow.sk/pillow-dokumenty/Poistenie_vozidiel/Pillow_Vozidla_Zoznam_zmluvnych_opravovni.pdf';
+function openServisy() {
+  const body = document.getElementById('srvBody');
+  if (body && !body.querySelector('iframe')) {
+    body.innerHTML = `<iframe src="${SERVIS_PDF}#view=FitH" title="Zoznam zmluvných servisov"></iframe>`;
+  }
+  document.getElementById('srvOverlay')?.classList.add('open');
+}
+function closeServisy() {
+  document.getElementById('srvOverlay')?.classList.remove('open');
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeServisy();
 });
 
 function renderZmluvyTable(zmluvy = MOCK_ZMLUVY) {
@@ -7555,8 +7595,32 @@ if (new URLSearchParams(location.search).has('payreturn')) {
     <a href="#" style="font-size:13px;color:rgba(255,255,255,.45);text-decoration:none;" onmouseover="this.style.color='rgba(255,255,255,.8)'" onmouseout="this.style.color='rgba(255,255,255,.45)'">Všeobecné obchodné podmienky</a>
     <a href="#" style="font-size:13px;color:rgba(255,255,255,.45);text-decoration:none;" onmouseover="this.style.color='rgba(255,255,255,.8)'" onmouseout="this.style.color='rgba(255,255,255,.45)'">Podmienky spracúvania osobných údajov</a>
     <a href="#" style="font-size:13px;color:rgba(255,255,255,.45);text-decoration:none;" onmouseover="this.style.color='rgba(255,255,255,.8)'" onmouseout="this.style.color='rgba(255,255,255,.45)'">Všeobecné poistné podmienky</a>
-    <a href="https://www.mypillow.sk/pillow-dokumenty/Poistenie_vozidiel/Pillow_Vozidla_Zoznam_zmluvnych_opravovni.pdf" target="_blank" style="font-size:13px;color:rgba(255,255,255,.45);text-decoration:none;" onmouseover="this.style.color='rgba(255,255,255,.8)'" onmouseout="this.style.color='rgba(255,255,255,.45)'">Zoznam zmluvných servisov</a>
+    <a href="#" onclick="openServisy();return false;" style="font-size:13px;color:rgba(255,255,255,.45);text-decoration:none;" onmouseover="this.style.color='rgba(255,255,255,.8)'" onmouseout="this.style.color='rgba(255,255,255,.45)'">Zoznam zmluvných servisov</a>
   </div>
 </footer>
+
+<!-- MODÁL — Zmluvné servisy (opravovne) -->
+<div class="srv-ov" id="srvOverlay">
+  <div class="srv-modal">
+    <div class="srv-hd">
+      <div>
+        <h3>Zmluvné servisy (opravovne)</h3>
+        <p>Oficiálny zoznam zmluvných opravovní Pillow pre poistenie vozidiel</p>
+      </div>
+      <button class="srv-x" onclick="closeServisy()" aria-label="Zavrieť">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="srv-body" id="srvBody"></div>
+    <div class="srv-ft">
+      <a href="https://www.mypillow.sk/pillow-dokumenty/Poistenie_vozidiel/Pillow_Vozidla_Zoznam_zmluvnych_opravovni.pdf" target="_blank" rel="noopener">Otvoriť v novom okne
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+      </a>
+      <a href="https://www.mypillow.sk/pillow-dokumenty/Poistenie_vozidiel/Pillow_Vozidla_Zoznam_zmluvnych_opravovni.pdf" download>Stiahnuť PDF
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      </a>
+    </div>
+  </div>
+</div>
 </body>
 </html>
