@@ -7560,6 +7560,20 @@ loadState();
 applyBranding();
 render();
 
+// Adaptívny zoom — zaplní ~polovicu prázdneho miesta pod formulárom podľa výšky
+// obrazovky. Na vysokých monitoroch väčší, na notebooku ostáva ~1.1 (nepretečie).
+(function adaptiveZoom() {
+  const REF = 820;   // prirodzená výška najvyššieho kroku (Krok 1) pri zoom 1, od vrchu
+  function apply() {
+    const vh = window.innerHeight || 900;
+    let z = (vh + REF) / (2 * REF);          // zaplní polovicu prázdna
+    z = Math.max(1.1, Math.min(1.3, z));     // poistky: nikdy < 1.1, nikdy > 1.3
+    document.body.style.zoom = z.toFixed(3);
+  }
+  apply();
+  let t; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(apply, 120); });
+})();
+
 // návrat z platobnej brány?
 if (new URLSearchParams(location.search).has('payreturn')) {
   handlePaymentReturn();
