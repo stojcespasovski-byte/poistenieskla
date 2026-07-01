@@ -5580,7 +5580,7 @@ function renderStep2() {
       <div class="a2-check">${c.on ? CHK_SM : ''}</div>
       <div class="a2-name">${c.name}</div>
       <div class="a2-desc">${c.desc}</div>
-      <div class="a2-price">${loading ? '…' : fmt(c.price)} <span>/ mes.</span></div>
+      <div class="a2-price">${loading ? '…' : fmt(c.price)} <span>/ ${fc.period}</span></div>
     </div>`).join('');
 
   // počet vybraných doplnkových KARIET (combo = 1 karta)
