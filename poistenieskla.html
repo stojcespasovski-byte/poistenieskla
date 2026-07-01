@@ -1462,7 +1462,7 @@
 
   /* Hero */
   .hero2 { position:relative;border-radius:16px;overflow:hidden;
-    background:linear-gradient(120deg,#15707b 0%,#0e4c57 60%,#0b3d47 100%);
+    background:radial-gradient(130% 100% at 78% 40%,rgba(59,196,212,.20),transparent 52%),linear-gradient(120deg,#15707b 0%,#0e4c57 60%,#0b3d47 100%);
     box-shadow:0 8px 24px rgba(11,61,71,.22); }
   .hero2::before { content:"";position:absolute;top:0;left:0;right:0;height:3px;
     background:linear-gradient(90deg,#13616b,#3bc4d4);z-index:3; }
@@ -1475,8 +1475,8 @@
   .h2b .sub { display:block;color:#a9d9e0;font-size:12.5px;font-weight:500;margin-top:4px;white-space:normal;max-width:290px; }
   .h2-badge { display:inline-block;background:#fff;color:var(--teal-dark);font-weight:800;font-size:12px;padding:2px 8px;border-radius:6px;margin-left:3px; }
   .h2-badge-note { color:#a9d9e0;font-size:12.5px;font-weight:500; }
-  .hero2-car { position:absolute;right:6px;top:36%;transform:translateY(-50%);width:39%;z-index:1;pointer-events:none; }
-  .hero2-car img { width:100%;display:block;filter:drop-shadow(0 9px 9px rgba(0,0,0,.28)); }
+  .hero2-car { position:absolute;right:-10px;top:42%;transform:translateY(-50%);width:50%;z-index:1;pointer-events:none; }
+  .hero2-car img { width:100%;display:block;filter:drop-shadow(0 14px 14px rgba(0,0,0,.30)); }
 
   /* Freq bar */
   .freq2 { display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid rgba(255,255,255,.10);background:rgba(6,38,44,.45); }
@@ -5553,7 +5553,7 @@ function renderStep2() {
             <div class="h2b">${CHK}<div><span>Všetky sklá a okná</span><span class="sub">čelné, bočné, panorama, strešné, zadné</span></div></div>
             <div class="h2b">${CHK}<div>Spoluúčasť iba 10% <span class="h2-badge-note">(do obhliadky 90%)</span></div></div>
             <div class="h2b">${CHK}<div>Rýchla online likvidácia</div></div>
-            <div class="h2b">${CHK}<div>Originál diely vrátane senzorov a kalibrácie</div></div>
+            <div class="h2b">${CHK}<div><span>Originálne diely</span><span class="sub">vrátane senzorov a kalibrácie</span></div></div>
           </div>
         </div>
         <div class="hero2-car"><img src="hero_car.png" alt="Poistenie skla"></div>
