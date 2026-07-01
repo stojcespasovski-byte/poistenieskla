@@ -5204,7 +5204,7 @@ function renderStep1() {
   const v = state.vehicle;
   const p = state.poistnik;
   const vehicleDetected = v.znacka && v.model;
-  const showCenaVozidla = v.typ !== 'OA' || isVehicleNew();
+  const showCenaVozidla = (v.typ && v.typ !== 'OA') || isVehicleNew();
   const cenaLabel = isVehicleNew() ? 'Nová cena vozidla bez zliav s DPH' : 'Aktuálna časová hodnota vozidla';
   return `
   <div class="page-new">
@@ -7010,7 +7010,7 @@ function attachListeners() {
     const fieldEl = document.getElementById('fieldCenaVozidla');
     const labelEl = document.getElementById('labelCenaVozidla');
     if (!fieldEl) return;
-    const show = !isOA || isNew;
+    const show = (typ && !isOA) || isNew;
     fieldEl.style.display = show ? 'flex' : 'none';
     if (labelEl) labelEl.textContent = isNew ? 'Nová cena s DPH bez zliav (€)' : 'Aktuálna časová cena (€)';
   }
