@@ -7570,12 +7570,6 @@ render();
     let z = 1 + FILL * (vh / REF - 1);       // zaplní FILL časť prázdna
     z = Math.max(1.1, Math.min(1.45, z));    // poistky: nikdy < 1.1, nikdy > 1.45
     document.body.style.zoom = z.toFixed(3);
-    // DOČASNÝ debug — ukáže reálny zoom + výšku okna (potom odstrániť)
-    let dbg = document.getElementById('zoomDbg');
-    if (!dbg) { dbg = document.createElement('div'); dbg.id = 'zoomDbg';
-      dbg.style.cssText = 'position:fixed;top:2px;left:50%;transform:translateX(-50%);z-index:99999;background:#111;color:#4ade80;font:12px/1.4 monospace;padding:3px 10px;border-radius:0 0 6px 6px;opacity:.9;pointer-events:none;';
-      document.body.appendChild(dbg); }
-    dbg.textContent = 'DEBUG zoom=' + z.toFixed(3) + ' · vh=' + vh + 'px';
   }
   apply();
   let t; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(apply, 120); });
