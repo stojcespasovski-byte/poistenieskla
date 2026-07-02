@@ -4928,7 +4928,13 @@ function updateHeader() {
     }
   }
 
+  // Uložiť rozpracovanú — len počas vypĺňania formulára (kroky 1–3)
+  const saveBtn = (state.view === 'form' && state.step >= 1 && state.step <= 3)
+    ? `<button class="btn-zmluvy" id="btnUlozDraft" onclick="ulozitRozpracovanu(this)" title="Uložiť rozpracovanú ponuku">💾 Uložiť</button>` : '';
+
   right.innerHTML = `
+    ${saveBtn}
+    <button class="btn-zmluvy" id="btnRozprac" onclick="openRozpracovane()">Rozpracované</button>
     ${contextBtn}
     <button class="btn-logout" id="btnLogout" title="Odhlásiť sa">⎋ Odhlásiť</button>`;
 }
@@ -6126,6 +6132,7 @@ function renderSuccess(zmluvaId) {
   </div>`;
   document.querySelectorAll('.sn-step').forEach(el => { el.classList.remove('active','todo'); el.classList.add('done'); const n=el.querySelector('.sn-num'); if(n) n.textContent='✓'; });
   odoslatEmailKlientovi(zmluvaId);   // fire-and-forget: e-mail klientovi s PDF + QR
+  oznacDraftOdoslana();              // ak vznikla z draftu, v CRM ju prepne na „odoslaná"
 }
 
 /* Odoslanie e-mailu klientovi (PDF + QR + odkaz) cez náš backend — best-effort */
@@ -6190,7 +6197,7 @@ function novaZmluva() {
   state.apiPrices = {}; state.allFreqPrices = {}; state.selected = new Set(); state.selectedVariants = {};
   state.spoluUcast = '300'; state.withGAP = false; state.priceCache = {}; state.doplnkyOpen = false;
   state.poistnik = { typ:'fo', cudzinec:false, rodneCislo:'', datumNar:'', meno:'', priezvisko:'', ico:'', nazov:'', obec:'', psc:'', dokladCislo:'', email:'', tel:'', ulica:'', cislo:'', titulPred:'', titulZa:'', orsr:false };
-  state.suhlasy = [false,false,false,false,false]; state.varSym = null; state.calculationId = null;
+  state.suhlasy = [false,false,false,false,false]; state.varSym = null; state.calculationId = null; state.draftId = null;
   state.step = 1; render();
 }
 function stiahnutZmluvu() {
@@ -7432,6 +7439,157 @@ function closeZmluvy() {
   document.getElementById('zmluvyPanel')?.classList.remove('open');
 }
 
+/* ════════════════════════════════════════════════════════
+   ROZPRACOVANÉ PONUKY (drafty) — ukladajú sa do CRM
+   Technik vidí svoje, správca/admin všetky (rieši CRM podľa uid).
+════════════════════════════════════════════════════════ */
+const DRAFT_API = 'https://api.pripoisti.sk/bcrm/ponuky';
+
+function draftSnapshot() {
+  // rovnaká serializácia ako saveState (Set → pole); deep-copy, nech snapshot
+  // nezdieľa referencie so živým stavom
+  const snap = {};
+  Object.keys(state).forEach(k => {
+    if (STATE_SKIP.includes(k)) return;
+    snap[k] = k === 'selected' ? [...state.selected] : state[k];
+  });
+  return JSON.parse(JSON.stringify(snap));
+}
+
+function draftRestore(snap) {
+  Object.keys(snap || {}).forEach(k => {
+    if (STATE_SKIP.includes(k)) return;
+    if (k === 'selected') { state.selected = new Set(snap[k]); return; }
+    if (typeof state[k] === 'object' && state[k] !== null && !Array.isArray(state[k]) && !(state[k] instanceof Set)) {
+      Object.assign(state[k], snap[k]);
+    } else {
+      state[k] = snap[k];
+    }
+  });
+}
+
+function draftTitle() {
+  const p = state.poistnik, v = state.vehicle;
+  const klient = [p.meno, p.priezvisko].filter(Boolean).join(' ') || p.nazov || '';
+  const auto = [v.znacka, v.model].filter(Boolean).join(' ') || v.ecv || '';
+  return [auto, klient].filter(Boolean).join(' · ') || 'Rozpracovaná ponuka';
+}
+
+async function ulozitRozpracovanu(btn) {
+  if (!state.user.uid) return;
+  const orig = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = 'Ukladám…'; }
+  const p = state.poistnik, v = state.vehicle;
+  const payload = {
+    uid: state.user.uid,
+    nazov: draftTitle(),
+    klient_meno: [p.meno, p.priezvisko].filter(Boolean).join(' ') || p.nazov || '',
+    vozidlo: { znacka: v.znacka, model: v.model, ecv: v.ecv, vin: v.vin },
+    pripoistenia: [...state.selected],
+    intake_data: draftSnapshot(),
+    stav: 'rozpracovaná',
+  };
+  try {
+    const url = state.draftId ? `${DRAFT_API}/${state.draftId}` : DRAFT_API;
+    const res = await fetch(url, {
+      method: state.draftId ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (data && data.id) state.draftId = data.id;
+    saveState();
+    if (btn) { btn.innerHTML = 'Uložené ✓'; setTimeout(() => { btn.disabled = false; btn.innerHTML = orig; }, 1800); }
+  } catch (err) {
+    if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+    alert('Uloženie sa nepodarilo: ' + err.message + '\n(CRM endpoint /api/intake/ponuky možno ešte nie je nasadený.)');
+  }
+}
+
+function closeRozpracovane() { document.getElementById('draftOverlay')?.remove(); }
+
+async function openRozpracovane() {
+  if (!state.user.uid) return;
+  closeRozpracovane();
+  const ov = document.createElement('div');
+  ov.className = 'modal-overlay'; ov.id = 'draftOverlay';
+  ov.addEventListener('click', e => { if (e.target === ov) closeRozpracovane(); });
+  ov.innerHTML = `<div class="modal" style="max-width:640px;max-height:80vh;display:flex;flex-direction:column;">
+    <div class="modal-title">Rozpracované ponuky</div>
+    <div class="modal-sub">Kliknutím ponuku otvoríte a môžete pokračovať.</div>
+    <div id="draftList" style="overflow-y:auto;flex:1;font-size:13.5px;color:var(--ink-3);">Načítavam…</div>
+    <div style="margin-top:16px;text-align:right;"><button class="btn-secondary" onclick="closeRozpracovane()">Zavrieť</button></div>
+  </div>`;
+  document.body.appendChild(ov);
+  try {
+    const res = await fetch(`${DRAFT_API}?uid=${encodeURIComponent(state.user.uid)}`);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const list = await res.json();
+    const drafts = (Array.isArray(list) ? list : []).filter(d => (d.stav || '') === 'rozpracovaná');
+    const el = document.getElementById('draftList');
+    if (!el) return;
+    if (!drafts.length) { el.innerHTML = '<div style="padding:20px 0;text-align:center;">Žiadne rozpracované ponuky.</div>'; return; }
+    const isSpravca = ['admin','spravca'].includes(state.user.rola);
+    el.innerHTML = drafts.map(d => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border);">
+        <div style="flex:1;min-width:0;cursor:pointer;" onclick="nacitatDraft('${d.id}')">
+          <div style="font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.nazov || d.klient_meno || d.evid || 'Ponuka'}</div>
+          <div style="font-size:12px;color:var(--ink-4);">${[d.evid, (d.created_at||'').slice(0,10).split('-').reverse().join('.'), isSpravca ? d.pracovnik : ''].filter(Boolean).join(' · ')}</div>
+        </div>
+        <button class="btn-secondary" style="height:32px;padding:0 12px;font-size:12.5px;" onclick="nacitatDraft('${d.id}')">Otvoriť</button>
+        <button class="btn-secondary" style="height:32px;padding:0 10px;font-size:12.5px;color:var(--danger);" onclick="zmazatDraft('${d.id}', this)" title="Zmazať">✕</button>
+      </div>`).join('');
+  } catch (err) {
+    const el = document.getElementById('draftList');
+    if (el) el.innerHTML = `<div style="padding:20px 0;text-align:center;">Nepodarilo sa načítať (${err.message}).<br>CRM endpoint možno ešte nie je nasadený.</div>`;
+  }
+}
+
+async function nacitatDraft(id) {
+  try {
+    const res = await fetch(`${DRAFT_API}/${id}?uid=${encodeURIComponent(state.user.uid)}`);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const d = await res.json();
+    if (!d || !d.intake_data) throw new Error('draft nemá uložené dáta');
+    draftRestore(d.intake_data);
+    state.draftId = id;
+    state.view = 'form';
+    if (!state.step || state.step < 1 || state.step > 4) state.step = 1;
+    saveState();
+    closeRozpracovane();
+    render();
+  } catch (err) {
+    alert('Ponuku sa nepodarilo otvoriť: ' + err.message);
+  }
+}
+
+async function zmazatDraft(id, btn) {
+  if (!confirm('Zmazať túto rozpracovanú ponuku?')) return;
+  try {
+    const res = await fetch(`${DRAFT_API}/${id}?uid=${encodeURIComponent(state.user.uid)}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    if (state.draftId === id) { state.draftId = null; saveState(); }
+    btn?.closest('div[style]')?.remove();
+    openRozpracovane();   // refresh zoznamu
+  } catch (err) {
+    alert('Zmazanie sa nepodarilo: ' + err.message);
+  }
+}
+
+/* Po odoslaní zmluvy označí draft ako odoslaný (best-effort) */
+function oznacDraftOdoslana() {
+  const id = state.draftId;
+  if (!id) return;
+  state.draftId = null;
+  saveState();
+  fetch(`${DRAFT_API}/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ uid: state.user.uid, stav: 'odoslaná' }),
+  }).catch(() => {});
+}
+
 document.addEventListener('click', e => {
   if (e.target.id === 'btnZmluvy') openZmluvy();
   if (e.target.id === 'zmluvyClose' || e.target.id === 'zmluvyOverlay') closeZmluvy();
@@ -7578,6 +7736,15 @@ render();
 // návrat z platobnej brány?
 if (new URLSearchParams(location.search).has('payreturn')) {
   handlePaymentReturn();
+}
+
+// deep-link z CRM: ?draft={id} → otvorí rozpracovanú ponuku
+{
+  const draftParam = new URLSearchParams(location.search).get('draft');
+  if (draftParam && state.user.uid) {
+    try { history.replaceState(null, '', location.origin + location.pathname); } catch (_) {}
+    nacitatDraft(draftParam);
+  }
 }
 </script>
 
