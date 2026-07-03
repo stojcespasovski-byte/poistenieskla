@@ -4623,7 +4623,7 @@ async function apiLookupVehicle({ ecv, vin }) {
   };
 }
 
-function buildBcrmZmluvaPayload(policyId) {
+function buildBcrmZmluvaPayload(policyId, calcId, pdfBase64) {
   const p = state.poistnik;
   const v = state.vehicle;
   const u = state.user;
@@ -4676,14 +4676,20 @@ function buildBcrmZmluvaPayload(policyId) {
       objem:  parseInt(v.objem)    || 0,
     },
     zmluva: {
-      cisloZmluvy: policyId,
-      datumOd:     state.zaciatok || '',
-      frekvencia:  state.paymentFreq || 12,
-      cena,
-      varSym:      state.varSym || '',
-      produkty:    [...state.selected],
+      pillowCisloZmluvy: policyId,
+      pillowCalcId:      calcId || state.calculationId || '',
+      totalMonthPremium: cena,                       // splátka za zvolenú lehotu
+      paymentFrequency:  state.paymentFreq || 12,    // 12/4/2/1
+      zaciatok:          state.zaciatok || '',
+      spoluUcast:        state.spoluUcast || '',
+      selectedRisks:     [...state.selected].map(id => (ALL_PRODUCTS.find(x => x.id === id)?.name) || id),
+      poistovna:         'Pillow pojišťovna, a. s.',
+      produkt:           'Poistenie skla',
+      varSym:            state.varSym || '',
     },
+    uid: u.uid || '',                 // obchodník (maklér/technik)
     draftId: state.draftId || null,   // prepojenie na ponuku v CRM (ak zmluva vznikla z draftu)
+    prilohy: pdfBase64 ? [{ nazov: `Navrh_zmluvy_${policyId}.pdf`, typ: 'application/pdf', data: pdfBase64 }] : [],
     pracovnik: {
       uid:     u.uid     || '',
       meno:    u.meno    || '',
@@ -4692,8 +4698,8 @@ function buildBcrmZmluvaPayload(policyId) {
   };
 }
 
-async function sendBcrmZmluva(policyId) {
-  const payload = buildBcrmZmluvaPayload(policyId);
+async function sendBcrmZmluva(policyId, calcId, pdfBase64) {
+  const payload = buildBcrmZmluvaPayload(policyId, calcId, pdfBase64);
   const resp = await fetch('https://api.pripoisti.sk/bcrm/zmluva', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -4724,8 +4730,22 @@ async function apiSubmit() {
     const finalResp = parseSaveResponse(await pillowCall(uid, 'par/policies/save/AP2', finalXml));
     if (!finalResp.policyId) throw new Error('Zmluva nebola vytvorená — skontrolujte údaje');
     state.varSym = finalResp.varSym;
-    // 3. Zaznamenať v BCRM (best-effort — nezastaví flow pri chybe)
-    await sendBcrmZmluva(finalResp.policyId).catch(err => console.error('BCRM zmluva:', err));
+    // 3. PDF návrhu pre CRM prílohu (best-effort, v rámci živej Pillow session)
+    let pdfB64 = null;
+    try {
+      const printCalc = finalResp.calcId || calcId;
+      if (printCalc) {
+        const pres = await fetch(`${PILLOW_CONFIG.BASE_URL}/par/policies/print/AP2/policyPreview/${printCalc}/print`, {
+          method: 'POST', headers: { 'Content-Type': 'text/xml; charset=utf-8', 'RestUid': uid },
+        });
+        if (pres.ok) {
+          const blob = await pres.blob();
+          pdfB64 = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(String(fr.result).split(',')[1] || null); fr.readAsDataURL(blob); });
+        }
+      }
+    } catch (_) { /* bez prílohy */ }
+    // 4. Zaznamenať v BCRM (best-effort — nezastaví flow pri chybe)
+    await sendBcrmZmluva(finalResp.policyId, finalResp.calcId || calcId, pdfB64).catch(err => console.error('BCRM zmluva:', err));
     return { success: true, zmluvaId: finalResp.policyId };
   } finally {
     if (uid) await pillowLogout(uid);
