@@ -7586,6 +7586,9 @@ async function nacitatDraft(id) {
     state.draftId = id;
     state.view = 'form';
     if (!state.step || state.step < 1 || state.step > 4) state.step = 1;
+    // začiatok poistenia v minulosti (starý draft) → posuň na zajtra
+    const zajtra = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    if (!state.zaciatok || state.zaciatok < zajtra) state.zaciatok = zajtra;
     // draft z CRM posiela značku/model ako text → odvodíme kódy pre selecty
     const dv = state.vehicle;
     if (dv && dv.znacka && !dv.brandCode) dv.brandCode = getBrandCode(dv.znacka);
