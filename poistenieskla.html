@@ -4686,6 +4686,7 @@ function buildBcrmZmluvaPayload(policyId, calcId, pdfBase64) {
       poistovna:         'Pillow pojišťovna, a. s.',
       produkt:           'Poistenie skla',
       varSym:            state.varSym || '',
+      uid:               u.uid || '',   // obchodník aj tu (CRM kontrakt: top-level alebo zmluva.uid)
     },
     uid: u.uid || '',                 // obchodník (maklér/technik)
     draftId: state.draftId || null,   // prepojenie na ponuku v CRM (ak zmluva vznikla z draftu)
@@ -4725,15 +4726,11 @@ async function apiSubmit() {
     const checkXml  = buildSaveXML(calcId, false);
     const checkResp = parseSaveResponse(await pillowCall(uid, 'par/policies/save/AP2', checkXml));
     if (checkResp.errors.length) throw new Error(checkResp.errors.join('\n'));
-    // 2. Finálne uzatvorenie (createPolicy = true)
-    const finalXml  = buildSaveXML(calcId, true);
-    const finalResp = parseSaveResponse(await pillowCall(uid, 'par/policies/save/AP2', finalXml));
-    if (!finalResp.policyId) throw new Error('Zmluva nebola vytvorená — skontrolujte údaje');
-    state.varSym = finalResp.varSym;
-    // 3. PDF návrhu pre CRM prílohu (best-effort, v rámci živej Pillow session)
+    // 2. PDF návrhu pre CRM prílohu — MUSÍ byť pred finálnym save
+    //    (po vystavení zmluvy Pillow print náhľadu pre použitú kalkuláciu odmieta)
     let pdfB64 = null;
     try {
-      const printCalc = finalResp.calcId || calcId;
+      const printCalc = checkResp.calcId || calcId;
       if (printCalc) {
         const pres = await fetch(`${PILLOW_CONFIG.BASE_URL}/par/policies/print/AP2/policyPreview/${printCalc}/print`, {
           method: 'POST', headers: { 'Content-Type': 'text/xml; charset=utf-8', 'RestUid': uid },
@@ -4744,6 +4741,11 @@ async function apiSubmit() {
         }
       }
     } catch (_) { /* bez prílohy */ }
+    // 3. Finálne uzatvorenie (createPolicy = true)
+    const finalXml  = buildSaveXML(calcId, true);
+    const finalResp = parseSaveResponse(await pillowCall(uid, 'par/policies/save/AP2', finalXml));
+    if (!finalResp.policyId) throw new Error('Zmluva nebola vytvorená — skontrolujte údaje');
+    state.varSym = finalResp.varSym;
     // 4. Zaznamenať v BCRM (best-effort — nezastaví flow pri chybe)
     await sendBcrmZmluva(finalResp.policyId, finalResp.calcId || calcId, pdfB64).catch(err => console.error('BCRM zmluva:', err));
     return { success: true, zmluvaId: finalResp.policyId };
