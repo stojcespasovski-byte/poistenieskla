@@ -4741,6 +4741,7 @@ async function apiSubmit() {
         }
       }
     } catch (_) { /* bez prílohy */ }
+    state.pdfZmluvaB64 = pdfB64;   // pre e-mail klientovi a tlačidlo Stiahnuť (po zmluve už print nejde)
     // 3. Finálne uzatvorenie (createPolicy = true)
     const finalXml  = buildSaveXML(calcId, true);
     const finalResp = parseSaveResponse(await pillowCall(uid, 'par/policies/save/AP2', finalXml));
@@ -5137,7 +5138,7 @@ function renderDashboard() {
 }
 
 const STATE_KEY = 'poistenie_state_v1';
-const STATE_SKIP = ['submitting', 'user', 'view', 'dashTab'];
+const STATE_SKIP = ['submitting', 'user', 'view', 'dashTab', 'pdfZmluvaB64'];
 
 function saveState() {
   try {
@@ -6184,11 +6185,11 @@ async function odoslatEmailKlientovi(zmluvaId) {
     if (el) { el.textContent = txt; el.style.color = color || 'var(--ink-3)'; }
   };
 
-  // 1) PDF návrhu zo Pillow (best-effort — keď zlyhá, pošleme bez prílohy)
-  let pdfBase64 = null;
+  // 1) PDF návrhu — primárne z apiSubmit (po vystavení zmluvy už Pillow print nejde)
+  let pdfBase64 = state.pdfZmluvaB64 || null;
   try {
     const calcId = state.allFreqCalcIds[state.paymentFreq] || state.calculationId;
-    if (calcId) {
+    if (!pdfBase64 && calcId) {
       const uid = await pillowAuth();
       const res = await fetch(`${PILLOW_CONFIG.BASE_URL}/par/policies/print/AP2/policyPreview/${calcId}/print`, {
         method: 'POST', headers: { 'Content-Type': 'text/xml; charset=utf-8', 'RestUid': uid },
@@ -6237,10 +6238,18 @@ function novaZmluva() {
   state.apiPrices = {}; state.allFreqPrices = {}; state.selected = new Set(); state.selectedVariants = {};
   state.spoluUcast = '300'; state.withGAP = false; state.priceCache = {}; state.doplnkyOpen = false;
   state.poistnik = { typ:'fo', cudzinec:false, rodneCislo:'', datumNar:'', meno:'', priezvisko:'', ico:'', nazov:'', obec:'', psc:'', dokladCislo:'', email:'', tel:'', ulica:'', cislo:'', titulPred:'', titulZa:'', orsr:false };
-  state.suhlasy = [false,false,false,false,false]; state.varSym = null; state.calculationId = null; state.draftId = null;
+  state.suhlasy = [false,false,false,false,false]; state.varSym = null; state.calculationId = null; state.draftId = null; state.pdfZmluvaB64 = null;
   state.step = 1; render();
 }
 function stiahnutZmluvu() {
+  // primárne PDF odložené z apiSubmit — po vystavení zmluvy Pillow print odmieta
+  if (state.pdfZmluvaB64) {
+    const bytes = Uint8Array.from(atob(state.pdfZmluvaB64), c => c.charCodeAt(0));
+    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+    const a = document.createElement('a'); a.href = url; a.download = 'poistna_zmluva.pdf'; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    return;
+  }
   const calcId = state.allFreqCalcIds[state.paymentFreq] || state.calculationId;
   if (!calcId) { alert('Zmluva sa pripravuje, skúste o chvíľu.'); return; }
   pillowAuth().then(uid =>
