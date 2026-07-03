@@ -7556,9 +7556,18 @@ async function nacitatDraft(id) {
     state.draftId = id;
     state.view = 'form';
     if (!state.step || state.step < 1 || state.step > 4) state.step = 1;
+    // draft z CRM posiela značku/model ako text → odvodíme kódy pre selecty
+    const dv = state.vehicle;
+    if (dv && dv.znacka && !dv.brandCode) dv.brandCode = getBrandCode(dv.znacka);
+    if (dv && dv.brandCode && dv.model && !dv.modelCode) dv.modelCode = getModelCode(dv.brandCode, dv.model) || '';
+    // draft z CRM: chce cenu (step>=2), ale nemá kalkuláciu → spustíme ju sami
+    // rovnakou cestou ako klik „Vypočítať cenu" (vrátane validácie Kroku 1)
+    const autoCalc = state.step >= 2 && !Object.keys(state.apiPrices || {}).length;
+    if (autoCalc) state.step = 1;
     saveState();
     closeRozpracovane();
     render();
+    if (autoCalc) setTimeout(() => document.getElementById('btnStep1Next')?.click(), 80);
   } catch (err) {
     alert('Ponuku sa nepodarilo otvoriť: ' + err.message);
   }
