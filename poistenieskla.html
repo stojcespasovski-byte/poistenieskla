@@ -7603,10 +7603,19 @@ async function nacitatDraft(id) {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const d = await res.json();
     if (!d || !d.intake_data) throw new Error('draft nemá uložené dáta');
+    // z uzavretej ponuky už zmluva existuje — druhé odoslanie by vytvorilo duplicitu
+    if ((d.stav || '') === 'uzavretá') {
+      alert('Z tejto ponuky už bola vystavená zmluva. Pre nové poistenie vytvorte novú ponuku.');
+      return;
+    }
     draftRestore(d.intake_data);
     state.draftId = id;
     state.view = 'form';
     if (!state.step || state.step < 1 || state.step > 4) state.step = 1;
+    // vždy čerstvá kalkulácia — staré calculationId po vystavení zmluvy Pillow odmieta
+    state.apiPrices = {}; state.allFreqPrices = {}; state.allFreqCalcIds = {};
+    state.priceCache = {}; state.calculationId = null;
+    if (state.step > 2) state.step = 2;   // ceny treba nanovo potvrdiť
     // začiatok poistenia v minulosti (starý draft) → posuň na zajtra
     const zajtra = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
     if (!state.zaciatok || state.zaciatok < zajtra) state.zaciatok = zajtra;
