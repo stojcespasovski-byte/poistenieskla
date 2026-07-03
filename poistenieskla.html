@@ -4683,6 +4683,7 @@ function buildBcrmZmluvaPayload(policyId) {
       varSym:      state.varSym || '',
       produkty:    [...state.selected],
     },
+    draftId: state.draftId || null,   // prepojenie na ponuku v CRM (ak zmluva vznikla z draftu)
     pracovnik: {
       uid:     u.uid     || '',
       meno:    u.meno    || '',
@@ -6149,7 +6150,7 @@ function renderSuccess(zmluvaId) {
   </div>`;
   document.querySelectorAll('.sn-step').forEach(el => { el.classList.remove('active','todo'); el.classList.add('done'); const n=el.querySelector('.sn-num'); if(n) n.textContent='✓'; });
   odoslatEmailKlientovi(zmluvaId);   // fire-and-forget: e-mail klientovi s PDF + QR
-  oznacDraftOdoslana();              // ak vznikla z draftu, v CRM ju prepne na „odoslaná"
+  oznacDraftUzavreta();              // ak vznikla z draftu, v CRM ju prepne na „uzavretá"
 }
 
 /* Odoslanie e-mailu klientovi (PDF + QR + odkaz) cez náš backend — best-effort */
@@ -7619,8 +7620,8 @@ async function zmazatDraft(id, btn) {
   }
 }
 
-/* Po odoslaní zmluvy označí draft ako odoslaný (best-effort) */
-function oznacDraftOdoslana() {
+/* Po odoslaní zmluvy prepne draft na „uzavretá" (best-effort) */
+function oznacDraftUzavreta() {
   const id = state.draftId;
   if (!id) return;
   state.draftId = null;
@@ -7628,7 +7629,7 @@ function oznacDraftOdoslana() {
   fetch(`${DRAFT_API}/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ uid: state.user.uid, stav: 'odoslaná' }),
+    body: JSON.stringify({ uid: state.user.uid, stav: 'uzavretá' }),
   }).catch(() => {});
 }
 
