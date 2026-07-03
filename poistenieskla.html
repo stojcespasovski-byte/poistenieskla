@@ -6205,11 +6205,16 @@ async function odoslatEmailKlientovi(zmluvaId) {
   // 2) odoslať e-mail cez backend (bez SendGrid kľúča vráti no-op)
   try {
     const fc = FREQ_CONFIG[state.paymentFreq] || {};
+    // odosielateľ podľa roly: technik → značka portálu; maklér/CRM personál → automanager
+    const jeTechnik = (state.user.rola || '') === 'AutoSklo - Technik';
+    const emailBrand = jeTechnik
+      ? ((typeof PILLOW_CONFIG !== 'undefined' && PILLOW_CONFIG.BRAND) || 'poistenieskla')
+      : 'automanager';
     const res = await fetch('https://api.pripoisti.sk/bcrm/email/send-offer', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         to,
-        brand: (typeof PILLOW_CONFIG !== 'undefined' && PILLOW_CONFIG.BRAND) || 'poistenieskla',
+        brand: emailBrand,
         meno: [state.poistnik.meno, state.poistnik.priezvisko].filter(Boolean).join(' ') || state.poistnik.nazov || '',
         zmluvaId,
         suma: state.paySuma,
