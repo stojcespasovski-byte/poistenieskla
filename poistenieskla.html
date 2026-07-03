@@ -1943,6 +1943,17 @@ function getColorName(code) {
   return n ? n.charAt(0) + n.slice(1).toLowerCase() : '';
 }
 
+/* Farba pre Pillow: prijme kód aj názov (z EČV lookupu príde text) → vráti kód
+   z číselníka 723, alebo '' (colour je nepovinné — radšej neposlať než zle). */
+function getColorCode(val) {
+  if (!val) return '';
+  const s = String(val).trim();
+  if (PILLOW_COLORS.some(c => c.code === s)) return s;
+  const norm = s.toLowerCase();
+  const hit = PILLOW_COLORS.find(c => c.name.toLowerCase() === norm);
+  return hit ? hit.code : '';
+}
+
 /* ─── Číselník 174+175: Značky a modely vozidiel ─── */
 const PILLOW_BRANDS_LIST = [{code:"ABARTH",name:"Abarth"},
   {code:"ALFA_ROMEO",name:"Alfa romeo"},
@@ -4225,7 +4236,7 @@ function buildRateXML(freq = 12, { su = null, asistCode = null } = {}) {
     ${xe('vehicleName', [v.znacka, v.model].filter(Boolean).join(' '))}
     ${xe('noTechnicalCertificate', v.bezTp ? 'true' : 'false')}
     ${!v.bezTp && v.tp ? xe('technicalCertificateNumber', v.tp) : ''}
-    ${v.farba ? xe('colour', v.farba) : ''}
+    ${xe('colour', getColorCode(v.farba))}
     ${xe('withoutRegistration', 'false')}
     ${(() => {
       const cena = parseFloat(v.cenaVozidla);
@@ -4326,7 +4337,7 @@ function buildSaveXML(calcId, createPolicy) {
     ${xe('vehicleName', [v.znacka, v.model].filter(Boolean).join(' '))}
     ${xe('noTechnicalCertificate', v.bezTp ? 'true' : 'false')}
     ${!v.bezTp && v.tp ? xe('technicalCertificateNumber', v.tp) : ''}
-    ${v.farba ? xe('colour', v.farba) : ''}
+    ${xe('colour', getColorCode(v.farba))}
     ${xe('withoutRegistration', 'false')}
     ${(() => {
       const cena = parseFloat(v.cenaVozidla);
@@ -5869,7 +5880,7 @@ function renderStep3() {
           </div>
 
           <div class="row c4" style="align-items:end;">
-            <div class="field"><label>VIN</label><input type="text" id="s3Vin" class="mono" value="${v.vin||''}" style="font-size:13px;" readonly></div>
+            <div class="field"><label>VIN</label><input type="text" id="s3Vin" class="mono" value="${v.vin||''}" style="font-size:15px;" readonly></div>
             <div class="field"><label>EČV</label><input type="text" class="mono" value="${v.ecv||''}" readonly></div>
             <div class="field field-db">
               <label>Číslo TP</label>
@@ -5880,7 +5891,7 @@ function renderStep3() {
               <label>Farba vozidla</label>
               <select id="s3Farba">
                 <option value="">– Vyberte –</option>
-                ${PILLOW_COLORS.map(c=>`<option value="${c.code}"${v.farba===c.code?' selected':''}>${getColorName(c.code)}</option>`).join('')}
+                ${PILLOW_COLORS.map(c=>`<option value="${c.code}"${getColorCode(v.farba)===c.code?' selected':''}>${getColorName(c.code)}</option>`).join('')}
               </select>
               ${EDIT_ICON}
             </div>
