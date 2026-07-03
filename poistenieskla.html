@@ -7549,6 +7549,7 @@ async function openRozpracovane() {
 async function nacitatDraft(id) {
   try {
     const res = await fetch(`${DRAFT_API}/${id}?uid=${encodeURIComponent(state.user.uid)}`);
+    if (res.status === 404) throw new Error('ponuka nie je dostupná pre toto konto. Ste prihlásený ako ' + (state.user.meno || '?') + ' — otvorte ju kontom, ktorým ste ju vytvorili (alebo správcovským).');
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const d = await res.json();
     if (!d || !d.intake_data) throw new Error('draft nemá uložené dáta');
