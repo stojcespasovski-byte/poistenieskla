@@ -4533,13 +4533,19 @@ async function prefetchAllPrices() {
     );
 
     const cache = {};
+    const rateErrors = new Set();
     results.forEach(r => {
-      if (r.status !== 'fulfilled') return;
-      const { su, av, f, prices, calcId } = r.value;
+      if (r.status !== 'fulfilled') {
+        const m = r.reason?.message; if (m) rateErrors.add(m);
+        return;
+      }
+      const { su, av, f, prices, calcId, errors } = r.value;
+      (errors || []).forEach(e => rateErrors.add(e));
       if (!cache[su]) cache[su] = {};
       if (!cache[su][av]) cache[su][av] = {};
       cache[su][av][f] = { prices, calcId };
     });
+    state.rateErrors = [...rateErrors];
     state.priceCache = cache;
     state.bonusVerified = results.find(r => r.status === 'fulfilled' && r.value.f === 12)?.value?.bonusVerified || null;
     applyCachedPrices();
@@ -7146,6 +7152,18 @@ function attachListeners() {
       state.step = 2;
       render();
       await prefetchAllPrices();
+      // Pillow nevrátil ceny (napr. nesprávny formát RČ) → späť na Krok 1 s dôvodom
+      if (!Object.keys(state.apiPrices || {}).length) {
+        const msg = (state.rateErrors || []).join('\n') || 'Poisťovňa nevrátila ceny. Skontrolujte zadané údaje.';
+        state.step = 1;
+        render();
+        let field = null;
+        if (/rodn|personalIdentification/i.test(msg)) field = document.getElementById('pRodneCislo');
+        else if (/i[čc]o|companyIdentification/i.test(msg)) field = document.getElementById('pIco');
+        if (field) { field.classList.add('input-error'); field.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+        alert('Kalkulácia zlyhala:\n\n' + msg);
+        return;
+      }
       render();
     } catch(e) {
       console.error('Kalkulácia zlyhala:', e);
