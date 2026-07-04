@@ -4364,13 +4364,15 @@ function buildSaveXML(calcId, createPolicy) {
       return `  <variantOfSubject><xml-par-ap2-variant-of-subject-req>${xe('risk',risk)}${xe('variant',variant)}</xml-par-ap2-variant-of-subject-req></variantOfSubject>`;
     }).join('\n');
 
-  const partyXml = `<xml-par-party>
+  // prePojistnika: PO vyžaduje meno+priezvisko oprávnenej osoby LEN v štruktúre
+  // pojistníka (popis produktu s.19); vehicleHolder ich pre PO nedostáva
+  const partyXml = (prePojistnika = false) => `<xml-par-party>
       ${xe('partyType', partyType)}
       ${'PO OSVC'.includes(partyType) ? xe('companyIdentification', p.ico) : ''}
       ${'PO OSVC'.includes(partyType) ? xe('companyName', p.nazov) : ''}
       ${partyType === 'FORC' ? xe('personalIdentification', p.rodneCislo) : ''}
-      ${'FORC FODN OSVC'.includes(partyType) ? xe('forename', p.meno) : ''}
-      ${'FORC FODN OSVC'.includes(partyType) ? xe('surname',  p.priezvisko) : ''}
+      ${('FORC FODN OSVC'.includes(partyType) || (partyType === 'PO' && prePojistnika)) ? xe('forename', p.meno) : ''}
+      ${('FORC FODN OSVC'.includes(partyType) || (partyType === 'PO' && prePojistnika)) ? xe('surname',  p.priezvisko) : ''}
       ${xe('titleBefore', p.titulPred)}
       ${xe('titleAfter',  p.titulZa)}
       ${xe('birthdate', p.datumNar)}
@@ -4428,10 +4430,10 @@ function buildSaveXML(calcId, createPolicy) {
         : xe('clientsVehiclePrice', cena);
     })()}
   </xml-par-ap2-vehicle></vehicle>
-  <policyHolder>${partyXml}</policyHolder>
+  <policyHolder>${partyXml(true)}</policyHolder>
   ${xe('policyHolderSameAsVehicleOwner',  'true')}
   ${xe('policyHolderSameAsVehicleHolder', 'true')}
-  <vehicleHolder>${partyXml}</vehicleHolder>
+  <vehicleHolder>${partyXml(false)}</vehicleHolder>
 ${variantsXml}
 </xml-par-ap2-save-policy-req>`;
 }
@@ -4492,6 +4494,52 @@ async function pillowLogout(uid) {
   } catch(e) { /* tichý fail */ }
 }
 
+/* Pillow chyby: anglické názvy polí + české frázy → slovenčina pre používateľa */
+const PILLOW_FIELD_SK = {
+  forename: 'Meno (pri firme meno oprávnenej osoby)',
+  surname: 'Priezvisko (pri firme priezvisko oprávnenej osoby)',
+  birthdate: 'Dátum narodenia',
+  personalIdentification: 'Rodné číslo',
+  companyIdentification: 'IČO',
+  companyName: 'Názov firmy',
+  policyBegining: 'Začiatok poistenia',
+  policyBeginning: 'Začiatok poistenia',
+  colour: 'Farba vozidla',
+  technicalCertificateNumber: 'Číslo TP',
+  expectedKm: 'Ročný nájazd',
+  licensePlate: 'EČV',
+  email: 'E-mail',
+  phone: 'Telefón',
+  zipCode: 'PSČ',
+  city: 'Obec',
+  street: 'Ulica',
+  clientsVehiclePrice: 'Cena vozidla',
+  clientsNewVehiclePrice: 'Cena nového vozidla',
+  calculationId: 'Kalkulácia',
+  engineVolume: 'Objem motora',
+  enginePower: 'Výkon motora',
+  weight: 'Hmotnosť',
+};
+function prelozPillowChybu(msg) {
+  let m = String(msg || '');
+  Object.entries(PILLOW_FIELD_SK).forEach(([en, sk]) => {
+    m = m.replace(new RegExp('\\b' + en + '\\b', 'g'), sk);
+  });
+  return m
+    .replace(/Vstupní položka/g, 'Pole')
+    .replace(/musí být vyplněn[ao]?\b/g, 'musí byť vyplnené')
+    .replace(/Špatný formát barvy/g, 'Nesprávny formát farby')
+    .replace(/Nesprávný formát RČ/g, 'Nesprávny formát rodného čísla')
+    .replace(/Počátek pojištění musí být v budoucnosti a lze ho odložit maximálně o 3 měsíce\.?/g,
+             'Začiatok poistenia musí byť v budúcnosti (odložiť sa dá najviac o 3 mesiace).')
+    .replace(/již u Pillow pojišťovny používá jiný zákazník[\s\S]*/g,
+             'už v Pillow používa iný klient — zadajte inú e-mailovú adresu (každý klient musí mať vlastnú).')
+    .replace(/Podle kalkulace už byla vytvořena pojistná smlouva\.?/g, 'Z tejto kalkulácie už bola vystavená zmluva.')
+    .replace(/Kalkulace musí být ve stavu/g, 'Kalkulácia musí byť v stave')
+    .replace(/musí být v budoucnosti/g, 'musí byť v budúcnosti')
+    .replace(/Chybná kalkulace\.?/g, 'Neplatná kalkulácia.');
+}
+
 async function pillowCall(uid, endpoint, xmlBody) {
   const res = await fetch(`${PILLOW_CONFIG.BASE_URL}/${endpoint}`, {
     method:  'POST',
@@ -4501,7 +4549,7 @@ async function pillowCall(uid, endpoint, xmlBody) {
   const text = await res.text();
   if (!res.ok) {
     const doc  = new DOMParser().parseFromString(text, 'text/xml');
-    const msgs = [...doc.querySelectorAll('msgText')].map(e => e.textContent).join('\n');
+    const msgs = [...doc.querySelectorAll('msgText')].map(e => prelozPillowChybu(e.textContent)).join('\n');
     throw new Error(msgs || `Pillow API chyba HTTP ${res.status}`);
   }
   return text;
@@ -4816,7 +4864,7 @@ async function apiSubmit() {
     // 1. Kontrolný návrh (createPolicy = false)
     const checkXml  = buildSaveXML(calcId, false);
     const checkResp = parseSaveResponse(await pillowCall(uid, 'par/policies/save/AP2', checkXml));
-    if (checkResp.errors.length) throw new Error(checkResp.errors.join('\n'));
+    if (checkResp.errors.length) throw new Error(checkResp.errors.map(prelozPillowChybu).join('\n'));
     // 2. PDF návrhu pre CRM prílohu — MUSÍ byť pred finálnym save
     //    (po vystavení zmluvy Pillow print náhľadu pre použitú kalkuláciu odmieta)
     let pdfB64 = null;
@@ -6453,12 +6501,19 @@ function qrFallback(img) {
 }
 
 /* Globálne akcie pre success obrazovku */
-function novaZmluva() {
+/* Reset formulára na čisté defaulty — pred novou zmluvou aj pred načítaním draftu
+   (draft z CRM sa nesmie miešať so stavom zapamätaným v prehliadači) */
+function resetFormState() {
   state.vehicle = { ecv:'', vin:'', novePredReg:null, maEcv:null, typ:'', vyuzitie:'osobne', datumReg:'', znacka:'', model:'', brandCode:'', modelCode:'', objem:'', vykon:'', hmotnost:'', palivo:'', garazovane:false, zmluvnyServis:false, x4:false, automat:false, parkovaci:false, farba:'', tp:'', bezTp:false, najazd:'25000', cenaVozidla:'' };
-  state.apiPrices = {}; state.allFreqPrices = {}; state.selected = new Set(); state.selectedVariants = {};
+  state.apiPrices = {}; state.allFreqPrices = {}; state.allFreqCalcIds = {}; state.selected = new Set(); state.selectedVariants = {};
   state.spoluUcast = '300'; state.withGAP = false; state.priceCache = {}; state.doplnkyOpen = false; state.rezim = null;
   state.poistnik = { typ:'fo', cudzinec:false, rodneCislo:'', datumNar:'', meno:'', priezvisko:'', ico:'', nazov:'', obec:'', psc:'', dokladCislo:'', email:'', tel:'', ulica:'', cislo:'', titulPred:'', titulZa:'', orsr:false };
   state.suhlasy = [false,false,false,false,false]; state.varSym = null; state.calculationId = null; state.draftId = null; state.pdfZmluvaB64 = null;
+  state.paymentFreq = 12;
+}
+
+function novaZmluva() {
+  resetFormState();
   state.step = 1; render();
 }
 function stiahnutZmluvu() {
@@ -7417,7 +7472,7 @@ function attachListeners() {
       await prefetchAllPrices();
       // Pillow nevrátil ceny (napr. nesprávny formát RČ) → späť na Krok 1 s dôvodom
       if (!Object.keys(state.apiPrices || {}).length) {
-        const msg = (state.rateErrors || []).join('\n') || 'Poisťovňa nevrátila ceny. Skontrolujte zadané údaje.';
+        const msg = (state.rateErrors || []).map(prelozPillowChybu).join('\n') || 'Poisťovňa nevrátila ceny. Skontrolujte zadané údaje.';
         state.step = 1;
         render();
         let field = null;
@@ -7640,7 +7695,8 @@ function attachListeners() {
       const el = document.getElementById(id);
       if (el) { el.classList.add('input-error'); s3errors.push(el); }
     };
-    if (typ === 'fo' || typ === 'szco') {
+    if (typ === 'fo' || typ === 'szco' || typ === 'po') {
+      // PO: meno+priezvisko = oprávnená (poverená) osoba — Pillow ich pri save vyžaduje
       if (!state.poistnik.meno)       markS3('s3Meno');
       if (!state.poistnik.priezvisko) markS3('s3Priezvisko');
     }
@@ -7881,11 +7937,12 @@ async function nacitatDraft(id) {
     // z uzavretej ponuky už zmluva existuje — druhé odoslanie by vytvorilo duplicitu
     if ((d.stav || '') === 'uzavretá') {
       alert('Z tejto ponuky už bola vystavená zmluva. Pre nové poistenie vytvorte novú ponuku.');
+      state.view = 'form'; render();   // návrat z loading obrazovky
       return;
     }
-    // čistý základ — minimálny CRM draft nenesie selected/varianty, nesmie zdediť starý stav
-    state.selected = new Set(); state.selectedVariants = {}; state.withGAP = false;
-    state.spoluUcast = '300'; state.doplnkyOpen = false; state.rezim = null; state.paymentFreq = 12;
+    // čistý základ — zapamätaný lokálny stav (vozidlo, klient, výber, režim…) sa
+    // NESMIE miešať s draftom z CRM; minimálny draft dostane čisté defaulty
+    resetFormState();
     draftRestore(d.intake_data);
     // maklérska mriežka: default ročná frekvencia (najvýhodnejšia), ak draft neurčil inak
     if (state.rezim === 'vyber' && d.intake_data.paymentFreq == null) state.paymentFreq = 1;
@@ -7913,6 +7970,7 @@ async function nacitatDraft(id) {
     if (autoCalc) setTimeout(() => document.getElementById('btnStep1Next')?.click(), 80);
   } catch (err) {
     alert('Ponuku sa nepodarilo otvoriť: ' + err.message);
+    state.view = 'form'; render();   // návrat z loading obrazovky na bežný formulár
   }
 }
 
@@ -8094,7 +8152,17 @@ function bootPortal() {
 
   loadState();
   applyBranding();
-  render();
+
+  // ?draft= → NEZOBRAZUJ zapamätaný stav (preblikol by nesprávny režim Kroku 2);
+  // ukáž neutrálny loading a vykresli až podľa reálneho draftu z CRM
+  const draftParam = new URLSearchParams(location.search).get('draft');
+  if (draftParam && state.user.uid) {
+    try { history.replaceState(null, '', location.origin + location.pathname); } catch (_) {}
+    showDraftLoading();
+    nacitatDraft(draftParam);
+  } else {
+    render();
+  }
 
   // Adaptívny zoom — zaplní ~polovicu prázdneho miesta pod formulárom podľa výšky
   // obrazovky. Na vysokých monitoroch väčší, na notebooku ostáva ~1.1 (nepretečie).
@@ -8116,12 +8184,18 @@ function bootPortal() {
     handlePaymentReturn();
   }
 
-  // deep-link z CRM: ?draft={id} → otvorí rozpracovanú ponuku
-  const draftParam = new URLSearchParams(location.search).get('draft');
-  if (draftParam && state.user.uid) {
-    try { history.replaceState(null, '', location.origin + location.pathname); } catch (_) {}
-    nacitatDraft(draftParam);
-  }
+}
+
+/* Neutrálna obrazovka počas načítavania draftu z CRM (žiadny preblik starého stavu) */
+function showDraftLoading() {
+  const stepper = document.getElementById('stepper');
+  if (stepper) stepper.style.display = 'none';
+  const main = document.getElementById('main');
+  if (main) main.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:140px 20px;gap:16px;color:var(--ink-3);">
+      <div style="width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--teal-dark);border-radius:50%;animation:spin .7s linear infinite;"></div>
+      <div style="font-size:14.5px;">Načítavam ponuku…</div>
+    </div>`;
 }
 
 // Štart: ak prišiel SSO lístok, najprv ho vymeníme (a hneď zahodíme z URL/histórie)
