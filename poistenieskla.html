@@ -7778,15 +7778,15 @@ function applyBranding() {
 /* ════════════════════════════════════════════════════════
    INIT — JWT auth
 ════════════════════════════════════════════════════════ */
-(function initAuth() {
+function initAuth() {
   const token = localStorage.getItem('ps_token');
-  if (!token) { window.location.replace('login.html'); return; }
+  if (!token) { window.location.replace('login.html'); return false; }
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
     if (payload.exp * 1000 < Date.now()) {
       localStorage.removeItem('ps_token');
       window.location.replace('login.html');
-      return;
+      return false;
     }
     state.user = {
       uid:     payload.sub  || '',
@@ -7796,42 +7796,81 @@ function applyBranding() {
     };
     state.view = 'form';
     if (state.step < 1) state.step = 1;
+    return true;
   } catch (_) {
     window.location.replace('login.html');
-    return;
+    return false;
   }
-})();
-
-loadState();
-applyBranding();
-render();
-
-// Adaptívny zoom — zaplní ~polovicu prázdneho miesta pod formulárom podľa výšky
-// obrazovky. Na vysokých monitoroch väčší, na notebooku ostáva ~1.1 (nepretečie).
-(function adaptiveZoom() {
-  const REF = 820;    // prirodzená výška najvyššieho kroku (Krok 1) pri zoom 1, od vrchu
-  const FILL = 0.85;  // koľko prázdneho miesta zaplniť (0–1); vyššie = väčší vizuál
-  function apply() {
-    const vh = window.innerHeight || 900;
-    let z = 1 + FILL * (vh / REF - 1);       // zaplní FILL časť prázdna
-    z = Math.max(1.1, Math.min(1.45, z));    // poistky: nikdy < 1.1, nikdy > 1.45
-    document.body.style.zoom = z.toFixed(3);
-  }
-  apply();
-  let t; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(apply, 120); });
-})();
-
-// návrat z platobnej brány?
-if (new URLSearchParams(location.search).has('payreturn')) {
-  handlePaymentReturn();
 }
 
-// deep-link z CRM: ?draft={id} → otvorí rozpracovanú ponuku
-{
+/* SSO handoff z CRM: ?sso={jednorazový lístok} → výmena za našu session.
+   Zlyhanie → štandardná login obrazovka (fallback). */
+async function ssoLogin(tok) {
+  try {
+    const res = await fetch('https://api.pripoisti.sk/bcrm/sso-exchange', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: tok }),
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    if (!data || !data.token) return false;
+    localStorage.setItem('ps_token',   data.token);
+    localStorage.setItem('ps_meno',    data.meno    || '');
+    localStorage.setItem('ps_rola',    data.rola    || '');
+    localStorage.setItem('ps_pobocka', data.pobocka || '');
+    if (data.logo)  localStorage.setItem('ps_logo', data.logo);   else localStorage.removeItem('ps_logo');
+    if (data.farba) localStorage.setItem('ps_farba', data.farba); else localStorage.removeItem('ps_farba');
+    if (data.firma) localStorage.setItem('ps_firma', data.firma); else localStorage.removeItem('ps_firma');
+    return true;
+  } catch (_) { return false; }
+}
+
+function bootPortal() {
+  if (!initAuth()) return;   // bez session → redirect na login
+
+  loadState();
+  applyBranding();
+  render();
+
+  // Adaptívny zoom — zaplní ~polovicu prázdneho miesta pod formulárom podľa výšky
+  // obrazovky. Na vysokých monitoroch väčší, na notebooku ostáva ~1.1 (nepretečie).
+  (function adaptiveZoom() {
+    const REF = 820;    // prirodzená výška najvyššieho kroku (Krok 1) pri zoom 1, od vrchu
+    const FILL = 0.85;  // koľko prázdneho miesta zaplniť (0–1); vyššie = väčší vizuál
+    function apply() {
+      const vh = window.innerHeight || 900;
+      let z = 1 + FILL * (vh / REF - 1);       // zaplní FILL časť prázdna
+      z = Math.max(1.1, Math.min(1.45, z));    // poistky: nikdy < 1.1, nikdy > 1.45
+      document.body.style.zoom = z.toFixed(3);
+    }
+    apply();
+    let t; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(apply, 120); });
+  })();
+
+  // návrat z platobnej brány?
+  if (new URLSearchParams(location.search).has('payreturn')) {
+    handlePaymentReturn();
+  }
+
+  // deep-link z CRM: ?draft={id} → otvorí rozpracovanú ponuku
   const draftParam = new URLSearchParams(location.search).get('draft');
   if (draftParam && state.user.uid) {
     try { history.replaceState(null, '', location.origin + location.pathname); } catch (_) {}
     nacitatDraft(draftParam);
+  }
+}
+
+// Štart: ak prišiel SSO lístok, najprv ho vymeníme (a hneď zahodíme z URL/histórie)
+{
+  const usp = new URLSearchParams(location.search);
+  const ssoTok = usp.get('sso');
+  if (ssoTok) {
+    usp.delete('sso');
+    const q = usp.toString();
+    try { history.replaceState(null, '', location.pathname + (q ? '?' + q : '')); } catch (_) {}
+    ssoLogin(ssoTok).then(bootPortal);   // neúspech → initAuth presmeruje na login
+  } else {
+    bootPortal();
   }
 }
 </script>
