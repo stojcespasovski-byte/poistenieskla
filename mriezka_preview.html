@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup — Krok 2 maklérska mriežka</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal-dark:#13616b; --teal-mid:#1a8a96; --teal-accent:#3bc4d4; --teal-tint:#f0fafb;
+    --teal-ring:rgba(59,196,212,.18);
+    --ink:#111827; --ink-2:#374151; --ink-3:#6b7280; --ink-4:#9ca3af;
+    --bg:#eef2f3; --border:#e2e8f0; --border-strong:#cdd2d8; --danger:#ef4444;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);padding:20px;}
+  .wrap{max-width:1020px;margin:0 auto;}
+  .layout{display:grid;grid-template-columns:1fr 300px;gap:14px;align-items:start;}
+
+  /* ── hlavička mriežky ── */
+  .gridcard{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.05);}
+  .grid-hd{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+  .grid-title{font-size:13px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--ink-3);}
+  .su-group{display:flex;align-items:center;gap:6px;}
+  .su-label{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--ink-4);margin-right:2px;}
+  .su-opt{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border-strong);border-radius:16px;padding:4px 11px;font-size:12.5px;font-weight:600;color:var(--ink-3);cursor:pointer;background:#fff;transition:all .12s;}
+  .su-opt .dot{width:11px;height:11px;border-radius:50%;border:1.5px solid var(--border-strong);}
+  .su-opt.on{border-color:var(--teal-dark);color:var(--teal-dark);background:var(--teal-tint);}
+  .su-opt.on .dot{border-color:var(--teal-dark);background:radial-gradient(circle at center,var(--teal-dark) 45%,transparent 50%);}
+
+  /* ── dlaždice ── */
+  .tiles{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr;gap:10px;padding:14px 16px 16px;}
+  .tile{border:1px solid var(--border-strong);border-radius:10px;padding:12px 13px;cursor:pointer;background:#fff;transition:border-color .12s, background .12s, box-shadow .12s;position:relative;display:flex;flex-direction:column;gap:6px;min-height:118px;}
+  .tile:hover{border-color:var(--teal-mid);}
+  .tile.on{border-color:var(--teal-dark);background:var(--teal-tint);box-shadow:0 0 0 2px var(--teal-ring);}
+  .tile.locked{cursor:default;}
+  .t-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+  .t-name{font-size:14px;font-weight:700;color:var(--ink);line-height:1.25;}
+  .t-check{width:19px;height:19px;border-radius:50%;border:1.5px solid var(--border-strong);flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff;transition:all .12s;}
+  .tile.on .t-check{background:var(--teal-dark);border-color:var(--teal-dark);}
+  .tile.on .t-check svg{display:block;}
+  .t-check svg{display:none;}
+  .t-desc{font-size:11.5px;color:var(--ink-3);line-height:1.4;flex:1;}
+  .t-price{font-size:15px;font-weight:800;color:var(--teal-dark);}
+  .t-price small{font-size:11px;font-weight:500;color:var(--ink-4);}
+  .t-note{font-size:10.5px;color:var(--ink-4);}
+  .t-badge{font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;background:var(--teal-dark);color:#fff;border-radius:4px;padding:2px 6px;position:absolute;top:-8px;left:10px;}
+  .t-lock{font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--teal-dark);}
+
+  /* varianty (chips) vnútri dlaždice */
+  .chips{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px;}
+  .chip{border:1px solid var(--border-strong);border-radius:5px;padding:3px 7px;font-size:10.5px;font-weight:600;color:var(--ink-3);background:#fff;cursor:pointer;transition:all .12s;line-height:1.3;text-align:center;}
+  .chip.on{border-color:var(--teal-dark);background:var(--teal-dark);color:#fff;}
+  .chip small{display:block;font-size:9px;font-weight:500;opacity:.75;}
+
+  /* ── frekvencie ── */
+  .freqbar{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--border);}
+  .f{padding:10px 8px;text-align:center;cursor:pointer;border-right:1px solid var(--border);transition:background .12s;}
+  .f:last-child{border-right:none;}
+  .f .fl{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--ink-4);}
+  .f .fv{font-size:16px;font-weight:800;color:var(--ink-2);margin-top:2px;}
+  .f .fs{font-size:9.5px;color:var(--ink-4);margin-top:1px;}
+  .f.on{background:var(--teal-tint);box-shadow:inset 0 3px 0 var(--teal-dark);}
+  .f.on .fv{color:var(--teal-dark);}
+
+  /* ── súhrn ── */
+  .summary{position:sticky;top:14px;background:#fff;border:1px solid var(--border-strong);border-radius:12px;overflow:hidden;}
+  .s-hd{padding:11px 16px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--ink-3);}
+  .s-rows{padding:6px 16px;}
+  .s-row{display:flex;justify-content:space-between;gap:8px;padding:5px 0;font-size:13px;color:var(--ink-2);}
+  .s-row .nm{line-height:1.3;}
+  .s-row .nm small{display:block;font-size:10.5px;color:var(--ink-4);}
+  .s-row .amt{font-weight:700;white-space:nowrap;}
+  .s-total{display:flex;justify-content:space-between;align-items:baseline;padding:11px 16px;background:var(--teal-tint);border-top:1px solid var(--border);}
+  .s-total .tl{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--ink-3);}
+  .s-total .tl small{display:block;font-weight:500;text-transform:none;letter-spacing:0;color:var(--ink-4);}
+  .s-total .tv{font-size:22px;font-weight:800;color:var(--teal-dark);}
+  .s-cta{display:block;width:calc(100% - 32px);margin:12px 16px 14px;background:var(--teal-dark);color:#fff;border:none;border-radius:7px;padding:12px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;}
+  .s-empty{padding:18px 16px;font-size:12.5px;color:var(--ink-4);text-align:center;}
+  .s-back{display:block;text-align:center;font-size:12.5px;color:var(--ink-3);padding-bottom:14px;text-decoration:none;}
+
+  @media (max-width:860px){ .layout{grid-template-columns:1fr;} .tiles{grid-template-columns:repeat(2,1fr);} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="layout">
+    <div class="gridcard">
+      <div class="grid-hd">
+        <div class="grid-title">Výber poistenia · Škoda Kodiaq · AA616EM</div>
+        <div class="su-group" id="suGroup">
+          <span class="su-label">Spoluúčasť</span>
+          <span class="su-opt" data-su="150"><span class="dot"></span>150 €</span>
+          <span class="su-opt on" data-su="300"><span class="dot"></span>300 €</span>
+          <span class="su-opt" data-su="600"><span class="dot"></span>600 €</span>
+        </div>
+      </div>
+
+      <div class="tiles" id="tiles"></div>
+
+      <div class="freqbar" id="freqbar"></div>
+    </div>
+
+    <div class="summary">
+      <div class="s-hd">Vybrané poistenia</div>
+      <div class="s-rows" id="sRows"></div>
+      <div class="s-total"><span class="tl">Celkom<small id="sFreqLabel">mesačne</small></span><span class="tv" id="sTotal">–</span></div>
+      <button class="s-cta">Pokračovať →</button>
+      <a class="s-back" href="#">← Späť na parametre</a>
+    </div>
+  </div>
+</div>
+
+<script>
+/* Mesačné ceny z reálnej test kalkulácie (Kodiaq, spoluúčasť 300) */
+const CENY = {
+  pzp:        { '1300': 37.37, '5000': 41.11, '10000': 44.84 },
+  asistencia: { 'S': 0.22, 'M': 0.37, 'L': 0.78, 'XL': 6.38 },
+  havaria: 46.02, zver: 7.48, sklo: 12.79, kradez: 8.21,
+  vandalizmus: 4.36, zivel: 1.25, uraz: 1.39, batozina: 6.54,
+};
+const ASIST_LBL = { S:'50 km pri nehode', M:'50 km v SR', L:'SR a EÚ', XL:'Neobmedzene' };
+const FREQS = [
+  { f:12, lbl:'Mesačne',    mult:1,  note:'navyše 11 %' },
+  { f:4,  lbl:'Štvrťročne', mult:3,  note:'navyše 6 %'  },
+  { f:2,  lbl:'Polročne',   mult:6,  note:'navyše 8 %'  },
+  { f:1,  lbl:'Ročne',      mult:12, note:'najvýhodnejšie' },
+];
+
+const state = { sel:new Set(), pzpLimit:'1300', asist:'L', freq:1, su:'300' };
+const eur = v => v.toFixed(2).replace('.', ',') + ' €';
+
+const TILES = [
+  { id:'pzp',        name:'Povinné zmluvné poistenie', desc:'Zákonné poistenie zodpovednosti. Asistencia je povinnou súčasťou.', badge:'PZP' },
+  { id:'havaria',    name:'Havária a stret so zverou', desc:'Škody z nehody vrátane zrážky so zverou (povinná dvojica).' },
+  { id:'sklo',       name:'Poistenie skla',            desc:'Všetky sklá a okná — čelné, bočné, panoráma, strešné, zadné.' },
+  { id:'kradez',     name:'Krádež vozidla',            desc:'Odcudzenie celého vozidla alebo jeho častí.' },
+  { id:'vandalizmus',name:'Vandalizmus',               desc:'Úmyselné poškodenie vozidla.' },
+  { id:'zivel',      name:'Živelné pohromy',           desc:'Povodeň, krupobitie, víchrica, požiar.' },
+  { id:'uraz',       name:'Úrazové poistenie',         desc:'Vodič a posádka pre prípad úrazu.' },
+  { id:'batozina',   name:'Batožina',                  desc:'Veci prepravované vo vozidle.' },
+  { id:'asistencia', name:'Cestná asistencia',         desc:'Odtiahnutie a pomoc 24/7. Variant platí aj pre PZP.' },
+];
+
+function priceOf(id){
+  if (id==='pzp') return CENY.pzp[state.pzpLimit] + CENY.asistencia[state.asist];
+  if (id==='asistencia') return CENY.asistencia[state.asist];
+  if (id==='havaria') return CENY.havaria + CENY.zver;
+  return CENY[id];
+}
+
+function render(){
+  const mult = FREQS.find(x=>x.f===state.freq).mult;
+
+  /* dlaždice */
+  document.getElementById('tiles').innerHTML = TILES.map(t=>{
+    const isPzp = t.id==='pzp', isAsist = t.id==='asistencia';
+    const lockedAsist = isAsist && state.sel.has('pzp');
+    const on = state.sel.has(t.id) || lockedAsist;
+    let chips='';
+    if (isPzp && on) chips = `<div class="chips">${['1300','5000','10000'].map(l=>
+      `<span class="chip ${state.pzpLimit===l?'on':''}" data-limit="${l}">${l==='1300'?'1,3':l==='5000'?'5':'10'} mil.</span>`).join('')}</div>`;
+    if (isAsist && on) chips = `<div class="chips">${['S','M','L','XL'].map(a=>
+      `<span class="chip ${state.asist===a?'on':''}" data-asist="${a}">${a}<small>${ASIST_LBL[a]}</small></span>`).join('')}</div>`;
+    const price = on || !isPzp ? priceOf(t.id)*mult : priceOf(t.id)*mult;
+    const priceHtml = isAsist && state.sel.has('pzp')
+      ? `<span class="t-note">v cene PZP (variant ${state.asist})</span>`
+      : `<span class="t-price">${eur(price)} <small>/ ${state.freq===12?'mes.':state.freq===4?'štvrťrok':state.freq===2?'polrok':'rok'}</small></span>`;
+    return `<div class="tile ${on?'on':''} ${lockedAsist?'locked':''}" data-id="${t.id}">
+      ${t.badge?`<span class="t-badge">${t.badge}</span>`:''}
+      <div class="t-top"><span class="t-name">${t.name}</span>
+        <span class="t-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></div>
+      <div class="t-desc">${t.desc}${lockedAsist?'<br><span class="t-lock">✓ povinná k PZP</span>':''}</div>
+      ${chips}
+      ${priceHtml}
+    </div>`;
+  }).join('');
+
+  /* frekvencie */
+  document.getElementById('freqbar').innerHTML = FREQS.map(x=>{
+    let total=0; effSel().forEach(id=>{ if(!(id==='asistencia'&&state.sel.has('pzp'))) total+=priceOf(id); });
+    return `<div class="f ${state.freq===x.f?'on':''}" data-f="${x.f}">
+      <div class="fl">${x.lbl}</div><div class="fv">${total?eur(total*x.mult):'–'}</div><div class="fs">${x.note}</div></div>`;
+  }).join('');
+
+  /* súhrn */
+  const rows=[];
+  if (state.sel.has('pzp')) rows.push({nm:`Povinné zmluvné poistenie<small>limit ${state.pzpLimit==='1300'?'1,3':state.pzpLimit==='5000'?'5':'10'} mil. · asistencia ${state.asist} (${ASIST_LBL[state.asist]})</small>`, amt:priceOf('pzp')*mult});
+  if (state.sel.has('havaria')) rows.push({nm:'Havária a stret so zverou', amt:priceOf('havaria')*mult});
+  ['sklo','kradez','vandalizmus','zivel','uraz','batozina'].forEach(id=>{ if(state.sel.has(id)) rows.push({nm:TILES.find(t=>t.id===id).name, amt:priceOf(id)*mult}); });
+  if (state.sel.has('asistencia') && !state.sel.has('pzp')) rows.push({nm:`Cestná asistencia<small>variant ${state.asist} (${ASIST_LBL[state.asist]})</small>`, amt:priceOf('asistencia')*mult});
+  document.getElementById('sRows').innerHTML = rows.length
+    ? rows.map(r=>`<div class="s-row"><span class="nm">${r.nm}</span><span class="amt">${eur(r.amt)}</span></div>`).join('')
+    : '<div class="s-empty">Vyberte poistenia z ponuky vľavo.</div>';
+  const total = rows.reduce((a,r)=>a+r.amt,0);
+  document.getElementById('sTotal').textContent = total?eur(total):'–';
+  document.getElementById('sFreqLabel').textContent = FREQS.find(x=>x.f===state.freq).lbl.toLowerCase();
+  document.querySelectorAll('#suGroup .su-opt').forEach(el=>el.classList.toggle('on', el.dataset.su===state.su));
+}
+
+function effSel(){ const s=new Set(state.sel); if(s.has('pzp')) s.add('asistencia'); return s; }
+
+document.addEventListener('click', e=>{
+  const chip = e.target.closest('.chip');
+  if (chip){
+    if (chip.dataset.limit) state.pzpLimit = chip.dataset.limit;
+    if (chip.dataset.asist) state.asist = chip.dataset.asist;
+    render(); return;
+  }
+  const f = e.target.closest('.f');
+  if (f){ state.freq = parseInt(f.dataset.f); render(); return; }
+  const su = e.target.closest('.su-opt');
+  if (su){ state.su = su.dataset.su; render(); return; }
+  const tile = e.target.closest('.tile');
+  if (tile){
+    const id = tile.dataset.id;
+    if (id==='asistencia' && state.sel.has('pzp')) return;   // povinná k PZP — nedá sa vypnúť
+    state.sel.has(id) ? state.sel.delete(id) : state.sel.add(id);
+    render();
+  }
+});
+render();
+</script>
+</body>
+</html>
