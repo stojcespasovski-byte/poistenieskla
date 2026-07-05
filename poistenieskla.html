@@ -6101,6 +6101,11 @@ function renderStep3() {
         <div class="field"><label>Telefón</label><input type="text" id="s3Tel" class="mono" placeholder="+421900123456" value="${p.tel||''}"></div>
         <div class="field"><label>E-mail</label><input type="text" id="s3Email" placeholder="info@firma.sk" value="${p.email||''}"></div>
       </div>
+      <div class="row c4">
+        <div class="field"><label>Oprávnená osoba — meno</label><input type="text" id="s3Meno" placeholder="Ján" value="${p.meno||''}"></div>
+        <div class="field"><label>Oprávnená osoba — priezvisko</label><input type="text" id="s3Priezvisko" placeholder="Novák" value="${p.priezvisko||''}"></div>
+        <div class="fv"></div><div class="fv"></div>
+      </div>
       ${adresaHtml}`;
   } else if (p.typ === 'szco') {
     klientTitle = 'Klient — SZČO'; klientIcon = ICON_PERSON;
