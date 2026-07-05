@@ -1565,7 +1565,7 @@
   .g2 .sp-opt.on { border-color:var(--teal-dark);color:var(--teal-dark);background:var(--teal-tint); }
   .g2 .sp-opt.on .dot { border-color:var(--teal-dark);background:radial-gradient(circle at center,var(--teal-dark) 45%,transparent 50%); }
   .g2-tiles { display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr;gap:10px;padding:14px 16px 16px; }
-  .g2-tile { border:1px solid var(--border-strong);border-radius:10px;padding:12px 13px;cursor:pointer;background:#fff;transition:border-color .12s,background .12s,box-shadow .12s;position:relative;display:flex;flex-direction:column;gap:6px;min-height:104px; }
+  .g2-tile { border:1px solid var(--border-strong);border-radius:10px;padding:12px 13px;cursor:pointer;background:#fff;transition:border-color .12s,background .12s,box-shadow .12s;position:relative;display:flex;flex-direction:column;gap:6px;min-height:76px; }
   .g2-tile:hover { border-color:var(--teal-mid); }
   .g2-tile.on { border-color:var(--teal-dark);background:var(--teal-tint);box-shadow:0 0 0 2px var(--teal-ring); }
   .g2-tile.locked { cursor:default; }
@@ -1576,9 +1576,9 @@
   .g2-check svg { display:none; }
   .g2-tile.on .g2-check svg { display:block; }
   .g2-desc { font-size:11.5px;color:var(--ink-3);line-height:1.4;flex:1; }
-  .g2-price { font-size:15px;font-weight:800;color:var(--teal-dark); }
+  .g2-price { font-size:15px;font-weight:800;color:var(--teal-dark);margin-top:auto; }
   .g2-price small { font-size:11px;font-weight:500;color:var(--ink-4); }
-  .g2-note { font-size:10.5px;color:var(--ink-4); }
+  .g2-note { font-size:10.5px;color:var(--ink-4);margin-top:auto; }
   .g2-badge { font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;background:var(--teal-dark);color:#fff;border-radius:4px;padding:2px 6px;position:absolute;top:-8px;left:10px; }
   .g2-lock { font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--teal-dark); }
   .g2-sel { width:100%;border:1px solid var(--border-strong);border-radius:6px;padding:5px 7px;font-size:11.5px;font-weight:600;color:var(--ink-2);background:#fff;cursor:pointer;margin-top:2px;font-family:inherit; }
@@ -5737,19 +5737,19 @@ function renderStep2Grid() {
     `<option value="${x.code}"${code === x.code ? ' selected' : ''}>${x.label}</option>`).join('')}</select>`;
 
   const TILES = [
-    { id:'pzp', badge:'PZP', name:'Povinné zmluvné poistenie', desc:'Zákonné poistenie zodpovednosti. Asistencia je povinnou súčasťou.',
+    { id:'pzp', badge:'PZP', name:'Povinné zmluvné poistenie',
       price:pzpPrice, on:pzpOn,
       chips: selRow('pzp', pzpCode, pzpProd.variants.map(x => ({ code:x.code, label:'Limit ' + x.label }))) },
-    { id:'havaria', role:'combo', name:'Havária a stret so zverou', desc:'Škody z nehody vrátane zrážky so zverou (povinná dvojica).',
+    { id:'havaria', role:'combo', name:'Havária a stret so zverou',
       price:(pp('havaria') != null && pp('zver') != null) ? pp('havaria') + pp('zver') : null, on:comboOn },
-    { id:'sklo', name:'Poistenie skla', desc:'Všetky sklá a okná — čelné, bočné, panoráma, strešné, zadné.', price:pp('sklo'), on:has('sklo') },
-    { id:'kradez', name:'Krádež vozidla', desc:'Odcudzenie celého vozidla alebo jeho častí.', price:pp('kradez'), on:has('kradez') },
-    { id:'vandalizmus', name:'Vandalizmus', desc:'Úmyselné poškodenie vozidla.', price:pp('vandalizmus'), on:has('vandalizmus') },
-    { id:'zivel', name:'Živelné pohromy', desc:'Povodeň, krupobitie, víchrica, požiar.', price:pp('zivel'), on:has('zivel') },
-    { id:'uraz', name:'Úrazové poistenie', desc:'Vodič a posádka pre prípad úrazu.', price:pp('uraz'), on:has('uraz'),
+    { id:'sklo', name:'Poistenie skla', price:pp('sklo'), on:has('sklo') },
+    { id:'kradez', name:'Krádež vozidla', price:pp('kradez'), on:has('kradez') },
+    { id:'vandalizmus', name:'Vandalizmus', price:pp('vandalizmus'), on:has('vandalizmus') },
+    { id:'zivel', name:'Živelné pohromy', price:pp('zivel'), on:has('zivel') },
+    { id:'uraz', name:'Úrazové poistenie', price:pp('uraz'), on:has('uraz'),
       chips: selRow('uraz', urazCode, urazProd.variants) },
-    { id:'batozina', name:'Batožina', desc:'Veci prepravované vo vozidle.', price:pp('batozina'), on:has('batozina') },
-    { id:'asistencia', name:'Cestná asistencia', desc:'Odtiahnutie a pomoc 24/7. Variant platí aj pre PZP.',
+    { id:'batozina', name:'Batožina', price:pp('batozina'), on:has('batozina') },
+    { id:'asistencia', name:'Cestná asistencia',
       price:pp('asistencia'), on:has('asistencia') || pzpOn, locked:pzpOn,
       chips: selRow('asistencia', asistCode, asistProd.variants.map(x => ({ code:x.code, label:x.code.replace('AS2_','') + ' — ' + x.label }))) },
   ];
@@ -5759,7 +5759,7 @@ function renderStep2Grid() {
       ${t.badge ? `<span class="g2-badge">${t.badge}</span>` : ''}
       <div class="g2-top"><span class="g2-name">${t.name}</span>
         <span class="g2-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></div>
-      <div class="g2-desc">${t.desc}${t.locked ? '<br><span class="g2-lock">✓ povinná k PZP</span>' : ''}</div>
+      ${t.locked ? '<div class="g2-desc"><span class="g2-lock">✓ povinná k PZP</span></div>' : ''}
       ${t.chips || ''}
       ${t.id === 'asistencia' && pzpOn
         ? `<span class="g2-note">v cene PZP (variant ${asistCode.replace('AS2_','')})</span>`
