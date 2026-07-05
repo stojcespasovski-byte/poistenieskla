@@ -7245,7 +7245,9 @@ function attachListeners() {
   // ORSR IČO auto-lookup
   // Konateľ z ORSR → oprávnená osoba (Krok 3, PO): "Ing. Ján Novák" → meno/priezvisko
   function splitKonatelMeno(full) {
-    const t = String(full).split(/\s+/).filter(x => x && !/\.$/.test(x) && !/^(PhD|CSc|DrSc|MBA|LLM)$/i.test(x.replace(/,$/, '')));
+    // "Ing. Ján Novák - Člen predstavenstva" → bez titulov a bez roly za pomlčkou
+    const bezRole = String(full).split(/\s[-–]\s/)[0];
+    const t = bezRole.split(/\s+/).filter(x => x && !/\.$/.test(x) && !/^(PhD|CSc|DrSc|MBA|LLM)$/i.test(x.replace(/,$/, '')));
     if (!t.length) return { meno: '', priezvisko: '' };
     return { meno: t.slice(0, -1).join(' '), priezvisko: t[t.length - 1] };
   }
