@@ -6225,7 +6225,7 @@ function renderStep4() {
   let klientTitle, klientIcon, klientFv;
   if (p.typ === 'po') {
     klientTitle='Klient — Právnická osoba'; klientIcon=ICON_COMPANY;
-    klientFv = `<div class="row c4">${fvr('IČO',p.ico,true)}${fvr('Názov firmy',p.nazov)}${fvr('Telefón',p.tel,true)}${fvr('E-mail',p.email)}</div><div class="row c4">${adresaFv}</div>`;
+    klientFv = `<div class="row c4">${fvr('IČO',p.ico,true)}${fvr('Názov firmy',p.nazov)}${fvr('Oprávnená osoba',[p.meno,p.priezvisko].filter(Boolean).join(' '))}${fvr('Telefón',p.tel,true)}</div><div class="row c4">${fvr('E-mail',p.email)}${fvr('Ulica a číslo',[p.ulica,p.cislo].filter(Boolean).join(' '))}${fvr('Obec',p.obec)}${fvr('PSČ',p.psc,true)}</div>`;
   } else if (p.typ === 'szco') {
     klientTitle='Klient — SZČO'; klientIcon=ICON_PERSON;
     klientFv = `<div class="row c4">${fvr('IČO',p.ico,true)}${fvr('Názov živnosti',p.nazov)}${fvr('Telefón',p.tel,true)}${fvr('E-mail',p.email)}</div>
