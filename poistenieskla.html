@@ -4768,7 +4768,9 @@ async function apiLookupVehicle({ ecv, vin }) {
       hmotnost: raw.hmotnost != null ? String(Math.round(raw.hmotnost)) : '',
       farba,
       pohon,
-      tp:       raw.cislo_tp || '',
+      // číslo dokladu: staré autá = veľký TP (tp) + malé osvedčenie (oev, druhé v poradí);
+      // novšie jediný doklad poe, najstaršia éra oe — berieme prvý vyplnený
+      tp:       raw.cislo_tp || raw.cislo_poe || raw.cislo_oe || raw.cislo_oev || '',
     }
   };
 }
