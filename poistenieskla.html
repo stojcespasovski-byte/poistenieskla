@@ -7474,7 +7474,8 @@ function attachListeners() {
       if (state.rezim !== 'vyber') state.selected.add(CONFIG.hero);  // mriežka nič nevnucuje
       state.step = 2;
       render();
-      await prefetchAllPrices();
+      showCalcOverlay();
+      try { await prefetchAllPrices(); } finally { hideCalcOverlay(); }
       // Pillow nevrátil ceny (napr. nesprávny formát RČ) → späť na Krok 1 s dôvodom
       if (!Object.keys(state.apiPrices || {}).length) {
         const msg = (state.rateErrors || []).map(prelozPillowChybu).join('\n') || 'Poisťovňa nevrátila ceny. Skontrolujte zadané údaje.';
@@ -8190,6 +8191,20 @@ function bootPortal() {
   }
 
 }
+
+/* Overlay spinner počas prepočtu cien (Krok 1 → Krok 2) */
+function showCalcOverlay() {
+  if (document.getElementById('calcOv')) return;
+  const d = document.createElement('div');
+  d.id = 'calcOv';
+  d.style.cssText = 'position:fixed;inset:0;background:rgba(238,242,243,.75);backdrop-filter:blur(2px);z-index:800;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;';
+  d.innerHTML = `
+    <div style="width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--teal-dark);border-radius:50%;animation:spin .7s linear infinite;"></div>
+    <div style="font-size:14.5px;color:var(--ink-2);font-weight:600;">Počítam ceny…</div>
+    <div style="font-size:12.5px;color:var(--ink-4);">Pýtame si sadzby z poisťovne, chvíľku to potrvá.</div>`;
+  document.body.appendChild(d);
+}
+function hideCalcOverlay() { document.getElementById('calcOv')?.remove(); }
 
 /* Neutrálna obrazovka počas načítavania draftu z CRM (žiadny preblik starého stavu) */
 function showDraftLoading() {
