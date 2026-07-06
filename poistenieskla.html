@@ -1835,7 +1835,7 @@ const ALL_PRODUCTS = [
       { code: 'AS2_XL', label: 'Neobmedzene SR+EÚ' },
     ]
   },
-  { id: "zivel",      name: "Živelné pohromy",       icon: "⛈️",  desc: "Povodeň, grad, víchrica", supportsGAP: true },
+  { id: "zivel",      name: "Prírodná udalosť",      icon: "⛈️",  desc: "Povodeň, grad, víchrica", supportsGAP: true },
   { id: "havaria",    name: "Havarijné poistenie",   icon: "💥", desc: "Škody z dopravnej nehody", supportsGAP: true },
   { id: "kradez",     name: "Krádež vozidla",        icon: "🔓", desc: "Odcudzenie celého vozidla", supportsGAP: true },
   { id: "zver",       name: "Stret so zverou",       icon: "🦌", desc: "Škody po zrážke so zverou", supportsGAP: true },
@@ -5776,7 +5776,7 @@ function renderStep2Grid() {
     { id:'sklo', name:'Poistenie skla', price:pp('sklo'), on:has('sklo') },
     { id:'kradez', name:'Krádež vozidla', price:pp('kradez'), on:has('kradez') },
     { id:'vandalizmus', name:'Vandalizmus', price:pp('vandalizmus'), on:has('vandalizmus') },
-    { id:'zivel', name:'Živelné pohromy', price:pp('zivel'), on:has('zivel') },
+    { id:'zivel', name:'Prírodná udalosť', price:pp('zivel'), on:has('zivel') },
     { id:'uraz', name:'Úrazové poistenie', price:pp('uraz'), on:has('uraz'),
       chips: selRow('uraz', urazCode, urazProd.variants) },
     { id:'batozina', name:'Batožina', price:pp('batozina'), on:has('batozina') },
@@ -5909,7 +5909,7 @@ function renderStep2() {
   const CARDS = [
     { id:'zver',  role:'zverSolo', name:'Stret so zverou', desc:'Náhrada škody pri zrážke s voľne žijúcou zverou', price:pp('zver'), on:zverSolo },
     { id:'havaria', role:'combo',  name:'Havária a Stret so zverou', desc:'Rozšírené krytie havárie vrátane stretu so zverou', price:(pp('havaria')!=null&&pp('zver')!=null)?pp('havaria')+pp('zver'):null, on:comboOn },
-    { id:'zivel',     name:'Živel',       desc:'Krytie poškodenia živelnou udalosťou (búrka, krupobitie…)', price:pp('zivel'),     on:has('zivel') },
+    { id:'zivel',     name:'Prírodná udalosť', desc:'Krytie poškodenia živelnou udalosťou (búrka, krupobitie…)', price:pp('zivel'),     on:has('zivel') },
     { id:'kradez',    name:'Krádež',      desc:'Poistenie vozidla alebo jeho častí pri krádeži',           price:pp('kradez'),    on:has('kradez') },
     { id:'vandalizmus', name:'Vandalizmus', desc:'Náhrada škody spôsobenej úmyselným poškodením',          price:pp('vandalizmus'), on:has('vandalizmus') },
     { id:'asistencia', name:'Asistencia', desc:'Cestná asistencia a odtiahnutie vozidla 24/7',             price:pp('asistencia'), on:has('asistencia') },
@@ -6351,7 +6351,7 @@ function renderStep4() {
   else if (has('sklo')) lines.push(`<div class="poistenie-row"><div><div class="poistenie-name">Poistenie skla</div></div><div class="poistenie-price">${fmt(pp('sklo'))}</div></div>`);
   if (has('havaria')) lines.push(`<div class="poistenie-row"><div><div class="poistenie-name">Havária a Stret so zverou</div></div><div class="poistenie-price">${fmt((pp('havaria')||0)+(pp('zver')||0))}</div></div>`);
   else if (has('zver')) lines.push(`<div class="poistenie-row"><div><div class="poistenie-name">Stret so zverou</div></div><div class="poistenie-price">${fmt(pp('zver'))}</div></div>`);
-  const ADDON_NAMES = {zivel:'Živel',kradez:'Krádež',vandalizmus:'Vandalizmus',asistencia:'Asistencia',batozina:'Batožina',uraz:'Úraz'};
+  const ADDON_NAMES = {zivel:'Prírodná udalosť',kradez:'Krádež',vandalizmus:'Vandalizmus',asistencia:'Asistencia',batozina:'Batožina',uraz:'Úraz'};
   Object.entries(ADDON_NAMES).forEach(([id,nm])=>{
     if (id==='asistencia' && vyber && has('pzp')) return;   // asistencia je už v cene PZP
     if (has(id)) lines.push(`<div class="poistenie-row"><div><div class="poistenie-name">${nm}</div></div><div class="poistenie-price">${fmt(pp(id))}</div></div>`);
@@ -6455,7 +6455,7 @@ function renderSuccess(zmluvaId) {
   else if (has('sklo')) plines.push(`<div class="prow"><span class="nm">Poistenie skla</span><span class="amt">${fmt(pp('sklo'))}</span></div>`);
   if (has('havaria')) plines.push(`<div class="prow"><span class="nm">Havária a Stret so zverou</span><span class="amt">${fmt((pp('havaria')||0)+(pp('zver')||0))}</span></div>`);
   else if (has('zver')) plines.push(`<div class="prow"><span class="nm">Stret so zverou</span><span class="amt">${fmt(pp('zver'))}</span></div>`);
-  const ADD = {zivel:'Živel',kradez:'Krádež',vandalizmus:'Vandalizmus',asistencia:'Asistencia',batozina:'Batožina',uraz:'Úraz'};
+  const ADD = {zivel:'Prírodná udalosť',kradez:'Krádež',vandalizmus:'Vandalizmus',asistencia:'Asistencia',batozina:'Batožina',uraz:'Úraz'};
   Object.entries(ADD).forEach(([id,nm])=>{
     if (id==='asistencia' && vyberS && has('pzp')) return;   // v cene PZP
     if (has(id)) plines.push(`<div class="prow"><span class="nm">${nm}</span><span class="amt">${fmt(pp(id))}</span></div>`);
