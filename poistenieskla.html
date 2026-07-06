@@ -6410,7 +6410,7 @@ function renderStep4() {
   const SUHLASY = [
     { l:'Súhlas s elektronickou komunikáciou', url:DOC_BASE+'suhlas_elektronicka_komunikacia.pdf' },
     { l:'Súhlas so spracovaním osobných údajov', url:DOC_BASE+'suhlas_spracovanie_ou.pdf' },
-    { l:'Súhlas k vyjadreniu k ročnému nájazdu km', url:DOC_BASE+'vyjadrenie_rocny_najazd.pdf' },
+    { l:'Súhlas k vyjadreniu k ročnému nájazdu km', url:`https://api.pripoisti.sk/bcrm/docs/najazd?km=${encodeURIComponent(state.vehicle.najazd || '')}` },
     { l:'Súhlas k vyjadreniu k zmluve o poskytnutí finančnej služby', url:DOC_BASE+'vyjadrenie_k_zmluve.pdf' },
     { l:'Súhlas s vyjadrením na účely finančného sprostredkovania', url:DOC_BASE+'vyjadrenie_na_ucely_fs.pdf' },
   ];
