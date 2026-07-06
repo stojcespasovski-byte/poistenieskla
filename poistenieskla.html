@@ -6391,14 +6391,32 @@ function renderStep4() {
   });
   let total=0; state.selected.forEach(id=>{ total += (state.apiPrices[id]?.price||0); }); total*=fc.mult;
 
-  const DOCS = ['Návrh poistnej zmluvy (s VPP a IPID)','Obchodné podmienky','Informácie poskytnuté klientovi pred uzatvorením zmluvy','Podmienky spracúvania OÚ','Záznam o sprostredkovaní','Záznam o dopravnej nehode'];
+  const DOC_BASE = 'https://api.pripoisti.sk/docs/';
+  const DOCS = [
+    { l:'Návrh poistnej zmluvy (s VPP a IPID)', id:'s4DocNavrh' },
+    { l:'Obchodné podmienky' },                                                        // ⏳ PDF ešte nedodané
+    { l:'Informácie poskytnuté klientovi pred uzatvorením zmluvy', url:DOC_BASE+'informacie_pred_uzavretim.pdf' },
+    { l:'Podmienky spracúvania OÚ', url:DOC_BASE+'podmienky_spracuvania_ou.pdf' },
+    { l:'Záznam o sprostredkovaní', id:'s4DocZaznam' },
+    { l:'Záznam o dopravnej nehode' },                                                 // ⏳ nedodané
+  ];
   const DOC_ICON = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
-  const docsHtml = DOCS.map((d,i)=>`<a class="doc-item" ${i===0?'id="s4DocNavrh"':i===4?'id="s4DocZaznam"':'href="#"'}>${DOC_ICON} ${d}</a>`).join('');
+  const docsHtml = DOCS.map(d =>
+    d.id  ? `<a class="doc-item" id="${d.id}">${DOC_ICON} ${d.l}</a>`
+  : d.url ? `<a class="doc-item" href="${d.url}" target="_blank" rel="noopener">${DOC_ICON} ${d.l}</a>`
+  :         `<a class="doc-item" href="#" onclick="return false;" style="opacity:.45;cursor:default;">${DOC_ICON} ${d.l}</a>`
+  ).join('');
 
-  const SUHLASY = ['Súhlas s elektronickou komunikáciou','Súhlas so spracovaním osobných údajov','Súhlas k vyjadreniu k ročnému nájazdu km','Súhlas k vyjadreniu k zmluve o poskytnutí finančnej služby','Súhlas s vyjadrením na účely finančného sprostredkovania'];
+  const SUHLASY = [
+    { l:'Súhlas s elektronickou komunikáciou', url:DOC_BASE+'suhlas_elektronicka_komunikacia.pdf' },
+    { l:'Súhlas so spracovaním osobných údajov', url:DOC_BASE+'suhlas_spracovanie_ou.pdf' },
+    { l:'Súhlas k vyjadreniu k ročnému nájazdu km', url:DOC_BASE+'vyjadrenie_rocny_najazd.pdf' },
+    { l:'Súhlas k vyjadreniu k zmluve o poskytnutí finančnej služby', url:DOC_BASE+'vyjadrenie_k_zmluve.pdf' },
+    { l:'Súhlas s vyjadrením na účely finančného sprostredkovania', url:DOC_BASE+'vyjadrenie_na_ucely_fs.pdf' },
+  ];
   // index 1 = marketingový súhlas → NEPOVINNÝ (ostatné 4 sú povinné pred uzavretím)
   const MARKETING_IDX = 1;
-  const suhlasyHtml = SUHLASY.map((s,i)=>`<label class="suhlas-item"><input type="checkbox" class="s4-suhlas" data-idx="${i}" ${state.suhlasy[i]?'checked':''}><span class="suhlas-link">${s}${i===MARKETING_IDX?' <span style="color:var(--ink-4);font-weight:400;">(nepovinné)</span>':''}</span></label>`).join('');
+  const suhlasyHtml = SUHLASY.map((s,i)=>`<label class="suhlas-item"><input type="checkbox" class="s4-suhlas" data-idx="${i}" ${state.suhlasy[i]?'checked':''}><span><a href="${s.url}" target="_blank" rel="noopener" class="suhlas-link" onclick="event.stopPropagation()">${s.l}</a>${i===MARKETING_IDX?' <span style="color:var(--ink-4);font-weight:400;">(nepovinné)</span>':''}</span></label>`).join('');
   const allOk = state.suhlasy.every((v,i)=>i===MARKETING_IDX||v);
 
   return `
