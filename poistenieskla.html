@@ -1895,6 +1895,8 @@ const state = {
   doplnkyOpen: false,   // Krok 2 — zbalenie/rozbalenie doplnkových pripoistení
   rezim: null,          // null = sklo hero flow; 'vyber' = maklérska mriežka (draft z CRM)
   suhlasy: [false,false,false,false,false], // Krok 4 — 5 súhlasov pred odoslaním
+  // Vlastník vozidla (Krok 3) — default = poistník; 'osoba' = odlišný (FO/PO, môže byť ktokoľvek)
+  vlastnik: { typ:'poistnik', forma:'fo', meno:'', priezvisko:'', rc:'', datumNar:'', nazov:'', ico:'', ulica:'', cislo:'', obec:'', psc:'' },
   priceCache: {},       // [su][asistCode][freq] → { prices, calcId, pzpVars }
 
   poistnik: {
@@ -4391,6 +4393,30 @@ function buildSaveXML(calcId, createPolicy) {
       </xml-par-address></address>
     </xml-par-party>`;
 
+  // Vlastník vozidla — ak je odlišný od poistníka (Krok 3). Môže byť FO (RČ alebo
+  // dátum narodenia — aj maloletý) alebo PO. Držiteľ ostáva poistník.
+  const vl = state.vlastnik;
+  const vlOwnerXml = () => {
+    const oType = vl.forma === 'po' ? 'PO' : (vl.rc ? 'FORC' : 'FODN');
+    return `<xml-par-party>
+      ${xe('partyType', oType)}
+      ${oType === 'PO' ? xe('companyIdentification', vl.ico) : ''}
+      ${oType === 'PO' ? xe('companyName', vl.nazov) : ''}
+      ${oType === 'FORC' ? xe('personalIdentification', vl.rc) : ''}
+      ${oType !== 'PO' ? xe('forename', vl.meno) : ''}
+      ${oType !== 'PO' ? xe('surname',  vl.priezvisko) : ''}
+      ${oType === 'FODN' ? xe('birthdate', vl.datumNar) : ''}
+      <address><xml-par-address>
+        ${xe('country', 'SVK')}
+        ${xe('zipCode', cleanPsc(vl.psc))}
+        ${xe('city',    vl.obec)}
+        ${xe('street',  vl.ulica)}
+        ${xe('landRegistryNumber', vl.cislo)}
+      </xml-par-address></address>
+    </xml-par-party>`;
+  };
+  const vlastnikOdlisny = vl.typ === 'osoba';
+
   return `<?xml version="1.0" encoding="utf-8"?>
 <xml-par-ap2-save-policy-req xmlns="www.ais.cz" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="www.ais.cz XmlParAp2SavePolicyReq.xsd">
   ${xe('calculationId', calcId)}
@@ -4434,7 +4460,8 @@ function buildSaveXML(calcId, createPolicy) {
     })()}
   </xml-par-ap2-vehicle></vehicle>
   <policyHolder>${partyXml()}</policyHolder>
-  ${xe('policyHolderSameAsVehicleOwner',  'true')}
+  ${xe('policyHolderSameAsVehicleOwner',  vlastnikOdlisny ? 'false' : 'true')}
+  ${vlastnikOdlisny ? `<vehicleOwner>${vlOwnerXml()}</vehicleOwner>` : ''}
   ${xe('policyHolderSameAsVehicleHolder', 'true')}
   <vehicleHolder>${partyXml()}</vehicleHolder>
 ${variantsXml}
@@ -5018,7 +5045,7 @@ function devGoto(step) {
       typ: 'fo', cudzinec: false,
       rodneCislo: '8001011234', datumNar: '1980-01-01', meno: 'Ján', priezvisko: 'Novák',
       ico: '', nazov: '', obec: 'Bratislava', psc: '81101',
-      dokladCislo: '', dokladTyp: 'Občiansky preukaz', statnaPrislusnost: '', zapisanyV: '',
+      dokladCislo: '', statnaPrislusnost: '', zapisanyV: '',
       email: 'jan.novak@test.sk', tel: '+421900123456',
       ulica: 'Hlavná', cislo: '1',
       titulPred: '', titulZa: '',
@@ -6079,6 +6106,7 @@ function renderStep2_OLD() {
 function renderStep3() {
   const v = state.vehicle;
   const p = state.poistnik;
+  const vl = state.vlastnik;
   const fmtD = d => { if (!d) return '–'; const [y,m,day] = d.split('-'); return `${day}.${m}.${y}`; };
   const EDIT_ICON = '<svg class="edit-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
 
@@ -6105,16 +6133,7 @@ function renderStep3() {
       <div class="field">${idPrefix === 'cudzinec'
         ? `<label>Dátum narodenia</label><input type="date" id="s3DatumNar" value="${p.datumNar||''}">`
         : `<label>Rodné číslo</label><input type="text" id="s3RodneCislo" class="mono" value="${p.rodneCislo||''}" readonly>`}</div>
-      <div class="field"><label>Doklad totožnosti</label>
-        <div style="display:flex;gap:5px;">
-          <select id="s3DokladTyp" style="flex:0 0 84px;">
-            <option value="Občiansky preukaz"${(p.dokladTyp||'Občiansky preukaz')==='Občiansky preukaz'?' selected':''}>OP</option>
-            <option value="Pas"${p.dokladTyp==='Pas'?' selected':''}>Pas</option>
-            <option value="Povolenie na pobyt"${p.dokladTyp==='Povolenie na pobyt'?' selected':''}>Povolenie</option>
-          </select>
-          <input type="text" id="s3DokladCislo" class="mono" placeholder="EA000000" value="${p.dokladCislo||''}" style="flex:1;min-width:0;">
-        </div>
-      </div>
+      <div class="field"><label>OP, Pas, Pobyt.preukaz</label><input type="text" id="s3DokladCislo" class="mono" placeholder="číslo dokladu" value="${p.dokladCislo||''}"></div>
       <div class="field"><label>Telefón</label><input type="text" id="s3Tel" class="mono" placeholder="+421900123456" value="${p.tel||''}"></div>
       <div class="field"><label>E-mail</label><input type="text" id="s3Email" placeholder="meno@email.sk" value="${p.email||''}"></div>
     </div>`;
@@ -6232,6 +6251,43 @@ function renderStep3() {
             <div class="block-rule"></div>
           </div>
           ${klientBody}
+        </div>
+
+        <!-- VLASTNÍK VOZIDLA -->
+        <div class="block">
+          <div class="block-hd">
+            <div class="block-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#13616b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="9" width="22" height="9" rx="2"/><path d="M5 9V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></div>
+            <div class="block-title">Vlastník vozidla</div>
+            <div class="block-rule"></div>
+          </div>
+          <div class="segmented-new" style="display:inline-grid;grid-template-columns:150px 150px;">
+            <button type="button" data-vlastnik="poistnik" class="${vl.typ==='poistnik'?'active':''}">Poistník</button>
+            <button type="button" data-vlastnik="osoba" class="${vl.typ==='osoba'?'active':''}">Iná osoba</button>
+          </div>
+          ${vl.typ==='osoba' ? `
+          <div style="font-size:11.5px;color:var(--ink-4);margin-top:7px;">Vlastníkom môže byť ktokoľvek (aj maloletý) — vek sa neoveruje.</div>
+          <div class="segmented-new" style="display:inline-grid;grid-template-columns:150px 150px;margin-top:10px;">
+            <button type="button" data-vlforma="fo" class="${vl.forma==='fo'?'active':''}">Fyzická osoba</button>
+            <button type="button" data-vlforma="po" class="${vl.forma==='po'?'active':''}">Právnická osoba</button>
+          </div>
+          ${vl.forma==='fo' ? `
+          <div class="row c4" style="margin-top:10px;">
+            <div class="field"><label>Meno</label><input type="text" id="vlMeno" value="${vl.meno||''}" placeholder="Ján"></div>
+            <div class="field"><label>Priezvisko</label><input type="text" id="vlPriezvisko" value="${vl.priezvisko||''}" placeholder="Novák"></div>
+            <div class="field"><label>Rodné číslo</label><input type="text" id="vlRc" class="mono" value="${vl.rc||''}" placeholder="0001011234"></div>
+            <div class="field"><label>Dátum narodenia</label><input type="date" id="vlDatumNar" value="${vl.datumNar||''}"></div>
+          </div>` : `
+          <div class="row c4" style="margin-top:10px;">
+            <div class="field"><label>Názov firmy</label><input type="text" id="vlNazov" value="${vl.nazov||''}" placeholder="Názov s.r.o."></div>
+            <div class="field"><label>IČO</label><input type="text" id="vlIco" class="mono" value="${vl.ico||''}" placeholder="12345678" maxlength="8"></div>
+            <div class="fv"></div><div class="fv"></div>
+          </div>`}
+          <div class="row" style="grid-template-columns:1fr 100px 1fr 120px;margin-top:6px;">
+            <div class="field"><label>Ulica</label><input type="text" id="vlUlica" value="${vl.ulica||''}" placeholder="Hlavná"></div>
+            <div class="field"><label>Číslo domu</label><input type="text" id="vlCislo" value="${vl.cislo||''}" placeholder="1"></div>
+            <div class="field"><label>Obec</label><input type="text" id="vlObec" value="${vl.obec||''}" placeholder="Bratislava"></div>
+            <div class="field"><label>PSČ</label><input type="text" id="vlPsc" class="mono" value="${vl.psc||''}" placeholder="811 01" maxlength="6"></div>
+          </div>` : ''}
         </div>
 
       </div>
@@ -6551,8 +6607,9 @@ function resetFormState() {
   state.vehicle = { ecv:'', vin:'', novePredReg:null, maEcv:null, typ:'', vyuzitie:'osobne', datumReg:'', znacka:'', model:'', brandCode:'', modelCode:'', objem:'', vykon:'', hmotnost:'', palivo:'', garazovane:false, zmluvnyServis:false, x4:false, automat:false, parkovaci:false, farba:'', tp:'', bezTp:false, najazd:'25000', cenaVozidla:'' };
   state.apiPrices = {}; state.allFreqPrices = {}; state.allFreqCalcIds = {}; state.selected = new Set(); state.selectedVariants = {};
   state.spoluUcast = '300'; state.withGAP = false; state.priceCache = {}; state.doplnkyOpen = false; state.rezim = null;
-  state.poistnik = { typ:'fo', cudzinec:false, rodneCislo:'', datumNar:'', meno:'', priezvisko:'', ico:'', nazov:'', obec:'', psc:'', dokladCislo:'', dokladTyp:'Občiansky preukaz', statnaPrislusnost:'', zapisanyV:'', email:'', tel:'', ulica:'', cislo:'', titulPred:'', titulZa:'', orsr:false };
+  state.poistnik = { typ:'fo', cudzinec:false, rodneCislo:'', datumNar:'', meno:'', priezvisko:'', ico:'', nazov:'', obec:'', psc:'', dokladCislo:'', statnaPrislusnost:'', zapisanyV:'', email:'', tel:'', ulica:'', cislo:'', titulPred:'', titulZa:'', orsr:false };
   state.suhlasy = [false,false,false,false,false]; state.varSym = null; state.calculationId = null; state.draftId = null; state.pdfZmluvaB64 = null;
+  state.vlastnik = { typ:'poistnik', forma:'fo', meno:'', priezvisko:'', rc:'', datumNar:'', nazov:'', ico:'', ulica:'', cislo:'', obec:'', psc:'' };
   state.paymentFreq = 12;
 }
 
@@ -7210,7 +7267,7 @@ function attachListeners() {
       typ: 'fo', cudzinec: false,
       rodneCislo: '', datumNar: '', meno: '', priezvisko: '',
       ico: '', nazov: '', obec: '', psc: '',
-      dokladCislo: '', dokladTyp: 'Občiansky preukaz', statnaPrislusnost: '', zapisanyV: '',
+      dokladCislo: '', statnaPrislusnost: '', zapisanyV: '',
       email: '', tel: '',
       ulica: '', cislo: '',
       titulPred: '', titulZa: '',
@@ -7727,9 +7784,6 @@ function attachListeners() {
   document.getElementById('s3DokladCislo')?.addEventListener('input', function() {
     state.poistnik.dokladCislo = this.value;
   });
-  document.getElementById('s3DokladTyp')?.addEventListener('change', function() {
-    state.poistnik.dokladTyp = this.value;
-  });
   document.getElementById('s3StatnaPrislusnost')?.addEventListener('input', function() {
     state.poistnik.statnaPrislusnost = this.value;
   });
@@ -7761,6 +7815,33 @@ function attachListeners() {
     state.poistnik.datumNar = this.value;
   });
 
+  // Vlastník vozidla — prepínače (re-render) + polia
+  document.querySelectorAll('[data-vlastnik]').forEach(b => b.addEventListener('click', () => {
+    state.vlastnik.typ = b.dataset.vlastnik; render();
+  }));
+  document.querySelectorAll('[data-vlforma]').forEach(b => b.addEventListener('click', () => {
+    state.vlastnik.forma = b.dataset.vlforma; render();
+  }));
+  const vlBind = (id, key) => document.getElementById(id)?.addEventListener('input', function() { state.vlastnik[key] = this.value; });
+  vlBind('vlMeno','meno'); vlBind('vlPriezvisko','priezvisko'); vlBind('vlRc','rc'); vlBind('vlNazov','nazov');
+  vlBind('vlUlica','ulica'); vlBind('vlCislo','cislo'); vlBind('vlObec','obec'); vlBind('vlPsc','psc');
+  document.getElementById('vlDatumNar')?.addEventListener('change', function() { state.vlastnik.datumNar = this.value; });
+  let _vlOrsrTimer = null;
+  document.getElementById('vlIco')?.addEventListener('input', function() {
+    const ico = this.value.replace(/\D/g,''); this.value = ico; state.vlastnik.ico = ico;
+    if (ico.length !== 8) return;
+    clearTimeout(_vlOrsrTimer);
+    _vlOrsrTimer = setTimeout(async () => {
+      try {
+        const data = await (await fetch(`https://api.pripoisti.sk/bcrm/company?ico=${ico}&stat=SK`)).json();
+        if (!data.found) return;
+        state.vlastnik.nazov = data.nazov || ''; state.vlastnik.ulica = data.ulica || '';
+        state.vlastnik.cislo = data.cislo || ''; state.vlastnik.obec = data.mesto || ''; state.vlastnik.psc = data.psc || '';
+        render();
+      } catch (_) {}
+    }, 400);
+  });
+
   const btnS3Next = document.getElementById('btnStep3Next');
   if (btnS3Next) btnS3Next.addEventListener('click', () => {
     // uložiť hodnoty
@@ -7773,7 +7854,6 @@ function attachListeners() {
     state.poistnik.meno            = document.getElementById('s3Meno')?.value        || state.poistnik.meno;
     state.poistnik.priezvisko      = document.getElementById('s3Priezvisko')?.value  || state.poistnik.priezvisko;
     state.poistnik.dokladCislo     = document.getElementById('s3DokladCislo')?.value ?? state.poistnik.dokladCislo;
-    state.poistnik.dokladTyp       = document.getElementById('s3DokladTyp')?.value   || state.poistnik.dokladTyp;
     state.poistnik.statnaPrislusnost = document.getElementById('s3StatnaPrislusnost')?.value ?? state.poistnik.statnaPrislusnost;
     state.poistnik.nazov           = document.getElementById('s3Nazov')?.value       ?? state.poistnik.nazov;
     state.poistnik.ulica           = document.getElementById('s3Ulica')?.value       ?? state.poistnik.ulica;
