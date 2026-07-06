@@ -6624,6 +6624,19 @@ async function odoslatEmailKlientovi(zmluvaId) {
     const emailBrand = jeTechnik
       ? ((typeof PILLOW_CONFIG !== 'undefined' && PILLOW_CONFIG.BRAND) || 'poistenieskla')
       : 'automanager';
+    // Záznam o sprostredkovaní ako PDF príloha (číslo návrhu = číslo zmluvy)
+    let zaznamPdfBase64 = null;
+    try {
+      const zdata = buildZaznamData(); zdata.cisloNavrhu = zmluvaId || zdata.cisloNavrhu;
+      const zres = await fetch('https://api.pripoisti.sk/bcrm/docs/zaznam?format=pdf', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(zdata),
+      });
+      if (zres.ok) {
+        const zblob = await zres.blob();
+        zaznamPdfBase64 = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(String(fr.result).split(',')[1] || null); fr.readAsDataURL(zblob); });
+      }
+    } catch (_) { /* Záznam je doplnková príloha */ }
+
     const res = await fetch('https://api.pripoisti.sk/bcrm/email/send-offer', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -6636,6 +6649,7 @@ async function odoslatEmailKlientovi(zmluvaId) {
         splatnost: state.zaciatok || '',
         frekvencia: fc.label || '',
         pdfBase64,
+        zaznamPdfBase64,
       }),
     });
     const data = await res.json().catch(() => ({}));
