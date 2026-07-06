@@ -4809,13 +4809,16 @@ function buildZaznamData() {
   const freqTxt = { 12:'mesačne', 4:'štvrťročne', 2:'polročne', 1:'ročne' }[state.paymentFreq] || 'ročne';
   const ASIST_LBL = { AS2_S:'50 km pri nehode', AS2_M:'50 km v SR', AS2_L:'SR a EÚ', AS2_XL:'Neobmedzene SR+EÚ' };
   const URAZ_LBL  = { UR2_2:'Úraz vodiča max. 20 000 €', UR2_1:'Smrť oboch rodičov' };
-  const rizika = [...state.selected].filter(id => id !== 'pzp' && PILLOW_RISK_MAP[id]).map(id => {
-    const cena = +(((state.apiPrices[id]?.price) || 0) * fc.mult).toFixed(2);
-    const r = { id, cena };
-    if (id === 'asistencia') r.krytie = ASIST_LBL[state.selectedVariants['asistencia'] || 'AS2_L'] || '';
-    if (id === 'uraz')       r.krytie = URAZ_LBL[state.selectedVariants['uraz'] || 'UR2_2'] || '';
-    return r;
-  });
+  // VŠETKY nacenené riziká (nielen zvolené); zvolené dostanú príznak zvolil=true
+  const rizika = Object.keys(state.apiPrices || {})
+    .filter(id => id !== 'pzp' && PILLOW_RISK_MAP[id])
+    .map(id => {
+      const cena = +(((state.apiPrices[id]?.price) || 0) * fc.mult).toFixed(2);
+      const r = { id, cena, zvolil: state.selected.has(id) };
+      if (id === 'asistencia') r.krytie = ASIST_LBL[state.selectedVariants['asistencia'] || 'AS2_L'] || '';
+      if (id === 'uraz')       r.krytie = URAZ_LBL[state.selectedVariants['uraz'] || 'UR2_2'] || '';
+      return r;
+    });
   return {
     klient: {
       typ: p.typ, cudzinec: !!p.cudzinec, titulPred: p.titulPred, titulZa: p.titulZa,
