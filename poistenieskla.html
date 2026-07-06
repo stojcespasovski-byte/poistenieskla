@@ -4381,7 +4381,7 @@ function buildSaveXML(calcId, createPolicy) {
       ${xe('birthdate', p.datumNar)}
       ${xe('email', p.email)}
       ${xe('phone', p.tel)}
-      ${xe('marketingApproval', 'false')}
+      ${xe('marketingApproval', state.suhlasy[1] ? 'true' : 'false')}
       <address><xml-par-address>
         ${xe('country', 'SVK')}
         ${xe('zipCode', cleanPsc(p.psc))}
@@ -5018,7 +5018,8 @@ function devGoto(step) {
       typ: 'fo', cudzinec: false,
       rodneCislo: '8001011234', datumNar: '1980-01-01', meno: 'Ján', priezvisko: 'Novák',
       ico: '', nazov: '', obec: 'Bratislava', psc: '81101',
-      dokladCislo: '', email: 'jan.novak@test.sk', tel: '+421900123456',
+      dokladCislo: '', dokladTyp: 'Občiansky preukaz', statnaPrislusnost: '', zapisanyV: '',
+      email: 'jan.novak@test.sk', tel: '+421900123456',
       ulica: 'Hlavná', cislo: '1',
       titulPred: '', titulZa: '',
     };
@@ -6104,7 +6105,16 @@ function renderStep3() {
       <div class="field">${idPrefix === 'cudzinec'
         ? `<label>Dátum narodenia</label><input type="date" id="s3DatumNar" value="${p.datumNar||''}">`
         : `<label>Rodné číslo</label><input type="text" id="s3RodneCislo" class="mono" value="${p.rodneCislo||''}" readonly>`}</div>
-      <div class="field"><label>Číslo dokladu</label><input type="text" id="s3DokladCislo" class="mono" placeholder="EA000000" value="${p.dokladCislo||''}"></div>
+      <div class="field"><label>Doklad totožnosti</label>
+        <div style="display:flex;gap:5px;">
+          <select id="s3DokladTyp" style="flex:0 0 84px;">
+            <option value="Občiansky preukaz"${(p.dokladTyp||'Občiansky preukaz')==='Občiansky preukaz'?' selected':''}>OP</option>
+            <option value="Pas"${p.dokladTyp==='Pas'?' selected':''}>Pas</option>
+            <option value="Povolenie na pobyt"${p.dokladTyp==='Povolenie na pobyt'?' selected':''}>Povolenie</option>
+          </select>
+          <input type="text" id="s3DokladCislo" class="mono" placeholder="EA000000" value="${p.dokladCislo||''}" style="flex:1;min-width:0;">
+        </div>
+      </div>
       <div class="field"><label>Telefón</label><input type="text" id="s3Tel" class="mono" placeholder="+421900123456" value="${p.tel||''}"></div>
       <div class="field"><label>E-mail</label><input type="text" id="s3Email" placeholder="meno@email.sk" value="${p.email||''}"></div>
     </div>`;
@@ -6141,7 +6151,12 @@ function renderStep3() {
       ${adresaHtml}`;
   } else if (p.cudzinec) {
     klientTitle = 'Klient — Cudzinec'; klientIcon = ICON_PERSON;
-    klientBody = `${menoRow}${kontaktRow('cudzinec')}${adresaHtml}`;
+    const statRow = `
+    <div class="row c4">
+      <div class="field"><label>Štátna príslušnosť</label><input type="text" id="s3StatnaPrislusnost" placeholder="napr. Ukrajinská" value="${p.statnaPrislusnost||''}"></div>
+      <div class="fv"></div><div class="fv"></div><div class="fv"></div>
+    </div>`;
+    klientBody = `${menoRow}${kontaktRow('cudzinec')}${statRow}${adresaHtml}`;
   } else {
     klientTitle = 'Klient — Fyzická osoba'; klientIcon = ICON_PERSON;
     klientBody = `${menoRow}${kontaktRow('fo')}${adresaHtml}`;
@@ -6292,8 +6307,10 @@ function renderStep4() {
   const docsHtml = DOCS.map((d,i)=>`<a class="doc-item" ${i===0?'id="s4DocNavrh"':'href="#"'}>${DOC_ICON} ${d}</a>`).join('');
 
   const SUHLASY = ['Súhlas s elektronickou komunikáciou','Súhlas so spracovaním osobných údajov','Súhlas k vyjadreniu k ročnému nájazdu km','Súhlas k vyjadreniu k zmluve o poskytnutí finančnej služby','Súhlas s vyjadrením na účely finančného sprostredkovania'];
-  const suhlasyHtml = SUHLASY.map((s,i)=>`<label class="suhlas-item"><input type="checkbox" class="s4-suhlas" data-idx="${i}" ${state.suhlasy[i]?'checked':''}><span class="suhlas-link">${s}</span></label>`).join('');
-  const allOk = state.suhlasy.every(Boolean);
+  // index 1 = marketingový súhlas → NEPOVINNÝ (ostatné 4 sú povinné pred uzavretím)
+  const MARKETING_IDX = 1;
+  const suhlasyHtml = SUHLASY.map((s,i)=>`<label class="suhlas-item"><input type="checkbox" class="s4-suhlas" data-idx="${i}" ${state.suhlasy[i]?'checked':''}><span class="suhlas-link">${s}${i===MARKETING_IDX?' <span style="color:var(--ink-4);font-weight:400;">(nepovinné)</span>':''}</span></label>`).join('');
+  const allOk = state.suhlasy.every((v,i)=>i===MARKETING_IDX||v);
 
   return `
   <div class="s4">
@@ -6534,7 +6551,7 @@ function resetFormState() {
   state.vehicle = { ecv:'', vin:'', novePredReg:null, maEcv:null, typ:'', vyuzitie:'osobne', datumReg:'', znacka:'', model:'', brandCode:'', modelCode:'', objem:'', vykon:'', hmotnost:'', palivo:'', garazovane:false, zmluvnyServis:false, x4:false, automat:false, parkovaci:false, farba:'', tp:'', bezTp:false, najazd:'25000', cenaVozidla:'' };
   state.apiPrices = {}; state.allFreqPrices = {}; state.allFreqCalcIds = {}; state.selected = new Set(); state.selectedVariants = {};
   state.spoluUcast = '300'; state.withGAP = false; state.priceCache = {}; state.doplnkyOpen = false; state.rezim = null;
-  state.poistnik = { typ:'fo', cudzinec:false, rodneCislo:'', datumNar:'', meno:'', priezvisko:'', ico:'', nazov:'', obec:'', psc:'', dokladCislo:'', email:'', tel:'', ulica:'', cislo:'', titulPred:'', titulZa:'', orsr:false };
+  state.poistnik = { typ:'fo', cudzinec:false, rodneCislo:'', datumNar:'', meno:'', priezvisko:'', ico:'', nazov:'', obec:'', psc:'', dokladCislo:'', dokladTyp:'Občiansky preukaz', statnaPrislusnost:'', zapisanyV:'', email:'', tel:'', ulica:'', cislo:'', titulPred:'', titulZa:'', orsr:false };
   state.suhlasy = [false,false,false,false,false]; state.varSym = null; state.calculationId = null; state.draftId = null; state.pdfZmluvaB64 = null;
   state.paymentFreq = 12;
 }
@@ -7193,7 +7210,8 @@ function attachListeners() {
       typ: 'fo', cudzinec: false,
       rodneCislo: '', datumNar: '', meno: '', priezvisko: '',
       ico: '', nazov: '', obec: '', psc: '',
-      dokladCislo: '', email: '', tel: '',
+      dokladCislo: '', dokladTyp: 'Občiansky preukaz', statnaPrislusnost: '', zapisanyV: '',
+      email: '', tel: '',
       ulica: '', cislo: '',
       titulPred: '', titulZa: '',
       orsr: false,
@@ -7307,6 +7325,7 @@ function attachListeners() {
         state.poistnik.cislo = data.cislo || '';
         state.poistnik.obec  = data.mesto || '';
         state.poistnik.psc   = data.psc   || '';
+        state.poistnik.zapisanyV = data.zapisany_v || '';   // pre Záznam (sekcia II PO)
         state.poistnik.orsr  = true;
         if (statusEl) statusEl.textContent = '';
         if (resultEl) resultEl.style.display = '';
@@ -7708,6 +7727,12 @@ function attachListeners() {
   document.getElementById('s3DokladCislo')?.addEventListener('input', function() {
     state.poistnik.dokladCislo = this.value;
   });
+  document.getElementById('s3DokladTyp')?.addEventListener('change', function() {
+    state.poistnik.dokladTyp = this.value;
+  });
+  document.getElementById('s3StatnaPrislusnost')?.addEventListener('input', function() {
+    state.poistnik.statnaPrislusnost = this.value;
+  });
   document.getElementById('s3Nazov')?.addEventListener('input', function() {
     state.poistnik.nazov = this.value;
   });
@@ -7747,6 +7772,9 @@ function attachListeners() {
     state.poistnik.tel             = document.getElementById('s3Tel')?.value         || state.poistnik.tel;
     state.poistnik.meno            = document.getElementById('s3Meno')?.value        || state.poistnik.meno;
     state.poistnik.priezvisko      = document.getElementById('s3Priezvisko')?.value  || state.poistnik.priezvisko;
+    state.poistnik.dokladCislo     = document.getElementById('s3DokladCislo')?.value ?? state.poistnik.dokladCislo;
+    state.poistnik.dokladTyp       = document.getElementById('s3DokladTyp')?.value   || state.poistnik.dokladTyp;
+    state.poistnik.statnaPrislusnost = document.getElementById('s3StatnaPrislusnost')?.value ?? state.poistnik.statnaPrislusnost;
     state.poistnik.nazov           = document.getElementById('s3Nazov')?.value       ?? state.poistnik.nazov;
     state.poistnik.ulica           = document.getElementById('s3Ulica')?.value       ?? state.poistnik.ulica;
     state.poistnik.cislo           = document.getElementById('s3Cislo')?.value       ?? state.poistnik.cislo;
@@ -7822,7 +7850,7 @@ function attachListeners() {
     cb.addEventListener('change', function() {
       state.suhlasy[+this.dataset.idx] = this.checked;
       const btn = document.getElementById('btnStep4Submit');
-      if (btn) btn.disabled = !state.suhlasy.every(Boolean) || state.submitting;
+      if (btn) btn.disabled = !state.suhlasy.every((v,i)=>i===1||v) || state.submitting;
     });
   });
 
@@ -7845,7 +7873,7 @@ function attachListeners() {
 
   const btnS4Submit = document.getElementById('btnStep4Submit');
   if (btnS4Submit) btnS4Submit.addEventListener('click', async () => {
-    if (!state.suhlasy.every(Boolean)) return;
+    if (!state.suhlasy.every((v,i)=>i===1||v)) return;
     state.submitting = true;
     render();
     try {
