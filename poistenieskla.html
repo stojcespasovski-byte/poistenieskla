@@ -4839,6 +4839,9 @@ function buildBcrmZmluvaPayload(policyId, calcId, pdfBase64) {
       produkt:           state.rezim === 'vyber' ? 'Poistenie vozidla' : 'Poistenie skla',
       varSym:            state.varSym || '',
       uid:               u.uid || '',   // obchodník aj tu (CRM kontrakt: top-level alebo zmluva.uid)
+      // PO: kto podpisuje TÚTO zmluvu (výber v portáli) — kon_data klienta v CRM sa tým nemení
+      ...(klientTyp === 'PO' && (p.meno || p.priezvisko)
+        ? { opravnenaOsoba: { meno: p.meno || '', priezvisko: p.priezvisko || '' } } : {}),
     },
     uid: u.uid || '',                 // obchodník (maklér/technik)
     draftId: state.draftId || null,   // prepojenie na ponuku v CRM (ak zmluva vznikla z draftu)
