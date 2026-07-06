@@ -4793,6 +4793,7 @@ async function apiLookupVehicle({ ecv, vin }) {
       vykon:    raw.vykon    != null ? String(Math.round(raw.vykon))    : '',
       objem:    raw.objem    != null ? String(Math.round(raw.objem))    : '',
       hmotnost: raw.hmotnost != null ? String(Math.round(raw.hmotnost)) : '',
+      miest:    raw.miest    != null ? String(raw.miest) : '',
       farba,
       pohon,
       // číslo dokladu: staré autá = veľký TP (tp) + malé osvedčenie (oev, druhé v poradí);
