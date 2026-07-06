@@ -7891,6 +7891,10 @@ function attachListeners() {
   vlBind('vlMeno','meno'); vlBind('vlPriezvisko','priezvisko'); vlBind('vlRc','rc'); vlBind('vlNazov','nazov');
   vlBind('vlUlica','ulica'); vlBind('vlCislo','cislo'); vlBind('vlObec','obec'); vlBind('vlPsc','psc');
   document.getElementById('vlDatumNar')?.addEventListener('change', function() { state.vlastnik.datumNar = this.value; });
+  document.getElementById('vlRc')?.addEventListener('input', function() {
+    const v = datumNarFromRC(this.value);
+    if (v) { state.vlastnik.datumNar = v; const el = document.getElementById('vlDatumNar'); if (el) el.value = v; }
+  });
   let _vlOrsrTimer = null;
   document.getElementById('vlIco')?.addEventListener('input', function() {
     const ico = this.value.replace(/\D/g,''); this.value = ico; state.vlastnik.ico = ico;
