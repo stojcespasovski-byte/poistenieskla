@@ -5511,14 +5511,14 @@ function renderStep1() {
           <div class="fld"><label>Priezvisko</label><input type="text" id="pPriezvisko" placeholder="Novák" value="${p.priezvisko||''}"></div>
         </div>
         <div class="row-new c2">
-          <div class="fld"><label>Obec</label><input type="text" id="pObec" placeholder="Bratislava" value="${p.obec}"></div>
           <div class="fld"><label>PSČ</label><input type="text" id="pPsc" placeholder="811 01" value="${p.psc}" maxlength="6"></div>
+          <div class="fld"><label>Obec</label><input type="text" id="pObec" placeholder="Bratislava" value="${p.obec}"></div>
         </div>
         ` : `
         <div class="row-new c3" style="margin-top:10px;">
           <div class="fld"><label>Rodné číslo</label><input type="text" id="pRodneCislo" class="mono" placeholder="8001011234" value="${p.rodneCislo}"></div>
-          <div class="fld"><label>Obec</label><input type="text" id="pObec" placeholder="Bratislava" value="${p.obec}"></div>
           <div class="fld"><label>PSČ</label><input type="text" id="pPsc" class="mono" placeholder="811 01" value="${p.psc}" maxlength="6"></div>
+          <div class="fld"><label>Obec</label><input type="text" id="pObec" placeholder="Bratislava" value="${p.obec}"></div>
         </div>
         `}
         ` : `
@@ -5541,13 +5541,13 @@ function renderStep1() {
             <input type="text" id="pMeno" placeholder="Ján" value="${p.meno||''}"></div>
           <div class="fld"><label>Priezvisko</label>
             <input type="text" id="pPriezvisko" placeholder="Novák" value="${p.priezvisko||''}"></div>
-          <div class="fld"><label>Obec</label><input type="text" id="pObec" placeholder="Bratislava" value="${p.obec||''}"></div>
           <div class="fld"><label>PSČ</label><input type="text" id="pPsc" class="mono" placeholder="811 01" value="${p.psc||''}" maxlength="6"></div>
+          <div class="fld"><label>Obec</label><input type="text" id="pObec" placeholder="Bratislava" value="${p.obec||''}"></div>
         </div>
         ` : `
         <div class="row-new c2">
-          <div class="fld"><label>Obec</label><input type="text" id="pObec" placeholder="Bratislava" value="${p.obec||''}"></div>
           <div class="fld"><label>PSČ</label><input type="text" id="pPsc" class="mono" placeholder="811 01" value="${p.psc||''}" maxlength="6"></div>
+          <div class="fld"><label>Obec</label><input type="text" id="pObec" placeholder="Bratislava" value="${p.obec||''}"></div>
         </div>
         `}
         `}
@@ -6152,8 +6152,8 @@ function renderStep3() {
     <div class="row" style="grid-template-columns:1fr 100px 1fr 120px;">
       <div class="field"><label>Ulica</label><input type="text" id="s3Ulica" placeholder="Hlavná" value="${p.ulica||''}"></div>
       <div class="field"><label>Číslo domu</label><input type="text" id="s3Cislo" placeholder="1" value="${p.cislo||''}"></div>
-      <div class="field"><label>Obec</label><input type="text" id="s3Obec" value="${p.obec||''}" readonly></div>
       <div class="field"><label>PSČ</label><input type="text" id="s3Psc" class="mono" value="${p.psc||''}" readonly></div>
+      <div class="field"><label>Obec</label><input type="text" id="s3Obec" value="${p.obec||''}" readonly></div>
     </div>`;
 
   // meno blok (FO / cudzinec / SZČO)
@@ -6322,8 +6322,8 @@ function renderStep3() {
           <div class="row" style="grid-template-columns:1fr 100px 1fr 120px;margin-top:6px;">
             <div class="field"><label>Ulica</label><input type="text" id="vlUlica" value="${vl.ulica||''}" placeholder="Hlavná"></div>
             <div class="field"><label>Číslo domu</label><input type="text" id="vlCislo" value="${vl.cislo||''}" placeholder="1"></div>
-            <div class="field"><label>Obec</label><input type="text" id="vlObec" value="${vl.obec||''}" placeholder="Bratislava"></div>
             <div class="field"><label>PSČ</label><input type="text" id="vlPsc" class="mono" value="${vl.psc||''}" placeholder="811 01" maxlength="6"></div>
+            <div class="field"><label>Obec</label><input type="text" id="vlObec" value="${vl.obec||''}" placeholder="Bratislava"></div>
           </div>` : ''}
         </div>
 
