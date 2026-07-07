@@ -8488,6 +8488,32 @@ function showDraftLoading() {
     bootPortal();
   }
 }
+
+/* ── PSČ → obec (číselník z backendu /ciselnik/obec) — event delegation,
+   lebo polia poistníka/vlastníka sa renderujú dynamicky. 1 obec = autofill,
+   viac obcí (zdieľané vidiecke PSČ) = datalist na výber. Mapovanie *Psc → *Obec. */
+(function () {
+  const CIS = 'https://api.pripoisti.sk/ciselnik/obec?psc=';
+  const cache = {};
+  async function fill(pscEl) {
+    const clean = (pscEl.value || '').replace(/\D/g, '');
+    if (clean.length !== 5) return;
+    const obec = document.getElementById(pscEl.id.replace(/Psc$/, 'Obec'));
+    if (!obec) return;
+    let obce = cache[clean];
+    if (!obce) {
+      try { obce = (await (await fetch(CIS + clean)).json()).obce || []; cache[clean] = obce; }
+      catch (e) { return; }
+    }
+    let dl = document.getElementById('dl-' + obec.id);
+    if (!dl) { dl = document.createElement('datalist'); dl.id = 'dl-' + obec.id; obec.parentNode.appendChild(dl); }
+    obec.setAttribute('list', dl.id);
+    dl.innerHTML = obce.map(o => `<option value="${o.replace(/"/g, '&quot;')}"></option>`).join('');
+    if (obce.length === 1) obec.value = obce[0];
+  }
+  document.addEventListener('focusout', e => { if (e.target && /Psc$/.test(e.target.id || '')) fill(e.target); });
+  document.addEventListener('input', e => { if (e.target && /Psc$/.test(e.target.id || '') && (e.target.value || '').replace(/\D/g, '').length === 5) fill(e.target); });
+})();
 </script>
 
 <!-- ─── ZMLUVY PANEL ───────────────────────────────────── -->
