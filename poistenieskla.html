@@ -7688,6 +7688,21 @@ function attachListeners() {
       errors[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
+
+    // Hmotnosť podľa typu — Pillow: osobné do 3500 kg, nákladné od 3501 kg
+    const hmotKg = parseInt(v.hmotnost, 10);
+    if (v.typ === 'OA' && hmotKg > 3500) {
+      document.getElementById('fHmotnost')?.classList.add('input-error');
+      document.getElementById('fHmotnost')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      alert('Osobné vozidlo má hmotnosť do 3500 kg.\nPri vyššej hmotnosti zvoľte typ „Nákladné vozidlo".');
+      return;
+    }
+    if (v.typ === 'NA' && hmotKg > 0 && hmotKg < 3501) {
+      document.getElementById('fHmotnost')?.classList.add('input-error');
+      document.getElementById('fHmotnost')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      alert('Nákladné vozidlo má hmotnosť od 3501 kg.\nDo 3500 kg zvoľte typ „Osobné vozidlo".');
+      return;
+    }
     // ── Koniec validácie ──────────────────────────────────
 
     btnS1Next.disabled = true;
