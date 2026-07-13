@@ -7854,10 +7854,21 @@ function attachListeners() {
     state.vehicle.tp = this.value;
   });
 
-  // Začiatok poistenia
-  document.getElementById('s3Zaciatok')?.addEventListener('change', function() {
-    state.zaciatok = this.value;
-  });
+  // Začiatok poistenia — povolený len [dnes, dnes+3 mesiace] (obmedz priamo v kalendári)
+  (() => {
+    const el = document.getElementById('s3Zaciatok');
+    if (!el) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const max = (() => { const d = new Date(); d.setMonth(d.getMonth() + 3); return d.toISOString().slice(0, 10); })();
+    el.min = today; el.max = max;
+    if (el.value && el.value < today) { el.value = today; state.zaciatok = today; }
+    if (el.value && el.value > max)   { el.value = max;   state.zaciatok = max; }
+    el.addEventListener('change', function() {
+      if (this.value && this.value < this.min) this.value = this.min;
+      if (this.value && this.value > this.max) this.value = this.max;
+      state.zaciatok = this.value;
+    });
+  })();
 
   // Email + telefón
   document.getElementById('s3Email')?.addEventListener('input', function() {
