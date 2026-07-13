@@ -1873,7 +1873,7 @@ const state = {
     novePredReg: null,   // true/false
     maEcv: null,         // true/false
     typ: "",
-    vyuzitie: "osobne",
+    vyuzitie: "10",
     datumReg: "",
     znacka: "", model: "", brandCode: "", modelCode: "",
     objem: "", vykon: "", hmotnost: "",
@@ -4302,7 +4302,7 @@ function buildRateXML(freq = 12, { su = null, asistCode = null } = {}) {
   ${xe('paymentFrequency', String(freq))}
   <vehicle><xml-par-ap2-vehicle>
     ${xe('vehicleType', vtCode)}
-    ${xe('vehicleUse', '10')}
+    ${xe('vehicleUse', v.vyuzitie || '10')}
     ${xe('brand', brandCode)}
     ${xe('model', modelCode)}
     ${xe('engineVolume', parseInt(v.objem) || 0)}
@@ -4429,7 +4429,7 @@ function buildSaveXML(calcId, createPolicy) {
   ${xe('createPolicy', createPolicy ? 'true' : 'false')}
   <vehicle><xml-par-ap2-vehicle>
     ${xe('vehicleType', vtCode)}
-    ${xe('vehicleUse', '10')}
+    ${xe('vehicleUse', v.vyuzitie || '10')}
     ${xe('brand', brandCode)}
     ${xe('model', modelCode)}
     ${xe('engineVolume', parseInt(v.objem) || 0)}
@@ -5068,7 +5068,7 @@ function devGoto(step) {
     state.vehicle = {
       ecv: 'BA123AB', vin: 'WBA3A5C55FK123456',
       novePredReg: false, maEcv: true,
-      typ: 'OA', vyuzitie: 'osobne',
+      typ: 'OA', vyuzitie: '10',
       datumReg: '2021-05-10', znacka: 'BMW', model: '320d',
       brandCode: '17', modelCode: '2843',
       objem: '1998', vykon: '110', hmotnost: '1650',
@@ -5571,9 +5571,14 @@ function renderStep1() {
         <div class="row-new c4">
           <div class="fld"><label>Využívanie</label>
             <select id="fVyuzitie">
-              <option value="osobne"     ${v.vyuzitie==='osobne'     ?'selected':''}>Osobné</option>
-              <option value="podnikanie" ${v.vyuzitie==='podnikanie' ?'selected':''}>Podnikanie</option>
-              <option value="taxi"       ${v.vyuzitie==='taxi'       ?'selected':''}>Taxi / prenájom</option>
+              <option value="10" ${v.vyuzitie==='10'?'selected':''}>Bežná prevádzka</option>
+              <option value="02" ${v.vyuzitie==='02'?'selected':''}>Taxi</option>
+              <option value="03" ${v.vyuzitie==='03'?'selected':''}>Na prenájom (autopožičovňa)</option>
+              <option value="11" ${v.vyuzitie==='11'?'selected':''}>Autoškola</option>
+              <option value="15" ${v.vyuzitie==='15'?'selected':''}>Rozvoz tovaru konečnému spotrebiteľovi</option>
+              <option value="07" ${v.vyuzitie==='07'?'selected':''}>Preprava nebezpečných vecí (ADR)</option>
+              <option value="13" ${v.vyuzitie==='13'?'selected':''}>Vozidlo s právom prednostnej jazdy</option>
+              <option value="14" ${v.vyuzitie==='14'?'selected':''}>Historické vozidlo</option>
             </select>
           </div>
           <div class="fld" id="fieldNajazd" ${['PN','PV','TRA','SPS','VZV','EB','EK','EV'].includes(v.typ) ? 'style="display:none"' : ''}><label>Ročný nájazd</label>
@@ -6673,7 +6678,7 @@ function qrFallback(img) {
 /* Reset formulára na čisté defaulty — pred novou zmluvou aj pred načítaním draftu
    (draft z CRM sa nesmie miešať so stavom zapamätaným v prehliadači) */
 function resetFormState() {
-  state.vehicle = { ecv:'', vin:'', novePredReg:null, maEcv:null, typ:'', vyuzitie:'osobne', datumReg:'', znacka:'', model:'', brandCode:'', modelCode:'', objem:'', vykon:'', hmotnost:'', palivo:'', garazovane:false, zmluvnyServis:false, x4:false, automat:false, parkovaci:false, farba:'', tp:'', bezTp:false, najazd:'25000', cenaVozidla:'' };
+  state.vehicle = { ecv:'', vin:'', novePredReg:null, maEcv:null, typ:'', vyuzitie:'10', datumReg:'', znacka:'', model:'', brandCode:'', modelCode:'', objem:'', vykon:'', hmotnost:'', palivo:'', garazovane:false, zmluvnyServis:false, x4:false, automat:false, parkovaci:false, farba:'', tp:'', bezTp:false, najazd:'25000', cenaVozidla:'' };
   state.apiPrices = {}; state.allFreqPrices = {}; state.allFreqCalcIds = {}; state.selected = new Set(); state.selectedVariants = {};
   state.spoluUcast = '300'; state.withGAP = false; state.priceCache = {}; state.doplnkyOpen = false; state.rezim = null;
   state.poistnik = { typ:'fo', cudzinec:false, rodneCislo:'', datumNar:'', meno:'', priezvisko:'', ico:'', nazov:'', obec:'', psc:'', dokladCislo:'', statnaPrislusnost:'', zapisanyV:'', email:'', tel:'', ulica:'', cislo:'', titulPred:'', titulZa:'', orsr:false };
@@ -7313,7 +7318,7 @@ function attachListeners() {
     state.vehicle = {
       ecv: '', vin: '',
       novePredReg: null, maEcv: null,
-      typ: '', vyuzitie: 'osobne',
+      typ: '', vyuzitie: '10',
       datumReg: '', znacka: '', model: '',
       objem: '', vykon: '', hmotnost: '',
       palivo: '',
