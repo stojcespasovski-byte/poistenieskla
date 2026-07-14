@@ -4274,6 +4274,20 @@ function getModelCode(brandCode, modelName) {
   return found ? found[0] : '';
 }
 
+/* ─── Ročný nájazd — pásma podľa typu vozidla (Pillow číselníky) ─── */
+const _kmLbl = k => String(k).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' km';
+function najazdBrackets(typ) {
+  if (typ === 'MO')                                            // moto: 1 000 a menej … 10 000 a viac
+    return [[1000,'1 000 km a menej'],...[2000,3000,4000,5000,6000,7000,8000,9000].map(k=>[k,_kmLbl(k)]),[10000,'10 000 km a viac']];
+  if (['NA','OBY','AB','ABM','TBM','TAH','SAN','4K'].includes(typ))   // číselník 5252: 10 000 a menej … 100 000 a viac
+    return [[10000,'10 000 km a menej'],...[15000,20000,25000,30000,35000,40000,45000,50000,55000,60000,65000,70000,75000,80000,85000,90000,95000].map(k=>[k,_kmLbl(k)]),[100000,'100 000 km a viac']];
+  return [[5000,'5 000 km a menej'],...[6000,7000,8000,9000,10000,11000,12000,13000,14000,15000,16000,17000,18000,19000,20000,21000,22000,23000,24000].map(k=>[k,_kmLbl(k)]),[25000,'25 000 km a viac']];  // OA
+}
+function najazdOptionsHtml(typ, sel) {
+  return '<option value="">– Vyberte –</option>' +
+    najazdBrackets(typ).map(([v,l]) => `<option value="${v}"${String(sel)===String(v)?' selected':''}>${l}</option>`).join('');
+}
+
 /* ─── XML builder: Kalkulácia ─── */
 function buildRateXML(freq = 12, { su = null, asistCode = null } = {}) {
   const spoluUcastVal = su || state.spoluUcast;
@@ -5585,30 +5599,7 @@ function renderStep1() {
             </select>
           </div>
           <div class="fld" id="fieldNajazd" ${['PN','PV','TRA','SPS','VZV','EB','EK','EV'].includes(v.typ) ? 'style="display:none"' : ''}><label>Ročný nájazd</label>
-            <select id="fNajazd">
-              <option value="">– Vyberte –</option>
-              <option value="5000"  ${v.najazd==='5000'  ?'selected':''}>5 000 km a menej</option>
-              <option value="6000"  ${v.najazd==='6000'  ?'selected':''}>6 000 km</option>
-              <option value="7000"  ${v.najazd==='7000'  ?'selected':''}>7 000 km</option>
-              <option value="8000"  ${v.najazd==='8000'  ?'selected':''}>8 000 km</option>
-              <option value="9000"  ${v.najazd==='9000'  ?'selected':''}>9 000 km</option>
-              <option value="10000" ${v.najazd==='10000' ?'selected':''}>10 000 km</option>
-              <option value="11000" ${v.najazd==='11000' ?'selected':''}>11 000 km</option>
-              <option value="12000" ${v.najazd==='12000' ?'selected':''}>12 000 km</option>
-              <option value="13000" ${v.najazd==='13000' ?'selected':''}>13 000 km</option>
-              <option value="14000" ${v.najazd==='14000' ?'selected':''}>14 000 km</option>
-              <option value="15000" ${v.najazd==='15000' ?'selected':''}>15 000 km</option>
-              <option value="16000" ${v.najazd==='16000' ?'selected':''}>16 000 km</option>
-              <option value="17000" ${v.najazd==='17000' ?'selected':''}>17 000 km</option>
-              <option value="18000" ${v.najazd==='18000' ?'selected':''}>18 000 km</option>
-              <option value="19000" ${v.najazd==='19000' ?'selected':''}>19 000 km</option>
-              <option value="20000" ${v.najazd==='20000' ?'selected':''}>20 000 km</option>
-              <option value="21000" ${v.najazd==='21000' ?'selected':''}>21 000 km</option>
-              <option value="22000" ${v.najazd==='22000' ?'selected':''}>22 000 km</option>
-              <option value="23000" ${v.najazd==='23000' ?'selected':''}>23 000 km</option>
-              <option value="24000" ${v.najazd==='24000' ?'selected':''}>24 000 km</option>
-              <option value="25000" ${v.najazd==='25000' ?'selected':''}>25 000 km a viac</option>
-            </select>
+            <select id="fNajazd">${najazdOptionsHtml(v.typ, v.najazd)}</select>
           </div>
           <div class="fld"><label>EČV</label><input type="text" id="fEcv" class="mono" placeholder="BA000AA" value="${v.ecv}" maxlength="10" style="text-transform:uppercase;letter-spacing:2px;font-weight:600;"></div>
           <div class="fld"><label>VIN</label><input type="text" id="fVin" class="mono" placeholder="WBA3A5C55FK123456" value="${v.vin}" maxlength="17" style="text-transform:uppercase;letter-spacing:1.5px;font-size:14px;"></div>
@@ -7583,6 +7574,9 @@ function attachListeners() {
     fTypEl.addEventListener('change', () => {
       const fieldNajazd = document.getElementById('fieldNajazd');
       if (fieldNajazd) fieldNajazd.style.display = TYPY_BEZ_NAJAZDU.has(fTypEl.value) ? 'none' : '';
+      // pásma nájazdu závisia od typu (MO / 5252 / OA) — prerenderuj možnosti
+      const fNajazd = document.getElementById('fNajazd');
+      if (fNajazd) fNajazd.innerHTML = najazdOptionsHtml(fTypEl.value, state.vehicle.najazd);
       updateCenaVozidlaField();
     });
   }
