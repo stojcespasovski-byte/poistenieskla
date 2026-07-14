@@ -4280,8 +4280,11 @@ function buildRateXML(freq = 12, { su = null, asistCode = null } = {}) {
   const asistVal = asistCode || state.selectedVariants['asistencia'] || 'AS2_L';
   const v = state.vehicle;
   const p = state.poistnik;
-  const brandCode   = v.brandCode || getBrandCode(v.znacka) || 'OSTATNE';
-  const modelCode   = v.modelCode || 'OSTATNE';
+  // OSTATNE Pillow ODMIETA — pri neidentifikovanom/non-OA vozidle padni na NEUVEDENA/529
+  // (rovnako ako pripoisti); s cenou Pillow ocení aj PZP+casco.
+  let brandCode = v.brandCode || getBrandCode(v.znacka);
+  let modelCode = v.modelCode;
+  if (!brandCode || brandCode === 'OSTATNE' || !modelCode) { brandCode = 'NEUVEDENA'; modelCode = '529'; }
   const fuelCode    = PILLOW_FUEL_MAP[v.palivo] || 'JI';
   const vtCode      = PILLOW_VEHICLETYPE_VALID.has(v.typ) ? v.typ : 'OA';
   const equipCode   = getEquipmentCode(v.x4, v.automat, v.parkovaci);
