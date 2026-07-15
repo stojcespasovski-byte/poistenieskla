@@ -7399,6 +7399,16 @@ function attachListeners() {
     p.psc         = document.getElementById('pPsc')?.value         ?? p.psc;
   }
 
+  // Validácia IČO (SK/CZ): presne 8 číslic + kontrolná číslica (mod-11, váhy 8..2).
+  // Rovnaké pre firmy aj živnostníkov. Neoveruje existenciu — len formát.
+  function validIco(ico) {
+    const d = String(ico || '').replace(/\D/g, '');
+    if (d.length !== 8) return false;
+    let sum = 0;
+    for (let i = 0; i < 7; i++) sum += parseInt(d[i], 10) * (8 - i);
+    return (11 - (sum % 11)) % 10 === parseInt(d[7], 10);
+  }
+
   // ORSR IČO auto-lookup
   // Konateľ z ORSR → oprávnená osoba (Krok 3, PO): "Ing. Ján Novák" → meno/priezvisko
   function splitKonatelMeno(full) {
@@ -7443,6 +7453,11 @@ function attachListeners() {
     const resultEl = document.getElementById('orsrResult');
     if (ico.length !== 8) {
       if (statusEl) statusEl.textContent = '';
+      clearTimeout(_orsrTimer);
+      return;
+    }
+    if (!validIco(ico)) {   // 8 číslic, ale zlá kontrolná číslica → nevolaj ORSR, jasný dôvod
+      if (statusEl) statusEl.textContent = '✗ neplatná kontrolná číslica';
       clearTimeout(_orsrTimer);
       return;
     }
@@ -7683,6 +7698,14 @@ function attachListeners() {
 
     if (errors.length > 0) {
       errors[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    // IČO — kontrolná číslica (mod-11), nech to nepadá až v Pillow generickou chybou
+    if ((p.typ === 'po' || p.typ === 'szco') && !validIco(p.ico)) {
+      document.getElementById('pIco')?.classList.add('input-error');
+      document.getElementById('pIco')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      alert('IČO nemá správny formát — zadajte 8 číslic (napr. 46064346).');
       return;
     }
 
