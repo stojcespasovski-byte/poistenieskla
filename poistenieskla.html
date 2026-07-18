@@ -1880,7 +1880,7 @@ const state = {
     palivo: "",
     garazovane: false,    // true/false
     zmluvnyServis: false, // true/false
-    x4: false, automat: false, parkovaci: false,
+    x4: false,
     najazd: "25000",
     cenaVozidla: "",
   },
@@ -4240,15 +4240,9 @@ function xe(tag, val) {
   return `<${tag}>${s}</${tag}>`;
 }
 
-function getEquipmentCode(x4, automat, parkovaci) {
-  if (x4 && automat && parkovaci) return 'ABC';
-  if (x4 && automat)              return 'AB';
-  if (x4 && parkovaci)            return 'AC';
-  if (automat && parkovaci)       return 'BC';
-  if (x4)                         return 'A';
-  if (automat)                    return 'B';
-  if (parkovaci)                  return 'C';
-  return 'NA';
+function getEquipmentCode(x4) {
+  // Automat + Parkovací asistent sa už nezbierajú/neposielajú — equipment nesie len 4×4.
+  return x4 ? 'A' : 'NA';
 }
 
 function cleanPsc(psc) {
@@ -4301,7 +4295,7 @@ function buildRateXML(freq = 12, { su = null, asistCode = null } = {}) {
   if (!brandCode || brandCode === 'OSTATNE' || !modelCode) { brandCode = 'NEUVEDENA'; modelCode = '529'; }
   const fuelCode    = PILLOW_FUEL_MAP[v.palivo] || 'JI';
   const vtCode      = PILLOW_VEHICLETYPE_VALID.has(v.typ) ? v.typ : 'OA';
-  const equipCode   = getEquipmentCode(v.x4, v.automat, v.parkovaci);
+  const equipCode   = getEquipmentCode(v.x4);
   const partyType   = p.cudzinec ? 'FODN' : (PILLOW_PARTYTYPE_MAP[p.typ] || 'FORC');
 
   // Posielame VŠETKY riziká — aby Pillow vrátil ceny pre každé
@@ -4374,7 +4368,7 @@ function buildSaveXML(calcId, createPolicy) {
   const modelCode = v.modelCode || 'OSTATNE';
   const fuelCode  = PILLOW_FUEL_MAP[v.palivo] || 'JI';
   const vtCode    = PILLOW_VEHICLETYPE_VALID.has(v.typ) ? v.typ : 'OA';
-  const equipCode = getEquipmentCode(v.x4, v.automat, v.parkovaci);
+  const equipCode = getEquipmentCode(v.x4);
   const partyType = p.cudzinec ? 'FODN' : (PILLOW_PARTYTYPE_MAP[p.typ] || 'FORC');
 
   const variantsXml = Array.from(state.selected)
@@ -5092,7 +5086,7 @@ function devGoto(step) {
       palivo: 'diesel', farba: 'CC',
       tp: 'AB123456', bezTp: false,
       garazovane: false, zmluvnyServis: false,
-      x4: false, automat: false, parkovaci: false,
+      x4: false,
       najazd: '25000',
     };
     state.poistnik = {
@@ -5725,8 +5719,6 @@ function renderStep1() {
           <div class="fld"><label>Výbava vozidla</label>
             <div class="chips-new">
               ${chipHtml('x4',        '4×4',               v.x4)}
-              ${chipHtml('automat',   'Automat',            v.automat)}
-              ${chipHtml('parkovaci', 'Parkovací asistent', v.parkovaci)}
             </div>
           </div>
         </div>
@@ -6672,7 +6664,7 @@ function qrFallback(img) {
 /* Reset formulára na čisté defaulty — pred novou zmluvou aj pred načítaním draftu
    (draft z CRM sa nesmie miešať so stavom zapamätaným v prehliadači) */
 function resetFormState() {
-  state.vehicle = { ecv:'', vin:'', novePredReg:null, maEcv:null, typ:'', vyuzitie:'10', datumReg:'', znacka:'', model:'', brandCode:'', modelCode:'', objem:'', vykon:'', hmotnost:'', palivo:'', garazovane:false, zmluvnyServis:false, x4:false, automat:false, parkovaci:false, farba:'', tp:'', bezTp:false, najazd:'25000', cenaVozidla:'' };
+  state.vehicle = { ecv:'', vin:'', novePredReg:null, maEcv:null, typ:'', vyuzitie:'10', datumReg:'', znacka:'', model:'', brandCode:'', modelCode:'', objem:'', vykon:'', hmotnost:'', palivo:'', garazovane:false, zmluvnyServis:false, x4:false, farba:'', tp:'', bezTp:false, najazd:'25000', cenaVozidla:'' };
   state.apiPrices = {}; state.allFreqPrices = {}; state.allFreqCalcIds = {}; state.selected = new Set(); state.selectedVariants = {};
   state.spoluUcast = '300'; state.withGAP = false; state.priceCache = {}; state.doplnkyOpen = false; state.rezim = null;
   state.poistnik = { typ:'fo', cudzinec:false, rodneCislo:'', datumNar:'', meno:'', priezvisko:'', ico:'', nazov:'', obec:'', psc:'', dokladCislo:'', statnaPrislusnost:'', zapisanyV:'', email:'', tel:'', ulica:'', cislo:'', titulPred:'', titulZa:'', orsr:false };
@@ -7307,8 +7299,6 @@ function attachListeners() {
     state.vehicle.garazovane = false;
     state.vehicle.zmluvnyServis = false;
     state.vehicle.x4 = false;
-    state.vehicle.automat = false;
-    state.vehicle.parkovaci = false;
     state.vehicle.znacka = '';
     state.vehicle.model = '';
     state.vehicle.datumReg = '';
@@ -7328,7 +7318,7 @@ function attachListeners() {
       objem: '', vykon: '', hmotnost: '',
       palivo: '',
       garazovane: false, zmluvnyServis: false,
-      x4: false, automat: false, parkovaci: false,
+      x4: false,
       farba: '',
       tp: '', bezTp: false,
       najazd: '25000',
