@@ -4240,10 +4240,6 @@ function xe(tag, val) {
   return `<${tag}>${s}</${tag}>`;
 }
 
-function getEquipmentCode(x4) {
-  // Automat + Parkovací asistent sa už nezbierajú/neposielajú — equipment nesie len 4×4.
-  return x4 ? 'A' : 'NA';
-}
 
 function cleanPsc(psc) {
   return (psc || '').replace(/\s/g, '');
@@ -4295,7 +4291,6 @@ function buildRateXML(freq = 12, { su = null, asistCode = null } = {}) {
   if (!brandCode || brandCode === 'OSTATNE' || !modelCode) { brandCode = 'NEUVEDENA'; modelCode = '529'; }
   const fuelCode    = PILLOW_FUEL_MAP[v.palivo] || 'JI';
   const vtCode      = PILLOW_VEHICLETYPE_VALID.has(v.typ) ? v.typ : 'OA';
-  const equipCode   = getEquipmentCode(v.x4);
   const partyType   = p.cudzinec ? 'FODN' : (PILLOW_PARTYTYPE_MAP[p.typ] || 'FORC');
 
   // Posielame VŠETKY riziká — aby Pillow vrátil ceny pre každé
@@ -4327,7 +4322,6 @@ function buildRateXML(freq = 12, { su = null, asistCode = null } = {}) {
     ${xe('notRegistered', v.novePredReg ? 'true' : 'false')}
     ${xe('garaged', v.garazovane ? 'true' : 'false')}
     ${xe('contractualService', v.zmluvnyServis ? 'true' : 'false')}
-    ${xe('equipment', equipCode)}
     ${xe('x4x4', v.x4 ? 'true' : 'false')}
     ${xe('expectedKm', parseInt(v.najazd) || 15000)}
     ${xe('vehicleName', [v.znacka, v.model].filter(Boolean).join(' '))}
@@ -4368,7 +4362,6 @@ function buildSaveXML(calcId, createPolicy) {
   const modelCode = v.modelCode || 'OSTATNE';
   const fuelCode  = PILLOW_FUEL_MAP[v.palivo] || 'JI';
   const vtCode    = PILLOW_VEHICLETYPE_VALID.has(v.typ) ? v.typ : 'OA';
-  const equipCode = getEquipmentCode(v.x4);
   const partyType = p.cudzinec ? 'FODN' : (PILLOW_PARTYTYPE_MAP[p.typ] || 'FORC');
 
   const variantsXml = Array.from(state.selected)
@@ -4454,7 +4447,6 @@ function buildSaveXML(calcId, createPolicy) {
     ${xe('notRegistered', v.novePredReg ? 'true' : 'false')}
     ${xe('garaged', v.garazovane ? 'true' : 'false')}
     ${xe('contractualService', v.zmluvnyServis ? 'true' : 'false')}
-    ${xe('equipment', equipCode)}
     ${xe('x4x4', v.x4 ? 'true' : 'false')}
     ${xe('expectedKm', parseInt(v.najazd) || 15000)}
     ${xe('vehicleName', [v.znacka, v.model].filter(Boolean).join(' '))}
