@@ -5695,7 +5695,7 @@ function renderStep1() {
           <div class="fld"><label>Výkon (kW)</label><input type="number" id="fVykon" class="mono" placeholder="110" value="${v.vykon}"></div>
         </div>
 
-        <div class="row-new" style="grid-template-columns:1fr 1fr 2fr;">
+        <div class="row-new c4">
           <div class="fld"><label>Palivo</label>
             <select id="fPalivo">
               <option value="" ${!v.palivo?'selected':''} disabled hidden>Vyberte</option>
@@ -5708,7 +5708,7 @@ function renderStep1() {
             </select>
           </div>
           <div class="fld"><label>Hmotnosť (kg)</label><input type="number" id="fHmotnost" class="mono" placeholder="1850" value="${v.hmotnost}"></div>
-          <div class="fld"><label>Výbava vozidla</label>
+          <div class="fld"><label>Pohon</label>
             <div class="chips-new">
               ${chipHtml('x4',        '4×4',               v.x4)}
             </div>
