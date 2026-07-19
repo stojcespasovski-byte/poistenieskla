@@ -5584,9 +5584,6 @@ function renderStep1() {
               <option value="14" ${v.vyuzitie==='14'?'selected':''}>Historické vozidlo</option>
             </select>
           </div>
-          <div class="fld" id="fieldNajazd" ${['PN','PV','TRA','SPS','VZV','EB','EK','EV'].includes(v.typ) ? 'style="display:none"' : ''}><label>Ročný nájazd</label>
-            <select id="fNajazd">${najazdOptionsHtml(v.typ, v.najazd)}</select>
-          </div>
           <div class="fld"><label>EČV</label><input type="text" id="fEcv" class="mono" placeholder="BA000AA" value="${v.ecv}" maxlength="10" style="text-transform:uppercase;letter-spacing:2px;font-weight:600;"></div>
           <div class="fld"><label>VIN</label><input type="text" id="fVin" class="mono" placeholder="WBA3A5C55FK123456" value="${v.vin}" maxlength="17" style="text-transform:uppercase;letter-spacing:1.5px;font-size:14px;"></div>
         </div>
@@ -5712,6 +5709,9 @@ function renderStep1() {
             <div class="chips-new">
               ${chipHtml('x4',        '4×4',               v.x4)}
             </div>
+          </div>
+          <div class="fld" id="fieldNajazd" ${['PN','PV','TRA','SPS','VZV','EB','EK','EV'].includes(v.typ) ? 'style="display:none"' : ''}><label>Ročný nájazd</label>
+            <select id="fNajazd">${najazdOptionsHtml(v.typ, v.najazd)}</select>
           </div>
         </div>
       </div><!-- end blk parametre -->
