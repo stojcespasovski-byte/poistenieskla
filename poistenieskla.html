@@ -1746,15 +1746,6 @@
     </div>
   </div>
 
-  <!-- Center: DEV shortcuts -->
-  <div id="devBar" style="display:flex;gap:6px;align-items:center;">
-    <span style="font-size:10px;font-weight:600;color:var(--ink-4);letter-spacing:.4px;">DEV:</span>
-    <button onclick="devGoto(1)" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border-strong);background:#fff;color:var(--ink-3);cursor:pointer;">Krok 1</button>
-    <button onclick="devGoto(2)" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border-strong);background:#fff;color:var(--ink-3);cursor:pointer;">Krok 2</button>
-    <button onclick="devGoto(3)" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border-strong);background:#fff;color:var(--ink-3);cursor:pointer;">Krok 3</button>
-    <button onclick="devGoto(4)" style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border-strong);background:#fff;color:var(--ink-3);cursor:pointer;">Krok 4</button>
-  </div>
-
   <!-- Right: brand wordmark + actions -->
   <div style="display:flex;align-items:center;gap:14px;">
     <div class="topbar-brand">
@@ -5065,46 +5056,6 @@ function updatePriceBar() {
 /* ════════════════════════════════════════════════════════
    DEV HELPERS
 ════════════════════════════════════════════════════════ */
-function devGoto(step) {
-  // Ak nemáme vlastné údaje, použij mock dáta
-  if (!state.vehicle.ecv) {
-    state.vehicle = {
-      ecv: 'BA123AB', vin: 'WBA3A5C55FK123456',
-      novePredReg: false, maEcv: true,
-      typ: 'OA', vyuzitie: '10',
-      datumReg: '2021-05-10', znacka: 'BMW', model: '320d',
-      brandCode: '17', modelCode: '2843',
-      objem: '1998', vykon: '110', hmotnost: '1650',
-      palivo: 'diesel', farba: 'CC',
-      tp: 'AB123456', bezTp: false,
-      garazovane: false, zmluvnyServis: false,
-      x4: false,
-      najazd: '25000',
-    };
-    state.poistnik = {
-      typ: 'fo', cudzinec: false,
-      rodneCislo: '8001011234', datumNar: '1980-01-01', meno: 'Ján', priezvisko: 'Novák',
-      ico: '', nazov: '', obec: 'Bratislava', psc: '81101',
-      dokladCislo: '', statnaPrislusnost: '', zapisanyV: '',
-      email: 'jan.novak@test.sk', tel: '+421900123456',
-      ulica: 'Hlavná', cislo: '1',
-      titulPred: '', titulZa: '',
-    };
-    state.vehicleInfoText = 'BMW 320d (2021) · 110 kW · 1998 cm³';
-  }
-  state.vehicleStatus = 'found';
-  state.lookupDone = true;
-  state.apiPrices = {};
-  state.allFreqPrices = {};
-  state.allFreqCalcIds = {};
-  state.priceCache = {};
-  state.step = step;
-  render();
-  if (step >= 2) {
-    prefetchAllPrices().then(() => render()).catch(() => {});
-  }
-}
-
 /* ════════════════════════════════════════════════════════
    MOCK POUŽÍVATELIA (nahradí Supabase auth)
 ════════════════════════════════════════════════════════ */
