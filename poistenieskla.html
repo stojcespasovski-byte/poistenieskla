@@ -1923,6 +1923,23 @@ const PILLOW_CONFIG = {
   BENEFICIARY: 'Pillow pojišťovna, a. s.',
 };
 
+/* ════════════════════════════════════════════════════════
+   RATE-MATRIX — cenotvorba z backendu (migrácia z buildRateXML→/pillow)
+   FLAG (rollback-safe): false = stará cesta (48× /pillow), true = 1× POST /rate-matrix.
+   Parita starej cesty × matice overená do centu (528/0, Δ=0). Cutover až po „go".
+   POZOR pred cutoverom: (1) SAVE/bind potrebuje reálny Pillow calculationId — matica
+   ho nedáva, treba doplniť 1 rate volanie pri odoslaní; (2) cudzinec (FODN) canonical
+   nerieši (adaptér má len fo→FORC/po/szco); (3) bonusVerified matica nevracia.
+════════════════════════════════════════════════════════ */
+const USE_RATE_MATRIX = false;
+const RATE_MATRIX_URL  = 'https://api.pripoisti.sk/rate-matrix';
+const FREQ_KEY = { 12: 'monthly', 4: 'quarterly', 2: 'semiannual', 1: 'annual' };
+// FE Pillow vehicleUse (číselník 82) → kanonický ucel (adaptér ho mapuje späť cez USAGE_82)
+const VYUZITIE_TO_UCEL = {
+  '10': 'bezna', '02': 'taxi', '03': 'pozicovna', '11': 'autoskola',
+  '15': 'rozvoz', '07': 'adr', '13': 'prednostna', '14': 'historicke',
+};
+
 /* ─── Mapovanie: ID produktu → kód rizika Pillow ─── */
 const FREQ_CONFIG = {
   12: { label: 'Mesačne',    period: 'mes.',      mult: 1  },
@@ -4667,7 +4684,98 @@ function applyCachedPrices() {
 const SPOLU_VALS = ['150', '300', '600'];
 const ASIST_VALS = ['AS2_S', 'AS2_M', 'AS2_L', 'AS2_XL'];
 
+/* ─── RATE-MATRIX konzument (nahrádza 48× buildRateXML→/pillow jedným volaním) ─── */
+function buildMatrixRequest() {
+  const v = state.vehicle, p = state.poistnik;
+  // rovnaká NEUVEDENA/529 fallback logika ako buildRateXML — kód posielame passthrough
+  let brandCode = v.brandCode || getBrandCode(v.znacka);
+  let modelCode = v.modelCode;
+  if (!brandCode || brandCode === 'OSTATNE' || !modelCode) { brandCode = 'NEUVEDENA'; modelCode = '529'; }
+  const cena = parseFloat(v.cenaVozidla);
+  return {
+    insurer: 'pillow', market: 'sk',
+    start_date: state.zaciatok || null,
+    vehicle: {
+      druh: PILLOW_VEHICLETYPE_VALID.has(v.typ) ? v.typ : 'OA',   // druh = Pillow vehicleType (passthrough)
+      znacka: v.znacka || '', model: v.model || '',
+      pillow_brand_kod: brandCode, pillow_model_kod: modelCode,   // passthrough → bez driftu rezolúcie
+      ecv: v.maEcv ? (v.ecv || '') : '', vin: v.vin || '',
+      first_registration: v.datumReg || null,
+      palivo: v.palivo || '',
+      objem: parseInt(v.objem) || 0, vykon: parseInt(v.vykon) || 0, hmotnost: parseInt(v.hmotnost) || 0,
+      najazd: parseInt(v.najazd) || null,
+      x4: !!v.x4,
+      value: cena || null,
+      ucel: VYUZITIE_TO_UCEL[v.vyuzitie] || 'bezna',
+      garazovane: !!v.garazovane, zmluvny_servis: !!v.zmluvnyServis,
+    },
+    party: {
+      typ: p.typ || 'fo',   // fo|szco|po (cudzinec/FODN canonical zatiaľ nerieši — viď flag pozn.)
+      meno: p.meno || '', priezvisko: p.priezvisko || '',
+      rc: p.rodneCislo || '', ico: p.ico || '',
+      email: p.email || '', tel: p.tel || '',
+      ulica: p.ulica || '', cislo: p.cislo || '', psc: cleanPsc(p.psc), obec: p.obec || '',
+    },
+  };
+}
+
+// matica → state.priceCache[su][av][f] (rovnaká štruktúra ako stará cesta → applyCachedPrices beží 1:1)
+async function fetchPricesMatrix() {
+  const FREQS = [1, 2, 4, 12];
+  const res = await fetch(RATE_MATRIX_URL, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(buildMatrixRequest()),
+  });
+  if (!res.ok) throw new Error('Rate-matrix HTTP ' + res.status);
+  const data = await res.json();
+  const M = data.matrix || {};
+  state.rateErrors = data.errors || [];
+
+  // bunka matice = splátka za obdobie; stará cesta ukladá monthPremium (display ×mult) → delíme mult
+  const cell = (risk, variant, ded, f) => {
+    const val = M[risk]?.[variant]?.[ded]?.[FREQ_KEY[f]];
+    return val == null ? null : val / FREQ_CONFIG[f].mult;
+  };
+
+  const cache = {};
+  SPOLU_VALS.forEach(su => {
+    cache[su] = {};
+    ASIST_VALS.forEach(av => {
+      cache[su][av] = {};
+      FREQS.forEach(f => {
+        const prices = {};
+        const put = (id, risk, variant, ded, varLabel) => {
+          const price = cell(risk, variant, ded, f);
+          if (price != null) prices[id] = { price, variant: varLabel, risk };
+        };
+        put('sklo',        'SK2', '_', '10%', 'SK2_STANDARD');
+        put('havaria',     'HP2', '_', su,    `HP2_${su}`);
+        put('zver',        'SZ2', '_', su,    `SZ2_${su}`);
+        put('kradez',      'OV2', '_', su,    `OV2_${su}`);
+        put('zivel',       'ZV2', '_', su,    `ZV2_${su}`);
+        put('vandalizmus', 'VA2', '_', su,    `VA2_${su}`);
+        put('asistencia',  'AS2', av,  'null', av);
+        put('batozina',    'ZA2', 'ZA2_750', 'null', 'ZA2_750');
+        put('uraz',        'UR2', 'UR2_2',   'null', 'UR2_2');
+        // úraz — oba varianty (prepínač v maklérskej mriežke), ako monthPremium
+        const urazVars = {};
+        ['UR2_1', 'UR2_2'].forEach(uv => {
+          const pr = cell('UR2', uv, 'null', f);
+          if (pr != null) urazVars[uv] = pr;
+        });
+        // calcId null: matica nevytvára kalkuláciu — SAVE/bind si calcId dotiahne zvlášť
+        cache[su][av][f] = { prices, calcId: null, pzpVars: {}, urazVars };
+      });
+    });
+  });
+  state.priceCache     = cache;
+  state.allFreqCalcIds = { 1: null, 2: null, 4: null, 12: null };
+  state.bonusVerified  = null;
+  applyCachedPrices();
+}
+
 async function prefetchAllPrices() {
+  if (USE_RATE_MATRIX) return fetchPricesMatrix();
   const FREQS = [1, 2, 4, 12];
 
   if (PILLOW_CONFIG.BASE_URL.includes('PLACEHOLDER')) {
