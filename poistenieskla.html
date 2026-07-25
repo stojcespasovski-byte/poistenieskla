@@ -8596,8 +8596,10 @@ async function ssoLogin(tok) {
    (X-Api-Key + uid z overeného tokenu). Service kľúč prehliadač nikdy nevidí.
    Bublina je mimo #main, takže prežije render() a je na všetkých krokoch.
 ════════════════════════════════════════════════════════ */
-// Bublina sa zobrazí až keď backend nasadí proxy /bcrm/chat — inak by technik
-// videl chat, ktorý vždy hlási chybu. Zapnutie = 1 riadok na true.
+// Proxy /bcrm/chat je live (backend PR #41), ale POST zatiaľ padá na 500 po ~15 s
+// (CRM strana, rieši backend) — GET funguje. Kým sa odosielanie neopraví, bublina
+// ostáva skrytá, nech technik nevidí chat, kde každé odoslanie zlyhá.
+// Zapnutie = 1 riadok na true.
 const CHAT_ENABLED    = false;
 const CHAT_API        = 'https://api.pripoisti.sk/bcrm/chat';
 const CHAT_POLL_OPEN  = 5000;    // ms — panel otvorený
