@@ -2005,6 +2005,18 @@ const VYUZITIE_TO_UCEL = {
   '15': 'rozvoz', '07': 'adr', '13': 'prednostna', '14': 'historicke',
 };
 
+/* Identita technika pre /bcrm/* — backend si z overeného tokenu berie uid
+   (klientskemu uid v query/tele neverí). Posielame ju na všetky volania, ktoré
+   nesú uid alebo dáta technika. NEPOSIELA sa na: /bcrm/auth a /bcrm/sso-exchange
+   (bežia pred prihlásením, token ešte neexistuje) a na <a href> odkaz
+   /bcrm/docs/najazd (navigácia prehliadača vlastnú hlavičku poslať nevie).
+   /bcrm/vehicle a /bcrm/company ostávajú verejné (volá ich aj pripoisti.sk bez
+   tokenu) — hlavička tam neškodí, backend ju ignoruje. */
+function authHeaders() {
+  const t = localStorage.getItem('ps_token') || '';
+  return t ? { 'Authorization': 'Bearer ' + t } : {};
+}
+
 /* ─── Mapovanie: ID produktu → kód rizika Pillow ─── */
 const FREQ_CONFIG = {
   12: { label: 'Mesačne',    period: 'mes.',      mult: 1  },
@@ -4931,7 +4943,7 @@ async function apiLookupVehicle({ ecv, vin }) {
   const params = vin ? `vin=${encodeURIComponent(vin)}` : `ecv=${encodeURIComponent(ecv)}`;
   let raw;
   try {
-    const res = await fetch(`https://api.pripoisti.sk/bcrm/vehicle?${params}`);
+    const res = await fetch(`https://api.pripoisti.sk/bcrm/vehicle?${params}`, { headers: authHeaders() });
     raw = await res.json();
   } catch (e) {
     return { found: false };
@@ -5089,7 +5101,7 @@ async function sendBcrmZmluva(policyId, calcId, pdfBase64) {
   const payload = buildBcrmZmluvaPayload(policyId, calcId, pdfBase64);
   const resp = await fetch('https://api.pripoisti.sk/bcrm/zmluva', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(payload),
   });
   if (!resp.ok) {
@@ -6740,7 +6752,7 @@ async function odoslatEmailKlientovi(zmluvaId) {
     try {
       const zdata = buildZaznamData(); zdata.cisloNavrhu = zmluvaId || zdata.cisloNavrhu;
       const zres = await fetch('https://api.pripoisti.sk/bcrm/docs/zaznam?format=pdf', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(zdata),
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, body: JSON.stringify(zdata),
       });
       if (zres.ok) {
         const zblob = await zres.blob();
@@ -6749,7 +6761,7 @@ async function odoslatEmailKlientovi(zmluvaId) {
     } catch (_) { /* Záznam je doplnková príloha */ }
 
     const res = await fetch('https://api.pripoisti.sk/bcrm/email/send-offer', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({
         to,
         brand: emailBrand,
@@ -6825,7 +6837,7 @@ async function zaplatitKartou(btn) {
   try {
     const res = await fetch('https://api.pripoisti.sk/bcrm/payment/create', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({
         vs,                                   // clientAccountNr (VS klienta zo save)
         amount: state.paySuma,                // suma v EUR
@@ -6868,7 +6880,7 @@ async function handlePaymentReturn() {
 
   renderPaymentResult('loading', pend);
   try {
-    const res = await fetch('https://api.pripoisti.sk/bcrm/payment/state?paymentUid=' + encodeURIComponent(pend.objId));
+    const res = await fetch('https://api.pripoisti.sk/bcrm/payment/state?paymentUid=' + encodeURIComponent(pend.objId), { headers: authHeaders() });
     const raw = await res.json();
     const st  = (raw.state || raw.status || raw.paymentState || raw.result || '').toString().toUpperCase();
     const paid = raw.paid === true || ['PAID','DONE','OK','SUCCESS','COMPLETED','TRUE'].includes(st);
@@ -7571,7 +7583,7 @@ function attachListeners() {
     clearTimeout(_orsrTimer);
     _orsrTimer = setTimeout(async () => {
       try {
-        const res  = await fetch(`https://api.pripoisti.sk/bcrm/company?ico=${ico}&stat=SK`);
+        const res  = await fetch(`https://api.pripoisti.sk/bcrm/company?ico=${ico}&stat=SK`, { headers: authHeaders() });
         const data = await res.json();
         if (!data.found) {
           if (statusEl) statusEl.textContent = '✗ ' + (data.error || 'IČO nenájdené');
@@ -8074,7 +8086,7 @@ function attachListeners() {
     clearTimeout(_vlOrsrTimer);
     _vlOrsrTimer = setTimeout(async () => {
       try {
-        const data = await (await fetch(`https://api.pripoisti.sk/bcrm/company?ico=${ico}&stat=SK`)).json();
+        const data = await (await fetch(`https://api.pripoisti.sk/bcrm/company?ico=${ico}&stat=SK`, { headers: authHeaders() })).json();
         if (!data.found) return;
         state.vlastnik.nazov = data.nazov || ''; state.vlastnik.ulica = data.ulica || '';
         state.vlastnik.cislo = data.cislo || ''; state.vlastnik.obec = data.mesto || ''; state.vlastnik.psc = data.psc || '';
@@ -8197,7 +8209,7 @@ function attachListeners() {
     e.preventDefault();
     try {
       const res = await fetch('https://api.pripoisti.sk/bcrm/docs/zaznam', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(buildZaznamData()),
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -8305,7 +8317,7 @@ async function ulozitRozpracovanu(btn) {
     const url = state.draftId ? `${DRAFT_API}/${state.draftId}` : DRAFT_API;
     const res = await fetch(url, {
       method: state.draftId ? 'PUT' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -8335,7 +8347,7 @@ async function openRozpracovane() {
   </div>`;
   document.body.appendChild(ov);
   try {
-    const res = await fetch(`${DRAFT_API}?uid=${encodeURIComponent(state.user.uid)}`);
+    const res = await fetch(`${DRAFT_API}?uid=${encodeURIComponent(state.user.uid)}`, { headers: authHeaders() });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const list = await res.json();
     const drafts = (Array.isArray(list) ? list : []).filter(d => (d.stav || '') === 'rozpracovaná');
@@ -8360,7 +8372,7 @@ async function openRozpracovane() {
 
 async function nacitatDraft(id) {
   try {
-    const res = await fetch(`${DRAFT_API}/${id}?uid=${encodeURIComponent(state.user.uid)}`);
+    const res = await fetch(`${DRAFT_API}/${id}?uid=${encodeURIComponent(state.user.uid)}`, { headers: authHeaders() });
     if (res.status === 404) throw new Error('ponuka nie je dostupná pre toto konto. Ste prihlásený ako ' + (state.user.meno || '?') + ' — otvorte ju kontom, ktorým ste ju vytvorili (alebo správcovským).');
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const d = await res.json();
@@ -8408,7 +8420,7 @@ async function nacitatDraft(id) {
 async function zmazatDraft(id, btn) {
   if (!confirm('Zmazať túto rozpracovanú ponuku?')) return;
   try {
-    const res = await fetch(`${DRAFT_API}/${id}?uid=${encodeURIComponent(state.user.uid)}`, { method: 'DELETE' });
+    const res = await fetch(`${DRAFT_API}/${id}?uid=${encodeURIComponent(state.user.uid)}`, { method: 'DELETE', headers: authHeaders() });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     if (state.draftId === id) { state.draftId = null; saveState(); }
     btn?.closest('div[style]')?.remove();
@@ -8426,7 +8438,7 @@ function oznacDraftUzavreta() {
   saveState();
   fetch(`${DRAFT_API}/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ uid: state.user.uid, stav: 'uzavretá' }),
   }).catch(() => {});
 }
@@ -8584,17 +8596,15 @@ async function ssoLogin(tok) {
    (X-Api-Key + uid z overeného tokenu). Service kľúč prehliadač nikdy nevidí.
    Bublina je mimo #main, takže prežije render() a je na všetkých krokoch.
 ════════════════════════════════════════════════════════ */
+// Bublina sa zobrazí až keď backend nasadí proxy /bcrm/chat — inak by technik
+// videl chat, ktorý vždy hlási chybu. Zapnutie = 1 riadok na true.
+const CHAT_ENABLED    = false;
 const CHAT_API        = 'https://api.pripoisti.sk/bcrm/chat';
 const CHAT_POLL_OPEN  = 5000;    // ms — panel otvorený
 const CHAT_POLL_IDLE  = 20000;   // ms — panel zavretý (len odznak)
 const CHAT_MAX_FILE   = 4 * 1024 * 1024;   // 4 MB / príloha (base64 v tele)
 
 const chatState = { open:false, msgs:[], seen:new Set(), lastTs:null, unread:0, files:[], timer:null, busy:false };
-
-function chatAuthHeaders() {
-  const t = localStorage.getItem('ps_token') || '';
-  return t ? { 'Authorization': 'Bearer ' + t } : {};
-}
 
 /* Odpoveď CRM normalizujeme defenzívne — presný tvar polí ešte nie je potvrdený.
    Isté je len: vlákno obsahuje obidva smery a smer technika je "technik". */
@@ -8674,7 +8684,7 @@ async function chatFetch() {
     // tokenu a klientskemu uid neveriť (inak sa dá čítať cudzie vlákno).
     const qs = new URLSearchParams({ uid: state.user.uid });
     if (chatState.lastTs) qs.set('since', chatState.lastTs);
-    const res = await fetch(`${CHAT_API}?${qs}`, { headers: chatAuthHeaders() });
+    const res = await fetch(`${CHAT_API}?${qs}`, { headers: authHeaders() });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     const raw = data.spravy ?? data.messages ?? data.items ?? (Array.isArray(data) ? data : []);
@@ -8731,7 +8741,7 @@ async function chatSend() {
   try {
     const res = await fetch(CHAT_API, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...chatAuthHeaders() },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ uid: state.user.uid, text, prilohy: chatState.files }),
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -8759,6 +8769,7 @@ function chatToggle(open) {
 }
 
 function initChat() {
+  if (!CHAT_ENABLED) return;               // čaká na backend proxy /bcrm/chat
   if (!state.user?.uid) return;            // bez identity technika sa vlákno nedá kľúčovať
   if (document.getElementById('chatFab')) return;
 
