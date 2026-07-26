@@ -6796,7 +6796,7 @@ function resetFormState() {
   state.apiPrices = {}; state.allFreqPrices = {}; state.allFreqCalcIds = {}; state.selected = new Set(); state.selectedVariants = {};
   state.spoluUcast = '300'; state.withGAP = false; state.priceCache = {}; state.doplnkyOpen = false; state.rezim = null;
   state.poistnik = { typ:'fo', cudzinec:false, rodneCislo:'', datumNar:'', meno:'', priezvisko:'', ico:'', nazov:'', obec:'', psc:'', dokladCislo:'', statnaPrislusnost:'', zapisanyV:'', email:'', tel:'', ulica:'', cislo:'', titulPred:'', titulZa:'', orsr:false };
-  state.suhlasy = [false,false,false,false,false]; state.varSym = null; state.calculationId = null; state.draftId = null; state.pdfZmluvaB64 = null;
+  state.suhlasy = [false,false,false,false,false]; state.varSym = null; state.calculationId = null; state.draftId = null; state.draftEvid = null; state.pdfZmluvaB64 = null;
   state.vlastnik = { typ:'poistnik', forma:'fo', meno:'', priezvisko:'', rc:'', datumNar:'', nazov:'', ico:'', ulica:'', cislo:'', obec:'', psc:'' };
   state.paymentFreq = 12;
 }
@@ -8323,6 +8323,8 @@ async function ulozitRozpracovanu(btn) {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     if (data && data.id) state.draftId = data.id;
+    // číslo ponuky z CRM (napr. 260703003) — drží sa v stave, aby ho vedel poslať chat
+    if (data && data.evid) state.draftEvid = data.evid;
     saveState();
     if (btn) { btn.innerHTML = 'Uložené ✓'; setTimeout(() => { btn.disabled = false; btn.innerHTML = orig; }, 1800); }
   } catch (err) {
@@ -8390,6 +8392,7 @@ async function nacitatDraft(id) {
     // maklérska mriežka: default ročná frekvencia (najvýhodnejšia), ak draft neurčil inak
     if (state.rezim === 'vyber' && d.intake_data.paymentFreq == null) state.paymentFreq = 1;
     state.draftId = id;
+    state.draftEvid = d.evid || null;   // číslo ponuky z CRM — pre kontext v chate
     state.view = 'form';
     if (!state.step || state.step < 1 || state.step > 4) state.step = 1;
     // vždy čerstvá kalkulácia — staré calculationId po vystavení zmluvy Pillow odmieta
@@ -8422,7 +8425,7 @@ async function zmazatDraft(id, btn) {
   try {
     const res = await fetch(`${DRAFT_API}/${id}?uid=${encodeURIComponent(state.user.uid)}`, { method: 'DELETE', headers: authHeaders() });
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    if (state.draftId === id) { state.draftId = null; saveState(); }
+    if (state.draftId === id) { state.draftId = null; state.draftEvid = null; saveState(); }
     btn?.closest('div[style]')?.remove();
     openRozpracovane();   // refresh zoznamu
   } catch (err) {
@@ -8435,6 +8438,7 @@ function oznacDraftUzavreta() {
   const id = state.draftId;
   if (!id) return;
   state.draftId = null;
+  state.draftEvid = null;
   saveState();
   fetch(`${DRAFT_API}/${id}`, {
     method: 'PUT',
@@ -8734,6 +8738,27 @@ function chatRenderFiles() {
   });
 }
 
+/* Kontext kalkulácie k správe — aby správca v CRM videl, Z ČOHO technik píše.
+   Zámerne BEZ osobných údajov klienta (RČ, meno) — na poradenie ich netreba.
+   Backend telo prepúšťa nezmenené; zobrazenie je na strane CRM. */
+function chatKontext() {
+  const v = state.vehicle || {};
+  const KROK = { 1:'Parametre', 2:'Cena', 3:'Údaje klienta', 4:'Súhrn' };
+  const k = {};
+  if (state.draftEvid) k.evid    = state.draftEvid;        // číslo ponuky v CRM (260703003)
+  if (state.draftId)   k.draftId = state.draftId;          // na priame otvorenie ponuky
+  if (state.step)      k.krok    = KROK[state.step] || String(state.step);
+  const vozidlo = {};
+  if (v.ecv)    vozidlo.ecv    = v.ecv;
+  if (v.vin)    vozidlo.vin    = v.vin;
+  if (v.znacka) vozidlo.znacka = v.znacka;
+  if (v.model)  vozidlo.model  = v.model;
+  if (Object.keys(vozidlo).length) k.vozidlo = vozidlo;
+  // ak technik ponuku ešte neuložil, evid/draftId neexistujú — ostane vozidlo + krok
+  k.ulozena = !!state.draftId;
+  return k;
+}
+
 async function chatSend() {
   const ta = document.getElementById('chatText');
   const text = (ta?.value || '').trim();
@@ -8744,7 +8769,7 @@ async function chatSend() {
     const res = await fetch(CHAT_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify({ uid: state.user.uid, text, prilohy: chatState.files }),
+      body: JSON.stringify({ uid: state.user.uid, text, prilohy: chatState.files, kontext: chatKontext() }),
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     if (ta) { ta.value = ''; ta.style.height = 'auto'; }
