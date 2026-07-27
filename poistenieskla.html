@@ -8579,6 +8579,30 @@ function applyBranding() {
 /* ════════════════════════════════════════════════════════
    INIT — JWT auth
 ════════════════════════════════════════════════════════ */
+/* Vypršaná session počas práce: platnosť tokenu sa kontroluje len pri načítaní
+   stránky, takže keď vyprší za behu, technik by videl len neurčité chyby („HTTP 401",
+   „Uloženie sa nepodarilo") a nevedel by, že sa má znova prihlásiť — v najhoršom
+   uprostred uzatvárania zmluvy. Preto jedno centrálne miesto: akýkoľvek 401 z nášho
+   API = mŕtva session → uložiť rozrobené, zrozumiteľne informovať, poslať na login. */
+(function installSessionGuard() {
+  const origFetch = window.fetch;
+  let uzOsetrene = false;
+  window.fetch = async function (...args) {
+    const res = await origFetch.apply(this, args);
+    if (res.status === 401 && !uzOsetrene) {
+      const url = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '');
+      if (url.includes('api.pripoisti.sk')) {
+        uzOsetrene = true;
+        try { saveState(); } catch (_) {}          // nech technik nepríde o rozrobené
+        localStorage.removeItem('ps_token');
+        alert('Prihlásenie vypršalo. Prihláste sa prosím znova — rozpracovaná ponuka ostáva uložená.');
+        window.location.replace('login.html');
+      }
+    }
+    return res;
+  };
+})();
+
 function initAuth() {
   const token = localStorage.getItem('ps_token');
   if (!token) { window.location.replace('login.html'); return false; }
