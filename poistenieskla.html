@@ -1970,7 +1970,6 @@ const state = {
   zaciatok: new Date().toISOString().slice(0,10),
   submitting: false,
   calculationId: null,  // získaný z Pillow rate response
-  bonusVerified: null,
   varSym: null,         // variabilný symbol z Pillow save response
 };
 
@@ -1989,12 +1988,12 @@ const PILLOW_CONFIG = {
 };
 
 /* ════════════════════════════════════════════════════════
-   RATE-MATRIX — cenotvorba z backendu (migrácia z buildRateXML→/pillow)
-   FLAG (rollback-safe): false = stará cesta (48× /pillow), true = 1× POST /rate-matrix.
-   Parita starej cesty × matice overená do centu (528/0, Δ=0). Cutover až po „go".
-   POZOR pred cutoverom: (1) SAVE/bind potrebuje reálny Pillow calculationId — matica
-   ho nedáva, treba doplniť 1 rate volanie pri odoslaní; (2) cudzinec (FODN) canonical
-   nerieši (adaptér má len fo→FORC/po/szco); (3) bonusVerified matica nevracia.
+   RATE-MATRIX — cenotvorba z backendu (nahradila buildRateXML→/pillow)
+   Ceny ťahá backend jedným volaním namiesto 48 z prehliadača (~1 s vs 5–11 s).
+   Parita so starou cestou overená do centu (5 profilov × 528 bodov, Δ=0).
+   Matica vracia aj calculationId (netreba extra rate volanie) a vie FODN
+   (cudzinec: true + datum_nar). FLAG: false = návrat na starú cestu cez /pillow,
+   ktorá ostáva funkčná ako poistka.
 ════════════════════════════════════════════════════════ */
 const USE_RATE_MATRIX = true;
 const RATE_MATRIX_URL  = 'https://api.pripoisti.sk/rate-matrix';
@@ -4579,8 +4578,7 @@ function parseRateResponse(xmlText) {
     }
   });
   const errors = [...doc.querySelectorAll('error')].map(e => e.textContent).filter(Boolean);
-  const bonusVerified = doc.querySelector('bonusVerified')?.textContent || null;
-  return { calcId, isDummy, prices, errors, bonusVerified, pzpVars, urazVars };
+  return { calcId, isDummy, prices, errors, pzpVars, urazVars };
 }
 
 function parseSaveResponse(xmlText) {
@@ -4696,7 +4694,6 @@ async function apiGetPrices() {
     FREQS.forEach(f => { allFreqPrices[f] = mockPrices; });
     state.allFreqPrices  = allFreqPrices;
     state.allFreqCalcIds = { 1: 'mock', 2: 'mock', 4: 'mock', 12: 'mock' };
-    state.bonusVerified  = null;
     return allFreqPrices[state.paymentFreq];
   }
 
@@ -4720,7 +4717,6 @@ async function apiGetPrices() {
 
     state.allFreqPrices  = allFreqPrices;
     state.allFreqCalcIds = allFreqCalcIds;
-    state.bonusVerified  = results.find(r => r.freq === 12)?.bonusVerified || null;
     // calculationId pre Save = tá pre zvolenú frekvenciu (nastavíme pri odoslaní)
     return allFreqPrices[state.paymentFreq];
   } finally {
@@ -4787,7 +4783,10 @@ function buildMatrixRequest() {
       garazovane: !!v.garazovane, zmluvny_servis: !!v.zmluvnyServis,
     },
     party: {
-      typ: p.typ || 'fo',   // fo|szco|po (cudzinec/FODN canonical zatiaľ nerieši — viď flag pozn.)
+      typ: p.typ || 'fo',   // fo|szco|po
+      // cudzinec = explicitný flag; backend podľa neho prepne Pillow na FODN
+      // (meno + priezvisko + dátum narodenia namiesto rodného čísla)
+      ...(p.cudzinec ? { cudzinec: true, datum_nar: p.datumNar || '' } : {}),
       meno: p.meno || '', priezvisko: p.priezvisko || '',
       rc: p.rodneCislo || '', ico: p.ico || '',
       email: p.email || '', tel: p.tel || '',
@@ -4806,6 +4805,7 @@ async function fetchPricesMatrix() {
   if (!res.ok) throw new Error('Rate-matrix HTTP ' + res.status);
   const data = await res.json();
   const M = data.matrix || {};
+  const matrixCalcId = data.calculationId || null;
   state.rateErrors = data.errors || [];
 
   // bunka matice = splátka za obdobie; stará cesta ukladá monthPremium (display ×mult) → delíme mult
@@ -4840,14 +4840,13 @@ async function fetchPricesMatrix() {
           const pr = cell('UR2', uv, 'null', f);
           if (pr != null) urazVars[uv] = pr;
         });
-        // calcId null: matica nevytvára kalkuláciu — SAVE/bind si calcId dotiahne zvlášť
-        cache[su][av][f] = { prices, calcId: null, pzpVars: {}, urazVars };
+        cache[su][av][f] = { prices, calcId: matrixCalcId, pzpVars: {}, urazVars };
       });
     });
   });
   state.priceCache     = cache;
-  state.allFreqCalcIds = { 1: null, 2: null, 4: null, 12: null };
-  state.bonusVerified  = null;
+  // calculationId dáva matica z toho istého behu (backend PR #44) — netreba extra rate volanie
+  state.allFreqCalcIds = { 1: matrixCalcId, 2: matrixCalcId, 4: matrixCalcId, 12: matrixCalcId };
   applyCachedPrices();
 }
 
@@ -4876,9 +4875,10 @@ async function ensureCalcId() {
 }
 
 async function prefetchAllPrices() {
-  // Cudzinec (FODN) ide STAROU cestou — kanonický Party pozná len fo/szco/po, takže
-  // maticou by sa cudzinec odoslal ako FORC a Pillow by pýtal rodné číslo, ktoré nemá.
-  // Späť na maticu až keď backend doplní FODN do canonical.
+  // Cudzinec zatiaľ STAROU cestou: matica vracia pre cudzinca aj domáceho ROVNAKÚ cenu
+  // (overené priamo na /rate-matrix: HP2SZ2 645.48 v oboch prípadoch), takže nie je isté,
+  // či sa partyType FODN pri ocenení naozaj uplatní. Zmluva sa pritom ukladá ako FODN
+  // (buildSaveXML) — ponuka a zmluva by si mohli nesedieť. Späť na maticu až po potvrdení.
   if (USE_RATE_MATRIX && !state.poistnik?.cudzinec) return fetchPricesMatrix();
   const FREQS = [1, 2, 4, 12];
 
@@ -4905,7 +4905,6 @@ async function prefetchAllPrices() {
     });
     state.priceCache = cache;
     state.allFreqCalcIds = { 1: 'mock', 2: 'mock', 4: 'mock', 12: 'mock' };
-    state.bonusVerified = null;
     applyCachedPrices();
     return;
   }
@@ -4941,7 +4940,6 @@ async function prefetchAllPrices() {
     });
     state.rateErrors = [...rateErrors];
     state.priceCache = cache;
-    state.bonusVerified = results.find(r => r.status === 'fulfilled' && r.value.f === 12)?.value?.bonusVerified || null;
     applyCachedPrices();
   } finally {
     if (uid) await pillowLogout(uid);
