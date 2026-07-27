@@ -6612,8 +6612,8 @@ function renderStep4() {
         <div class="card"><div class="card-foot">
           <button class="btn-back" id="btnStep4Back">← Späť</button>
           ${QUOTE_EMAIL_ENABLED ? `<button class="btn-sec" id="btnPoslatPonuku" ${state.posielamPonuku ? 'disabled' : ''}
-            title="${state.poistnik.email ? 'Odošle klientovi cenovú ponuku s PDF — zmluvu neuzatvára' : 'Klient nemá vyplnený e-mail (Krok 3)'}"
-            ${state.poistnik.email ? '' : 'disabled'}>${state.posielamPonuku ? 'Odosielam…' : '✉ Poslať ponuku klientovi'}</button>` : ''}
+            title="Odošle klientovi cenovú ponuku s PDF — zmluvu neuzatvára"
+            >${state.posielamPonuku ? 'Odosielam…' : '✉ Poslať ponuku klientovi'}</button>` : ''}
           <button class="cta" id="btnStep4Submit" ${(!allOk||state.submitting)?'disabled':''}>${state.submitting?'Odosielam…':'✓ Potvrdiť a odoslať'}</button>
         </div></div>
       </div>
@@ -6774,9 +6774,12 @@ function buildSelection() {
 }
 
 async function poslatPonukuKlientovi() {
+  if (state.posielamPonuku) return;                 // už beží — jediný tichý prípad
   const to = ((state.poistnik && state.poistnik.email) || '').trim();
-  if (!to || state.posielamPonuku) return;
-  if (!state.vehicle.vin) { alert('Na vytvorenie ponuky je potrebný VIN vozidla.'); return; }
+  // Každý dôvod, prečo sa nedá pokračovať, MUSÍ byť viditeľný — tiché ukončenie
+  // vyzerá ako „kliknem a nič sa nedeje" a nedá sa nahlásiť.
+  if (!to) { alert('Klient nemá vyplnený e-mail.\nDoplňte ho v Kroku 3 (Údaje klienta) a skúste znova.'); return; }
+  if (!state.vehicle.vin) { alert('Na vytvorenie ponuky je potrebný VIN vozidla.\nDoplňte ho v Kroku 1.'); return; }
   state.posielamPonuku = true; render();
   try {
     if (!state.apiPrices || !Object.keys(state.apiPrices).length) {
