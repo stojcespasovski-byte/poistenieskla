@@ -2,5 +2,13 @@
   "rewrites": [
     { "source": "/app", "destination": "/poistenieskla.html" },
     { "source": "/", "destination": "/login.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+      ]
+    }
   ]
 }
