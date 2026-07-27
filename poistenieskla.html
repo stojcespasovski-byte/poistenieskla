@@ -6783,7 +6783,9 @@ async function poslatPonukuKlientovi() {
     // Ponuka odoslaná klientovi má byť evidovaná v CRM — uložíme/aktualizujeme draft,
     // čím dostane číslo ponuky (evid). Zároveň je to predpoklad pre budúce odosielanie
     // cez CRM (`/ponuky/{pid}/send-email`), ktoré pracuje s uloženou ponukou.
-    await ulozitRozpracovanu(null);
+    // forceNew: odoslanie ZAKLADÁ novú ponuku a nikdy neprepisuje existujúcu —
+    // state.draftId môže ukazovať na inú ponuku otvorenú predtým.
+    await ulozitRozpracovanu(null, { forceNew: true });
     if (!state.draftId) throw new Error('Ponuku sa nepodarilo uložiť do CRM — skúste to prosím znova.');
     // calc_id zámerne NEPOSIELAME: Pillow viaže kalkuláciu na konkrétnu frekvenciu
     // platby, takže cudzie calculationId spôsobí „paymentFrequency se neshoduje".
@@ -8433,7 +8435,11 @@ function draftTitle() {
   return [auto, klient].filter(Boolean).join(' · ') || 'Rozpracovaná ponuka';
 }
 
-async function ulozitRozpracovanu(btn) {
+/* forceNew=true → VŽDY založí novú ponuku (POST), nikdy neprepíše existujúcu.
+   Používa sa pri odoslaní ponuky klientovi: `state.draftId` môže ukazovať na
+   inú, staršiu ponuku (drží sa aj po odhlásení), takže PUT by prepísal cudzí
+   záznam údajmi z aktuálneho formulára — čo sa reálne stalo. */
+async function ulozitRozpracovanu(btn, { forceNew = false } = {}) {
   if (!state.user.uid) return;
   const orig = btn ? btn.innerHTML : '';
   if (btn) { btn.disabled = true; btn.innerHTML = 'Ukladám…'; }
@@ -8448,9 +8454,10 @@ async function ulozitRozpracovanu(btn) {
     stav: 'rozpracovaná',
   };
   try {
-    const url = state.draftId ? `${DRAFT_API}/${state.draftId}` : DRAFT_API;
+    const pouzitPut = !forceNew && !!state.draftId;
+    const url = pouzitPut ? `${DRAFT_API}/${state.draftId}` : DRAFT_API;
     const res = await fetch(url, {
-      method: state.draftId ? 'PUT' : 'POST',
+      method: pouzitPut ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify(payload),
     });
