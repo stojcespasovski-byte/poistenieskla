@@ -6635,7 +6635,7 @@ function renderSuccess(zmluvaId) {
     pracovnik:  state.user.meno,
     pobocka:    state.user.pobocka || state.user.meno,
     datum,
-    klient:     [p.meno, p.priezvisko].filter(Boolean).join(' ') || p.nazov || '—',
+    klient:     klientMeno() || '—',
     tel:        p.tel || '—',
     obec:       p.obec || '—',
     auto:       [v.znacka, v.model].filter(Boolean).join(' ') || '—',
@@ -6828,7 +6828,7 @@ async function poslatPonukuKlientovi() {
         to,
         brand: (state.user.rola || '') === 'AutoSklo - Technik'
           ? (PILLOW_CONFIG.BRAND || 'poistenieskla') : 'automanager',
-        meno: [state.poistnik.meno, state.poistnik.priezvisko].filter(Boolean).join(' ') || state.poistnik.nazov || '',
+        meno: klientMeno(),
         // číslo ponuky z CRM (to isté, ktoré vidí back-office); Pillow kalkulácia až ako záloha
         cislo: state.draftEvid || printCalc,
         suma: Number(totalPrice().toFixed(2)),
@@ -6901,7 +6901,7 @@ async function odoslatEmailKlientovi(zmluvaId) {
       body: JSON.stringify({
         to,
         brand: emailBrand,
-        meno: [state.poistnik.meno, state.poistnik.priezvisko].filter(Boolean).join(' ') || state.poistnik.nazov || '',
+        meno: klientMeno(),
         zmluvaId,
         suma: state.paySuma,
         vs: state.varSym || '',
@@ -8444,9 +8444,21 @@ function draftRestore(snap) {
 
 function draftTitle() {
   const p = state.poistnik, v = state.vehicle;
-  const klient = [p.meno, p.priezvisko].filter(Boolean).join(' ') || p.nazov || '';
+  const klient = klientMeno();
   const auto = [v.znacka, v.model].filter(Boolean).join(' ') || v.ecv || '';
   return [auto, klient].filter(Boolean).join(' · ') || 'Rozpracovaná ponuka';
+}
+
+/* Meno klienta pre CRM, e-maily a názov ponuky. Rozhoduje TYP poistníka, nie to,
+   ktoré polia sú vyplnené. Pri právnickej osobe sa vypĺňa AJ oprávnená osoba
+   (meno/priezvisko) AJ názov firmy — pôvodný výraz uprednostnil meno osoby, takže
+   sa do CRM ukladal konateľ namiesto firmy (reálne: „Stojče Spasovski" namiesto
+   „automanager s.r.o."). Klientom firmy je firma. */
+function klientMeno() {
+  const p = state.poistnik || {};
+  const osoba = [p.meno, p.priezvisko].filter(Boolean).join(' ').trim();
+  const firma = (p.nazov || '').trim();
+  return p.typ === 'po' ? (firma || osoba) : (osoba || firma);
 }
 
 /* Identita ponuky = vozidlo + poistník. Podľa nej sa pri odoslaní rozhodne, či ide
@@ -8471,7 +8483,7 @@ async function ulozitRozpracovanu(btn, { forceNew = false } = {}) {
   const payload = {
     uid: state.user.uid,
     nazov: draftTitle(),
-    klient_meno: [p.meno, p.priezvisko].filter(Boolean).join(' ') || p.nazov || '',
+    klient_meno: klientMeno(),
     vozidlo: { znacka: v.znacka, model: v.model, ecv: v.ecv, vin: v.vin },
     pripoistenia: [...state.selected],
     intake_data: draftSnapshot(),
