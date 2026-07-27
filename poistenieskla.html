@@ -1996,7 +1996,7 @@ const PILLOW_CONFIG = {
    ho nedáva, treba doplniť 1 rate volanie pri odoslaní; (2) cudzinec (FODN) canonical
    nerieši (adaptér má len fo→FORC/po/szco); (3) bonusVerified matica nevracia.
 ════════════════════════════════════════════════════════ */
-const USE_RATE_MATRIX = false;
+const USE_RATE_MATRIX = true;
 const RATE_MATRIX_URL  = 'https://api.pripoisti.sk/rate-matrix';
 const FREQ_KEY = { 12: 'monthly', 4: 'quarterly', 2: 'semiannual', 1: 'annual' };
 // FE Pillow vehicleUse (číselník 82) → kanonický ucel (adaptér ho mapuje späť cez USAGE_82)
@@ -4849,6 +4849,30 @@ async function fetchPricesMatrix() {
   state.allFreqCalcIds = { 1: null, 2: null, 4: null, 12: null };
   state.bonusVerified  = null;
   applyCachedPrices();
+}
+
+/* Rate-matrix vracia len ceny, nezakladá kalkuláciu v Pillow — ale zmluva, PDF aj
+   platba potrebujú reálne calculationId. Doťahujeme ho JEDNÝM rate volaním pri
+   potvrdení ceny (Krok 2 → 3), pre zvolenú lehotu a zvolené varianty.
+   Stará cesta calcId dostáva rovno z cenníkových volaní, tam sa nič nemení. */
+async function ensureCalcId() {
+  const f = state.paymentFreq;
+  if (state.allFreqCalcIds?.[f]) return true;      // už ho máme
+  let uid;
+  try {
+    uid = await pillowAuth();
+    const xml = await pillowCall(uid, 'par/policies/rate/AP2', buildRateXML(f));
+    const r = parseRateResponse(xml);
+    if (!r.calcId) throw new Error('Pillow nevrátil calculationId');
+    state.allFreqCalcIds = { ...state.allFreqCalcIds, [f]: r.calcId };
+    state.calculationId  = r.calcId;
+    return true;
+  } catch (err) {
+    console.warn('calculationId sa nepodarilo získať:', err);
+    return false;
+  } finally {
+    if (uid) await pillowLogout(uid);
+  }
 }
 
 async function prefetchAllPrices() {
@@ -7978,8 +8002,15 @@ function attachListeners() {
   const btnS2Back = document.getElementById('btnStep2Back');
   if (btnS2Back) btnS2Back.addEventListener('click', () => { state.step = 1; render(); });
 
-  const goStep3 = () => {
+  const goStep3 = async () => {
     if (state.selected.size === 0) return;
+    // pri rate-matrix ceste tu vzniká Pillow kalkulácia (zmluva/PDF/platba ju potrebujú)
+    if (USE_RATE_MATRIX && !state.allFreqCalcIds?.[state.paymentFreq]) {
+      showCalcOverlay();
+      const ok = await ensureCalcId();
+      hideCalcOverlay();
+      if (!ok) { alert('Kalkuláciu sa nepodarilo potvrdiť v Pillow. Skúste to prosím znova.'); return; }
+    }
     state.step = 3;
     render();
   };
@@ -8399,9 +8430,10 @@ async function nacitatDraft(id) {
     state.apiPrices = {}; state.allFreqPrices = {}; state.allFreqCalcIds = {};
     state.priceCache = {}; state.calculationId = null;
     if (state.step > 2) state.step = 2;   // ceny treba nanovo potvrdiť
-    // začiatok poistenia v minulosti (starý draft) → posuň na zajtra
-    const zajtra = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-    if (!state.zaciatok || state.zaciatok < zajtra) state.zaciatok = zajtra;
+    // začiatok poistenia v minulosti (starý draft) → posuň na dnes
+    // (rovnaká hranica ako kalendár v Kroku 3, ktorý povoľuje [dnes, dnes+3 mes.])
+    const dnes = new Date().toISOString().slice(0, 10);
+    if (!state.zaciatok || state.zaciatok < dnes) state.zaciatok = dnes;
     // draft z CRM posiela značku/model ako text → odvodíme kódy pre selecty
     const dv = state.vehicle;
     if (dv && dv.znacka && !dv.brandCode) dv.brandCode = getBrandCode(dv.znacka);
@@ -8861,6 +8893,14 @@ function bootPortal() {
   if (!initAuth()) return;   // bez session → redirect na login
 
   loadState();
+
+  // Začiatok poistenia nikdy nesmie ostať v minulosti — uložený stav (aj deň starý)
+  // by inak šiel do Pillow a ten ho odmietne („Počátek pojištění musí být v budoucnosti").
+  // Platí pre localStorage aj obnovené ponuky; hranica je rovnaká ako v kalendári Kroku 3.
+  {
+    const dnes = new Date().toISOString().slice(0, 10);
+    if (!state.zaciatok || state.zaciatok < dnes) state.zaciatok = dnes;
+  }
   applyBranding();
   initChat();                // bublina mimo #main → drží sa na všetkých krokoch
 
