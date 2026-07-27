@@ -1975,12 +1975,11 @@ const state = {
 
 /* ════════════════════════════════════════════════════════
    PILLOW API — KONFIGURÁCIA
-   Doplniť BASE_URL, USER a PASS po obdržaní od Pillow.
+   POZOR: prihlasovacie údaje do Pillow sem NEPATRIA — zdroj stránky je verejný.
+   Prihlásenie rieši backend (/pillow/authorize doplní meno aj heslo z env).
 ════════════════════════════════════════════════════════ */
 const PILLOW_CONFIG = {
   BASE_URL:  'https://api.pripoisti.sk/pillow',
-  USER:      'automanager_ws_sk',
-  PASS:      '7Qvmfpiz5o6J',
   AGENT_ID1: '771',
   PAY_API:   'https://api.pripoisti.sk/bcrm/payment',
   IBAN:      'SK64 8330 0000 0028 0266 5628',   // pevný účet Pillow (Fio banka)
@@ -4406,6 +4405,7 @@ function buildRateXML(freq = 12, { su = null, asistCode = null } = {}) {
     ${xe('notRegistered', v.novePredReg ? 'true' : 'false')}
     ${xe('garaged', v.garazovane ? 'true' : 'false')}
     ${xe('contractualService', v.zmluvnyServis ? 'true' : 'false')}
+    ${xe('equipment', v.x4 ? 'A' : 'NA')}
     ${xe('x4x4', v.x4 ? 'true' : 'false')}
     ${xe('expectedKm', parseInt(v.najazd) || 15000)}
     ${xe('vehicleName', [v.znacka, v.model].filter(Boolean).join(' '))}
@@ -4531,6 +4531,7 @@ function buildSaveXML(calcId, createPolicy) {
     ${xe('notRegistered', v.novePredReg ? 'true' : 'false')}
     ${xe('garaged', v.garazovane ? 'true' : 'false')}
     ${xe('contractualService', v.zmluvnyServis ? 'true' : 'false')}
+    ${xe('equipment', v.x4 ? 'A' : 'NA')}
     ${xe('x4x4', v.x4 ? 'true' : 'false')}
     ${xe('expectedKm', parseInt(v.najazd) || 15000)}
     ${xe('vehicleName', [v.znacka, v.model].filter(Boolean).join(' '))}
@@ -4595,7 +4596,9 @@ async function pillowAuth() {
   const res = await fetch(`${PILLOW_CONFIG.BASE_URL}/authorize`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body:    `user=${encodeURIComponent(PILLOW_CONFIG.USER)}&password=${encodeURIComponent(PILLOW_CONFIG.PASS)}`,
+    // Bez prihlasovacích údajov — doplní ich backend zo svojej konfigurácie.
+    // Heslo do Pillow sa tak v prehliadači vôbec nenachádza.
+    body:    '',
   });
   if (!res.ok) throw new Error('Prihlásenie do Pillow API zlyhalo (HTTP ' + res.status + ')');
   const doc = new DOMParser().parseFromString(await res.text(), 'text/xml');
