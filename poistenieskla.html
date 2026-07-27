@@ -4875,11 +4875,7 @@ async function ensureCalcId() {
 }
 
 async function prefetchAllPrices() {
-  // Cudzinec zatiaľ STAROU cestou: matica vracia pre cudzinca aj domáceho ROVNAKÚ cenu
-  // (overené priamo na /rate-matrix: HP2SZ2 645.48 v oboch prípadoch), takže nie je isté,
-  // či sa partyType FODN pri ocenení naozaj uplatní. Zmluva sa pritom ukladá ako FODN
-  // (buildSaveXML) — ponuka a zmluva by si mohli nesedieť. Späť na maticu až po potvrdení.
-  if (USE_RATE_MATRIX && !state.poistnik?.cudzinec) return fetchPricesMatrix();
+  if (USE_RATE_MATRIX) return fetchPricesMatrix();
   const FREQS = [1, 2, 4, 12];
 
   if (PILLOW_CONFIG.BASE_URL.includes('PLACEHOLDER')) {
