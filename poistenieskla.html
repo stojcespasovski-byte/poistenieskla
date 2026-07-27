@@ -7914,14 +7914,26 @@ function attachListeners() {
     document.querySelectorAll('.toggle-error').forEach(el => el.classList.remove('toggle-error'));
 
     const errors = [];
+    const chybaju = [];   // názvy chýbajúcich polí pre hlášku technikovi
 
+    /* Popis poľa berieme z jeho <label> vo formulári — hláška tak vždy sedí s tým,
+       čo technik na obrazovke vidí, a nemusí sa udržiavať zvlášť. Ideme nahor, lebo
+       pri prepínačoch (Áno/Nie) je názov až nad ich obalom, nie v ňom. */
+    function zapisChybajuce(el) {
+      let n = el;
+      for (let i = 0; i < 4 && n; i++) {
+        const t = n.querySelector?.(':scope > label')?.textContent?.trim();
+        if (t) { if (!chybaju.includes(t)) chybaju.push(t); return; }
+        n = n.parentElement;
+      }
+    }
     function markInput(id) {
       const el = document.getElementById(id);
-      if (el) { el.classList.add('input-error'); errors.push(el); }
+      if (el) { el.classList.add('input-error'); errors.push(el); zapisChybajuce(el); }
     }
     function markToggle(id) {
       const el = document.querySelector(`[data-toggle="${id}"]`)?.closest('.toggle-group, .toggle-new');
-      if (el) { el.classList.add('toggle-error'); errors.push(el); }
+      if (el) { el.classList.add('toggle-error'); errors.push(el); zapisChybajuce(el); }
     }
 
     // EČV alebo VIN (aspoň jedno)
@@ -7930,6 +7942,7 @@ function attachListeners() {
     if (!v.ecv && !v.vin) {
       ecvEl?.classList.add('input-error'); vinEl?.classList.add('input-error');
       if (ecvEl) errors.push(ecvEl);
+      if (!chybaju.includes('EČV alebo VIN')) chybaju.push('EČV alebo VIN');
     }
 
     // Toggle – musia byť zakliknuté (nie null)
@@ -7962,7 +7975,12 @@ function attachListeners() {
     if (!p.psc)  markInput('pPsc');
 
     if (errors.length > 0) {
-      errors[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Bez hlášky to vyzeralo, že sa nič nedeje — pole len potichu sčervenelo
+      // a stránka odskočila. Povedzme rovno, čo chýba; skrolovanie nerobíme,
+      // aby technik nestratil miesto, kde práve je.
+      alert(chybaju.length
+        ? 'Pred výpočtom ceny doplňte:\n\n• ' + chybaju.join('\n• ')
+        : 'Niektoré povinné údaje nie sú vyplnené — sú označené červeným rámikom.');
       return;
     }
 
