@@ -796,6 +796,28 @@
     padding: 5px 10px; border-radius: 6px; transition: all .15s;
   }
   .btn-logout:hover { color: var(--ink); border-color: var(--ink-3); }
+
+  /* ─── Menu v hlavičke ─── */
+  .hdr-menu-wrap { position: relative; }
+  .btn-hdr-menu {
+    font-size: 15px; line-height: 1; color: var(--ink-3); background: none;
+    border: 1px solid var(--border-strong); cursor: pointer;
+    padding: 6px 10px; border-radius: 6px; transition: all .15s;
+  }
+  .btn-hdr-menu:hover { color: var(--ink); border-color: var(--ink-3); }
+  .hdr-menu {
+    display: none; position: absolute; right: 0; top: calc(100% + 6px); z-index: 8000;
+    min-width: 190px; background: #fff; border: 1px solid var(--border);
+    border-radius: 8px; box-shadow: 0 6px 24px rgba(0,0,0,.12); padding: 5px;
+  }
+  .hdr-menu.open { display: block; }
+  .hdr-menu button {
+    display: block; width: 100%; text-align: left; background: none; border: none;
+    padding: 8px 10px; border-radius: 5px; font-size: 13px; font-family: inherit;
+    color: var(--ink-2); cursor: pointer;
+  }
+  .hdr-menu button:hover { background: var(--teal-tint, #eef4f5); color: var(--teal-dark); }
+  .hdr-menu-sep { height: 1px; background: var(--border); margin: 5px 0; }
   .btn-dash {
     font-size: 13px; font-weight: 500; color: rgba(255,255,255,.75);
     background: none; border: none; cursor: pointer; padding: 4px 2px;
@@ -1821,15 +1843,9 @@
     </div>
   </div>
 
-  <!-- Right: brand wordmark + actions -->
-  <div style="display:flex;align-items:center;gap:14px;">
-    <div class="topbar-brand">
-      <div class="topbar-brand-logo"><span class="p1">Poistenie </span><span class="p2">skla</span></div>
-      <div class="topbar-brand-sub">Systém pre autosklá</div>
-    </div>
-    <div style="width:1px;height:28px;background:var(--border);"></div>
-    <div id="headerRight" style="display:flex;align-items:center;gap:8px;"></div>
-  </div>
+  <!-- Right: akcie + menu. Nápis „Poistenie skla" odstránený zámerne — súperil
+       s logom autoservisu vľavo a technik vie, kde je. -->
+  <div id="headerRight" style="display:flex;align-items:center;gap:8px;"></div>
 </div>
 
 <!-- ─── STEPPER ────────────────────────────────────────── -->
@@ -5366,24 +5382,35 @@ function updateHeader() {
 
   let contextBtn = '';
   if (isPrac) {
-    contextBtn = `<button class="btn-zmluvy" id="btnZmluvy">Zmluvy</button>`;
+    contextBtn = `<button id="btnZmluvy">Zmluvy</button>`;
   } else if (!isAdmin) {
     if (state.view === 'dashboard') {
-      contextBtn = `<button class="btn-zmluvy" id="btnGoKalk">Kalkulačka</button>`;
+      contextBtn = `<button id="btnGoKalk">Kalkulačka</button>`;
     } else {
-      contextBtn = `<button class="btn-zmluvy" id="btnGoZmluvy">Zmluvy</button>`;
+      contextBtn = `<button id="btnGoZmluvy">Zmluvy</button>`;
     }
   }
 
-  // Uložiť rozpracovanú — len počas vypĺňania formulára (kroky 1–3)
-  const saveBtn = (state.view === 'form' && state.step >= 1 && state.step <= 3)
-    ? `<button class="btn-zmluvy" id="btnUlozDraft" onclick="ulozitRozpracovanu(this)" title="Uložiť rozpracovanú ponuku">💾 Uložiť</button>` : '';
+  /* Akcie s rozpracovanou ponukou ostávajú viditeľné počas celého formulára —
+     predtým „Uložiť" v Kroku 4 zmizlo a celý riadok poskočil. Zvyšok (presuny
+     medzi časťami, odhlásenie) je pod menu: technik ich klikne raz za čas,
+     nemusia zaberať miesto stále. Menu je v stránke vždy (len skryté), aby
+     handlery viazané cez ID fungovali bez ohľadu na to, či je otvorené. */
+  const akcie = state.view === 'form' ? `
+    <button class="btn-zmluvy" id="btnUlozDraft" onclick="ulozitRozpracovanu(this)" title="Uložiť rozpracovanú ponuku">💾 Uložiť</button>
+    ${QUOTE_EMAIL_ENABLED ? `<button class="btn-zmluvy" id="btnPoslatPonuku" ${state.posielamPonuku ? 'disabled' : ''} title="Odošle klientovi cenovú ponuku s PDF — zmluvu neuzatvára">${state.posielamPonuku ? 'Odosielam…' : '✉ Poslať ponuku'}</button>` : ''}` : '';
 
   right.innerHTML = `
-    ${saveBtn}
-    <button class="btn-zmluvy" id="btnRozprac" onclick="openRozpracovane()">Rozpracované</button>
-    ${contextBtn}
-    <button class="btn-logout" id="btnLogout" title="Odhlásiť sa">⎋ Odhlásiť</button>`;
+    ${akcie}
+    <div class="hdr-menu-wrap">
+      <button class="btn-hdr-menu" id="btnHdrMenu" aria-label="Menu" aria-expanded="false">☰</button>
+      <div class="hdr-menu" id="hdrMenu">
+        <button id="btnRozprac" onclick="openRozpracovane()">Rozpracované</button>
+        ${contextBtn}
+        <div class="hdr-menu-sep"></div>
+        <button id="btnLogout">Odhlásiť sa</button>
+      </div>
+    </div>`;
 }
 
 /* ─── DASHBOARD ──────────────────────────────────────── */
@@ -6647,12 +6674,7 @@ function renderStep4() {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
             Späť
           </button>
-          <div class="foot-akcie">
-            ${QUOTE_EMAIL_ENABLED ? `<button class="btn-sec" id="btnPoslatPonuku" ${state.posielamPonuku ? 'disabled' : ''}
-              title="Odošle klientovi cenovú ponuku s PDF — zmluvu neuzatvára"
-              >${state.posielamPonuku ? 'Odosielam…' : '✉ Poslať ponuku klientovi'}</button>` : ''}
-            <button class="cta" id="btnStep4Submit" ${(!allOk||state.submitting)?'disabled':''}>${state.submitting?'Odosielam…':'✓ Potvrdiť a odoslať'}</button>
-          </div>
+          <button class="cta" id="btnStep4Submit" ${(!allOk||state.submitting)?'disabled':''}>${state.submitting?'Odosielam…':'✓ Potvrdiť a odoslať'}</button>
         </div></div>
       </div>
     </div>
@@ -7318,6 +7340,32 @@ function attachListeners() {
     ['ps_token','ps_meno','ps_rola','ps_pobocka','ps_logo'].forEach(k => localStorage.removeItem(k));
     window.location.replace('login.html');
   });
+
+  // ── HLAVIČKA: akcie s ponukou + menu ─────────────────────
+  document.getElementById('btnPoslatPonuku')?.addEventListener('click', poslatPonukuKlientovi);
+
+  const btnMenu = document.getElementById('btnHdrMenu');
+  const hdrMenu = document.getElementById('hdrMenu');
+  if (btnMenu && hdrMenu) {
+    btnMenu.addEventListener('click', e => {
+      e.stopPropagation();
+      const otvorene = hdrMenu.classList.toggle('open');
+      btnMenu.setAttribute('aria-expanded', otvorene ? 'true' : 'false');
+    });
+    // Zatváranie viažeme na document len RAZ — táto funkcia beží pri každom
+    // prekreslení, takže bez poistky by sa poslucháči hromadili.
+    if (!window.__hdrMenuZatvaranie) {
+      window.__hdrMenuZatvaranie = true;
+      const zavri = () => {
+        const m = document.getElementById('hdrMenu');
+        const b = document.getElementById('btnHdrMenu');
+        if (m) m.classList.remove('open');
+        if (b) b.setAttribute('aria-expanded', 'false');
+      };
+      document.addEventListener('click', zavri);
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') zavri(); });
+    }
+  }
 
   // ── HEADER CONTEXT BUTTONS ───────────────────────────────
   document.getElementById('btnGoKalk')?.addEventListener('click', () => {
@@ -8357,9 +8405,6 @@ function attachListeners() {
   });
 
   // STEP 4
-  const btnPonuka = document.getElementById('btnPoslatPonuku');
-  if (btnPonuka) btnPonuka.addEventListener('click', poslatPonukuKlientovi);
-
   const btnS4Back = document.getElementById('btnStep4Back');
   if (btnS4Back) btnS4Back.addEventListener('click', () => { state.step = 3; render(); });
 
