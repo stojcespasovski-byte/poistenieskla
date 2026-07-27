@@ -1701,6 +1701,9 @@
   .s4 .cta { display:inline-flex;align-items:center;gap:7px;background:var(--teal-dark);color:#fff;border:none;border-radius:5px;padding:0 22px;height:38px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s; }
   .s4 .cta:hover:not(:disabled) { background:var(--teal-mid); }
   .s4 .cta:disabled { opacity:.45;cursor:not-allowed; }
+  /* Akcie zoskupené vpravo, aby „Späť" zostalo úplne vľavo ako na Kroku 3.
+     Bez toho sa pri troch tlačidlách prostredné rozložilo na stred. */
+  .s4 .foot-akcie { display:flex;align-items:center;gap:10px; }
   /* Sekundárna akcia (Poslať ponuku) — rovnaká výška, aby lišta sedela */
   .s4 .btn-sec { display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 18px;border:1px solid var(--border-strong);border-radius:5px;background:#fff;font-size:13px;font-weight:500;color:var(--ink-3);cursor:pointer;font-family:inherit;transition:all .12s; }
   .s4 .btn-sec:hover:not(:disabled) { border-color:var(--teal-dark);color:var(--teal-dark); }
@@ -6644,10 +6647,12 @@ function renderStep4() {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
             Späť
           </button>
-          ${QUOTE_EMAIL_ENABLED ? `<button class="btn-sec" id="btnPoslatPonuku" ${state.posielamPonuku ? 'disabled' : ''}
-            title="Odošle klientovi cenovú ponuku s PDF — zmluvu neuzatvára"
-            >${state.posielamPonuku ? 'Odosielam…' : '✉ Poslať ponuku klientovi'}</button>` : ''}
-          <button class="cta" id="btnStep4Submit" ${(!allOk||state.submitting)?'disabled':''}>${state.submitting?'Odosielam…':'✓ Potvrdiť a odoslať'}</button>
+          <div class="foot-akcie">
+            ${QUOTE_EMAIL_ENABLED ? `<button class="btn-sec" id="btnPoslatPonuku" ${state.posielamPonuku ? 'disabled' : ''}
+              title="Odošle klientovi cenovú ponuku s PDF — zmluvu neuzatvára"
+              >${state.posielamPonuku ? 'Odosielam…' : '✉ Poslať ponuku klientovi'}</button>` : ''}
+            <button class="cta" id="btnStep4Submit" ${(!allOk||state.submitting)?'disabled':''}>${state.submitting?'Odosielam…':'✓ Potvrdiť a odoslať'}</button>
+          </div>
         </div></div>
       </div>
     </div>
