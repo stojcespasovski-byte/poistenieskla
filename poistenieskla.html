@@ -6779,6 +6779,12 @@ async function poslatPonukuKlientovi() {
     if (!state.apiPrices || !Object.keys(state.apiPrices).length) {
       throw new Error('Chýbajú ceny — vráťte sa na Krok 2 a prepočítajte cenu.');
     }
+
+    // Ponuka odoslaná klientovi má byť evidovaná v CRM — uložíme/aktualizujeme draft,
+    // čím dostane číslo ponuky (evid). Zároveň je to predpoklad pre budúce odosielanie
+    // cez CRM (`/ponuky/{pid}/send-email`), ktoré pracuje s uloženou ponukou.
+    await ulozitRozpracovanu(null);
+    if (!state.draftId) throw new Error('Ponuku sa nepodarilo uložiť do CRM — skúste to prosím znova.');
     // calc_id zámerne NEPOSIELAME: Pillow viaže kalkuláciu na konkrétnu frekvenciu
     // platby, takže cudzie calculationId spôsobí „paymentFrequency se neshoduje".
     // Backend si spraví vlastnú kalkuláciu pre frekvenciu, ktorú posielame nižšie.
@@ -6813,7 +6819,8 @@ async function poslatPonukuKlientovi() {
         brand: (state.user.rola || '') === 'AutoSklo - Technik'
           ? (PILLOW_CONFIG.BRAND || 'poistenieskla') : 'automanager',
         meno: [state.poistnik.meno, state.poistnik.priezvisko].filter(Boolean).join(' ') || state.poistnik.nazov || '',
-        cislo: printCalc,                    // číslo PONUKY (kalkulácie), nie zmluvy
+        // číslo ponuky z CRM (to isté, ktoré vidí back-office); Pillow kalkulácia až ako záloha
+        cislo: state.draftEvid || printCalc,
         suma: Number(totalPrice().toFixed(2)),
         frekvencia: fc.label || '',
         // platnostDo zámerne NEPOSIELAME — Pillow expiráciu kalkulácie nevracia,
@@ -8838,9 +8845,9 @@ async function chatFetch() {
   if (!state.user?.uid || chatState.busy) return;
   chatState.busy = true;
   try {
-    // uid posielame len ako prechodný fallback — backend ho MUSÍ brať z overeného
-    // tokenu a klientskemu uid neveriť (inak sa dá čítať cudzie vlákno).
-    const qs = new URLSearchParams({ uid: state.user.uid });
+    // uid neposielame — backend si ho berie z overeného tokenu (PR #54) a klientske
+    // by aj tak ignoroval. Vlákno tak nemožno prepnúť na cudzieho technika.
+    const qs = new URLSearchParams();
     if (chatState.lastTs) qs.set('since', chatState.lastTs);
     const res = await fetch(`${CHAT_API}?${qs}`, { headers: authHeaders() });
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -8921,7 +8928,7 @@ async function chatSend() {
     const res = await fetch(CHAT_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify({ uid: state.user.uid, text, prilohy: chatState.files, kontext: chatKontext() }),
+      body: JSON.stringify({ text, prilohy: chatState.files, kontext: chatKontext() }),
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     if (ta) { ta.value = ''; ta.style.height = 'auto'; }
