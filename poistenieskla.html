@@ -7598,6 +7598,10 @@ function attachListeners() {
       titulPred: '', titulZa: '',
       orsr: false,
     };
+    // Odpojiť od uloženej ponuky — po resete ide o NOVÝ prípad. Bez toho si portál
+    // ďalej myslí, že pracuje na pôvodnej ponuke, a uloženie/odoslanie ju prepíše.
+    state.draftId = null; state.draftEvid = null; state.draftIdentity = null;
+    saveState();
     render();
   }
 
