@@ -1482,6 +1482,16 @@
   .page-new { max-width:820px;margin:0 auto; }
 
   /* ═══ KROK 2 (Cena) ═══ */
+  /* Pätička Kroku 2 — zhodná s Krokmi 3 a 4 (rovnaká výška, odsadenie aj vzhľad) */
+  .s2-foot { max-width:1060px;margin:12px auto 0;background:#fff;border:1px solid var(--border);border-radius:12px;
+             box-shadow:0 1px 2px rgba(0,0,0,.05);padding:9px 24px;display:flex;justify-content:space-between;align-items:center; }
+  .s2-foot .btn-back { display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 16px;border:1px solid var(--border-strong);
+             border-radius:5px;background:#fff;font-size:13px;font-weight:500;color:var(--ink-3);cursor:pointer;font-family:inherit;transition:all .12s; }
+  .s2-foot .btn-back:hover { border-color:var(--teal-dark);color:var(--teal-dark); }
+  .s2-foot .cta { display:inline-flex;align-items:center;gap:7px;background:var(--teal-dark);color:#fff;border:none;border-radius:5px;
+             padding:0 22px;height:38px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s; }
+  .s2-foot .cta:hover:not(:disabled) { background:var(--teal-mid); }
+  .s2-foot .cta:disabled { opacity:.45;cursor:not-allowed; }
   .ps2 { max-width:1060px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:16px;align-items:start; }
   @media (max-width:920px){ .ps2{grid-template-columns:1fr;} }
 
@@ -5999,6 +6009,24 @@ function vybranePlural(n){
 }
 
 /* ─── STEP 2 — maklérska mriežka (režim "výber", draft z CRM) ─── */
+/* Spoločná pätička Kroku 2 — rovnaká ako na Krokoch 3 a 4, aby bola navigácia
+   všade na tom istom mieste. Tlačidlo pri cene ostáva ako skratka: technik ho má
+   hneď pri sume, sem sa dostane až po prejdení zoznamu. */
+function step2FootHtml() {
+  const prazdny = state.selected.size === 0;
+  return `
+  <div class="s2-foot">
+    <button class="btn-back" id="btnStep2BackFoot">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+      Späť
+    </button>
+    <button class="cta" id="btnStep2NextFoot" ${prazdny ? 'disabled' : ''}>
+      Pokračovať
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+  </div>`;
+}
+
 function renderStep2Grid() {
   const prices  = state.apiPrices;
   const loading = Object.keys(prices).length === 0;
@@ -6106,7 +6134,8 @@ function renderStep2Grid() {
       <div><div class="mb-tl">Celkom ${fc.label.toLowerCase()}</div><div class="mb-tv">${loading || !total ? '–' : fmt(total)}</div></div>
       <button class="mb-cta" id="btnStep2NextBar" ${state.selected.size === 0 ? 'disabled' : ''}>Pokračovať →</button>
     </div>
-  </div>`;
+  </div>
+  ${step2FootHtml()}`;
 }
 
 function renderStep2() {
@@ -6243,7 +6272,8 @@ function renderStep2() {
   <div class="ps2">
     <div class="ps2-main">${heroHtml}${doplnkyHtml}</div>
     <div class="ps2-side">${summaryHtml}</div>
-  </div>`;
+  </div>
+  ${step2FootHtml()}`;
 }
 
 /* ─── STEP 2 (starý) ───────────────────────────────────── */
@@ -8232,6 +8262,11 @@ function attachListeners() {
       applyCachedPrices();
       render();
     });
+  });
+
+  document.getElementById('btnStep2BackFoot')?.addEventListener('click', () => { state.step = 1; render(); });
+  document.getElementById('btnStep2NextFoot')?.addEventListener('click', () => {
+    document.getElementById('btnStep2Next')?.click();   // tá istá logika ako tlačidlo pri cene
   });
 
   const btnS2Back = document.getElementById('btnStep2Back');
