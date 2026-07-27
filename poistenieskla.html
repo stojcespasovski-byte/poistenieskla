@@ -6833,7 +6833,9 @@ async function poslatPonukuKlientovi() {
       }),
     });
     if (!res.ok) throw new Error('Odoslanie e-mailu zlyhalo (HTTP ' + res.status + ')');
-    alert(`Ponuka bola odoslaná na ${to}.\nZmluva NEBOLA uzavretá — na to slúži tlačidlo „Potvrdiť a odoslať".`);
+    alert(`Ponuka č. ${state.draftEvid || '(bez čísla)'} bola odoslaná na ${to}.\n`
+        + `Nájdete ju v CRM medzi ponukami (zdroj: autosklo).\n\n`
+        + `Zmluva NEBOLA uzavretá — na to slúži tlačidlo „Potvrdiť a odoslať".`);
   } catch (err) {
     alert('Ponuku sa nepodarilo odoslať:\n' + (err.message || err));
   } finally {
