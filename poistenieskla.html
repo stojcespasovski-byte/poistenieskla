@@ -1973,10 +1973,13 @@ const state = {
   varSym: null,         // variabilný symbol z Pillow save response
 };
 
-/* Adresa backendu na jednom mieste — bola napevno na 20 miestach, takže sa pri
-   zmene ľahko rozišla. Pripravené na presun pod vlastnú doménu
-   (poistenieskla.sk/api), aby klient v dokumentoch a platbe nevidel cudziu značku. */
-const API_BASE = 'https://api.pripoisti.sk';
+/* Backend voláme cez vlastnú doménu (Vercel rewrite v vercel.json → api.pripoisti.sk).
+   Dôvod: klient v dokumentoch a v platobnom odkaze videl doménu cudzej značky —
+   vzorec, na ktorý sú ľudia školení neklikať a filtre ho tak vyhodnocujú.
+   Bonus: je to same-origin, takže odpadá CORS aj preflight.
+   Overené, že Vercel preposiela hlavičku Authorization nedotknutú.
+   Rollback = vrátiť sem 'https://api.pripoisti.sk' (backend na nej beží ďalej). */
+const API_BASE = 'https://poistenieskla.sk/api';
 
 /* ════════════════════════════════════════════════════════
    PILLOW API — KONFIGURÁCIA
@@ -6564,7 +6567,9 @@ function renderStep4() {
   });
   let total=0; state.selected.forEach(id=>{ total += (state.apiPrices[id]?.price||0); }); total*=fc.mult;
 
-  const DOC_BASE = API_BASE + '/docs/';
+  // Zámerne NIE cez /api — tieto odkazy vidí klient a končia v e-mailoch
+  // a podpísaných dokumentoch, kde sa neskôr menia ťažko.
+  const DOC_BASE = 'https://poistenieskla.sk/dokumenty/';
   const DOCS = [
     { l:'Návrh poistnej zmluvy (s VPP a IPID)', id:'s4DocNavrh' },
     { l:'Obchodné podmienky', url:DOC_BASE+'obchodne_podmienky.pdf' },

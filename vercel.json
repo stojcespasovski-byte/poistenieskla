@@ -1,7 +1,6 @@
 {
   "rewrites": [
     { "source": "/app", "destination": "/poistenieskla.html" },
-    { "source": "/__hlavicky-test/:path*", "destination": "https://httpbin.org/:path*" },
     { "source": "/dokumenty/:path*", "destination": "https://api.pripoisti.sk/docs/:path*" },
     { "source": "/api/:path*", "destination": "https://api.pripoisti.sk/:path*" },
     { "source": "/", "destination": "/login.html" }
