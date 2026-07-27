@@ -4843,13 +4843,18 @@ async function fetchPricesMatrix() {
           const pr = cell('UR2', uv, 'null', f);
           if (pr != null) urazVars[uv] = pr;
         });
-        cache[su][av][f] = { prices, calcId: matrixCalcId, pzpVars: {}, urazVars };
+        // calcId zámerne null — viď poznámka pri allFreqCalcIds nižšie
+        cache[su][av][f] = { prices, calcId: null, pzpVars: {}, urazVars };
       });
     });
   });
   state.priceCache     = cache;
-  // calculationId dáva matica z toho istého behu (backend PR #44) — netreba extra rate volanie
-  state.allFreqCalcIds = { 1: matrixCalcId, 2: matrixCalcId, 4: matrixCalcId, 12: matrixCalcId };
+  // POZOR: matica vracia JEDNO calculationId, ale Pillow ho viaže na KONKRÉTNU
+  // frekvenciu platby. Priradiť ho všetkým štyrom = pri inej frekvencii padne
+  // „položka paymentFrequency se neshoduje s kalkulací" (reálne sa to stalo pri
+  // ponuke aj pri uzatváraní). Necháme null → ensureCalcId si vypýta čerstvé
+  // calculationId pre zvolenú frekvenciu tesne pred uzavretím.
+  state.allFreqCalcIds = { 1: null, 2: null, 4: null, 12: null };
   applyCachedPrices();
 }
 
@@ -6771,11 +6776,13 @@ async function poslatPonukuKlientovi() {
   if (!state.vehicle.vin) { alert('Na vytvorenie ponuky je potrebný VIN vozidla.'); return; }
   state.posielamPonuku = true; render();
   try {
-    const calcId = state.allFreqCalcIds?.[state.paymentFreq] || state.calculationId;
-    if (!calcId) throw new Error('Chýba kalkulácia — vráťte sa na Krok 2 a prepočítajte cenu.');
-
-    // Návrh + PDF cez backend. `indicative` je na serveri zamknuté na true, takže
-    // ostrá zmluva takto vzniknúť NEMÔŽE. Pillow session tu už nepotrebujeme.
+    if (!state.apiPrices || !Object.keys(state.apiPrices).length) {
+      throw new Error('Chýbajú ceny — vráťte sa na Krok 2 a prepočítajte cenu.');
+    }
+    // calc_id zámerne NEPOSIELAME: Pillow viaže kalkuláciu na konkrétnu frekvenciu
+    // platby, takže cudzie calculationId spôsobí „paymentFrequency se neshoduje".
+    // Backend si spraví vlastnú kalkuláciu pre frekvenciu, ktorú posielame nižšie.
+    // `indicative` je na serveri zamknuté na true → ostrá zmluva takto vzniknúť NEMÔŽE.
     const req = buildMatrixRequest();               // rovnaké vozidlo + poistník ako pri cenách
     req.vehicle.farba = state.vehicle.farba || '';  // backend si ju zmapuje na Pillow kód
     const pres = await fetch(POLICY_URL, {
@@ -6785,7 +6792,6 @@ async function poslatPonukuKlientovi() {
         vehicle: req.vehicle, party: req.party,
         start_date: state.zaciatok || null,
         frequency: state.paymentFreq,
-        calc_id: calcId,
         indicative: true,
         selection: buildSelection(),
       }),
@@ -6797,7 +6803,7 @@ async function poslatPonukuKlientovi() {
     const contract = await pres.json();
     const pdfBase64 = contract.pdf_base64 || null;
     if (!pdfBase64) throw new Error('Backend nevrátil PDF ponuky.');
-    const printCalc = contract.reference_number || calcId;
+    const printCalc = contract.reference_number || '';
 
     const fc = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[12];
     const res = await fetch(QUOTE_EMAIL_URL, {
