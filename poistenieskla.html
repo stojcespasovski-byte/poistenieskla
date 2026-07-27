@@ -6793,6 +6793,7 @@ async function poslatPonukuKlientovi() {
     // alebo klient zmenil — alebo identitu nepoznáme — založí sa NOVÁ, aby sa
     // neprepísala staršia ponuka, na ktorú ešte ukazuje state.draftId.
     const jeToTaIsta = !!state.draftId && state.draftIdentity === draftIdentity();
+    const cisloPred  = state.draftEvid;              // na rozlíšenie: nová vs aktualizovaná
     await ulozitRozpracovanu(null, { forceNew: !jeToTaIsta });
     if (!state.draftId) throw new Error('Ponuku sa nepodarilo uložiť do CRM — skúste to prosím znova.');
     // calc_id zámerne NEPOSIELAME: Pillow viaže kalkuláciu na konkrétnu frekvenciu
@@ -6839,8 +6840,14 @@ async function poslatPonukuKlientovi() {
       }),
     });
     if (!res.ok) throw new Error('Odoslanie e-mailu zlyhalo (HTTP ' + res.status + ')');
-    alert(`Ponuka č. ${state.draftEvid || '(bez čísla)'} bola odoslaná na ${to}.\n`
-        + `Nájdete ju v CRM medzi ponukami (zdroj: autosklo).\n\n`
+    // Explicitne povedať, ČO sa v CRM stalo — inak technik nevie, či pribudla nová
+    // ponuka alebo sa prepísala existujúca, a nemá ako rozpoznať chybu od správneho
+    // správania (stalo sa: „podľa mňa si prepísal staršiu ponuku, nie som si istý").
+    const cislo = state.draftEvid || '(bez čísla)';
+    const coSaStalo = jeToTaIsta
+      ? `AKTUALIZOVANÁ existujúca ponuka č. ${cislo}\n(rovnaké vozidlo aj klient — nezaložila sa druhá)`
+      : `ZALOŽENÁ NOVÁ ponuka č. ${cislo}${cisloPred ? `\n(predchádzajúca č. ${cisloPred} ostala nezmenená)` : ''}`;
+    alert(`${coSaStalo}\n\nOdoslaná na ${to}.\nV CRM ju nájdete medzi ponukami (zdroj: autosklo).\n\n`
         + `Zmluva NEBOLA uzavretá — na to slúži tlačidlo „Potvrdiť a odoslať".`);
   } catch (err) {
     alert('Ponuku sa nepodarilo odoslať:\n' + (err.message || err));
