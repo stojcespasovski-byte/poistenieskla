@@ -5607,6 +5607,19 @@ function toggleNewHtml(id, val) {
     </div>`;
 }
 
+/* Katalóg modelov je od českej poisťovne, takže časť názvov je po česky —
+   „V třída" (Mercedes) a „řada 5" (BMW), spolu 33 z 1968. Prekladáme LEN to,
+   čo vidí technik a klient; kód modelu, podľa ktorého sa počíta cena, ostáva
+   nedotknutý. Názov sa čita z vybranej položky zoznamu, takže prekladom pri
+   vykreslení sa to premietne aj do súhrnu, CRM a e-mailov. */
+function skNazovModelu(nazov) {
+  const s = String(nazov || '');
+  if (!/třída|řada/i.test(s)) return s;
+  let out = s.replace(/třída/gi, 'trieda').replace(/řada/gi, 'rad');
+  if (/^řada/i.test(s)) out = out.charAt(0).toUpperCase() + out.slice(1);  // „řada 5" → „Rad 5"
+  return out;
+}
+
 function chipHtml(id, label, checked) {
   return `
     <div class="chip-new ${checked ? 'active' : ''}" data-pill="${id}" style="cursor:pointer;">
@@ -5853,7 +5866,7 @@ function renderStep1() {
           <div class="fld"><label>Model</label>
             <select id="fModel"${!v.brandCode?' disabled':''}>
               <option value="">– Vyberte model –</option>
-              ${(PILLOW_MODELS[v.brandCode]||[]).map(([id,name])=>`<option value="${id}"${String(v.modelCode)===String(id)?' selected':''}>${name}</option>`).join('')}
+              ${(PILLOW_MODELS[v.brandCode]||[]).map(([id,name])=>`<option value="${id}"${String(v.modelCode)===String(id)?' selected':''}>${skNazovModelu(name)}</option>`).join('')}
             </select>
           </div>
           <div class="fld"><label>Objem (cm³)</label><input type="number" id="fObjem" class="mono" placeholder="1998" value="${v.objem}"></div>
