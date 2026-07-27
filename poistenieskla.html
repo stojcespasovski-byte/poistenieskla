@@ -6783,9 +6783,11 @@ async function poslatPonukuKlientovi() {
     // Ponuka odoslaná klientovi má byť evidovaná v CRM — uložíme/aktualizujeme draft,
     // čím dostane číslo ponuky (evid). Zároveň je to predpoklad pre budúce odosielanie
     // cez CRM (`/ponuky/{pid}/send-email`), ktoré pracuje s uloženou ponukou.
-    // forceNew: odoslanie ZAKLADÁ novú ponuku a nikdy neprepisuje existujúcu —
-    // state.draftId môže ukazovať na inú ponuku otvorenú predtým.
-    await ulozitRozpracovanu(null, { forceNew: true });
+    // Aktualizujeme len TÚ ISTÚ ponuku (rovnaké vozidlo aj poistník). Ak sa auto
+    // alebo klient zmenil — alebo identitu nepoznáme — založí sa NOVÁ, aby sa
+    // neprepísala staršia ponuka, na ktorú ešte ukazuje state.draftId.
+    const jeToTaIsta = !!state.draftId && state.draftIdentity === draftIdentity();
+    await ulozitRozpracovanu(null, { forceNew: !jeToTaIsta });
     if (!state.draftId) throw new Error('Ponuku sa nepodarilo uložiť do CRM — skúste to prosím znova.');
     // calc_id zámerne NEPOSIELAME: Pillow viaže kalkuláciu na konkrétnu frekvenciu
     // platby, takže cudzie calculationId spôsobí „paymentFrequency se neshoduje".
@@ -6922,7 +6924,7 @@ function resetFormState() {
   state.apiPrices = {}; state.allFreqPrices = {}; state.allFreqCalcIds = {}; state.selected = new Set(); state.selectedVariants = {};
   state.spoluUcast = '300'; state.withGAP = false; state.priceCache = {}; state.doplnkyOpen = false; state.rezim = null;
   state.poistnik = { typ:'fo', cudzinec:false, rodneCislo:'', datumNar:'', meno:'', priezvisko:'', ico:'', nazov:'', obec:'', psc:'', dokladCislo:'', statnaPrislusnost:'', zapisanyV:'', email:'', tel:'', ulica:'', cislo:'', titulPred:'', titulZa:'', orsr:false };
-  state.suhlasy = [false,false,false,false,false]; state.varSym = null; state.calculationId = null; state.draftId = null; state.draftEvid = null; state.pdfZmluvaB64 = null;
+  state.suhlasy = [false,false,false,false,false]; state.varSym = null; state.calculationId = null; state.draftId = null; state.draftEvid = null; state.draftIdentity = null; state.pdfZmluvaB64 = null;
   state.vlastnik = { typ:'poistnik', forma:'fo', meno:'', priezvisko:'', rc:'', datumNar:'', nazov:'', ico:'', ulica:'', cislo:'', obec:'', psc:'' };
   state.paymentFreq = 12;
 }
@@ -8435,10 +8437,20 @@ function draftTitle() {
   return [auto, klient].filter(Boolean).join(' · ') || 'Rozpracovaná ponuka';
 }
 
-/* forceNew=true → VŽDY založí novú ponuku (POST), nikdy neprepíše existujúcu.
-   Používa sa pri odoslaní ponuky klientovi: `state.draftId` môže ukazovať na
-   inú, staršiu ponuku (drží sa aj po odhlásení), takže PUT by prepísal cudzí
-   záznam údajmi z aktuálneho formulára — čo sa reálne stalo. */
+/* Identita ponuky = vozidlo + poistník. Podľa nej sa pri odoslaní rozhodne, či ide
+   o TÚ ISTÚ ponuku (aktualizovať) alebo o inú (založiť novú). Bez toho by odoslanie
+   prepísalo staršiu ponuku, na ktorú ešte ukazoval `state.draftId` — reálne sa stalo. */
+function draftIdentity() {
+  const v = state.vehicle || {}, p = state.poistnik || {};
+  return [
+    (v.vin || '').toUpperCase().replace(/\s/g, ''),
+    (v.ecv || '').toUpperCase().replace(/\s/g, ''),
+    (p.rodneCislo || '').replace(/\D/g, ''),
+    (p.ico || '').replace(/\D/g, ''),
+  ].join('|');
+}
+
+/* forceNew=true → VŽDY založí novú ponuku (POST), nikdy neprepíše existujúcu. */
 async function ulozitRozpracovanu(btn, { forceNew = false } = {}) {
   if (!state.user.uid) return;
   const orig = btn ? btn.innerHTML : '';
@@ -8466,6 +8478,7 @@ async function ulozitRozpracovanu(btn, { forceNew = false } = {}) {
     if (data && data.id) state.draftId = data.id;
     // číslo ponuky z CRM (napr. 260703003) — drží sa v stave, aby ho vedel poslať chat
     if (data && data.evid) state.draftEvid = data.evid;
+    state.draftIdentity = draftIdentity();   // komu/na aké auto tento draftId patrí
     saveState();
     if (btn) { btn.innerHTML = 'Uložené ✓'; setTimeout(() => { btn.disabled = false; btn.innerHTML = orig; }, 1800); }
   } catch (err) {
@@ -8534,6 +8547,7 @@ async function nacitatDraft(id) {
     if (state.rezim === 'vyber' && d.intake_data.paymentFreq == null) state.paymentFreq = 1;
     state.draftId = id;
     state.draftEvid = d.evid || null;   // číslo ponuky z CRM — pre kontext v chate
+    state.draftIdentity = draftIdentity();   // vozidlo+poistník práve načítanej ponuky
     state.view = 'form';
     if (!state.step || state.step < 1 || state.step > 4) state.step = 1;
     // vždy čerstvá kalkulácia — staré calculationId po vystavení zmluvy Pillow odmieta
