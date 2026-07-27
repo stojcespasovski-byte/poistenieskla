@@ -6674,7 +6674,7 @@ function renderStep4() {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
             Späť
           </button>
-          <button class="cta" id="btnStep4Submit" ${(!allOk||state.submitting)?'disabled':''}>${state.submitting?'Odosielam…':'✓ Potvrdiť a odoslať'}</button>
+          <button class="cta" id="btnStep4Submit" ${(!allOk||state.submitting)?'disabled':''}>${state.submitting?'Odosielam…':'✓ Uzatvoriť a odoslať'}</button>
         </div></div>
       </div>
     </div>
@@ -6908,7 +6908,7 @@ async function poslatPonukuKlientovi() {
       ? `AKTUALIZOVANÁ existujúca ponuka č. ${cislo}\n(rovnaké vozidlo aj klient — nezaložila sa druhá)`
       : `ZALOŽENÁ NOVÁ ponuka č. ${cislo}${cisloPred ? `\n(predchádzajúca č. ${cisloPred} ostala nezmenená)` : ''}`;
     alert(`${coSaStalo}\n\nOdoslaná na ${to}.\nV CRM ju nájdete medzi ponukami (zdroj: autosklo).\n\n`
-        + `Zmluva NEBOLA uzavretá — na to slúži tlačidlo „Potvrdiť a odoslať".`);
+        + `Zmluva NEBOLA uzavretá — na to slúži tlačidlo „Uzatvoriť a odoslať".`);
   } catch (err) {
     alert('Ponuku sa nepodarilo odoslať:\n' + (err.message || err));
   } finally {
