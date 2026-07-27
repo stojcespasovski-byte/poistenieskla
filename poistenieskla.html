@@ -6603,6 +6603,9 @@ function renderStep4() {
 
         <div class="card"><div class="card-foot">
           <button class="btn-back" id="btnStep4Back">← Späť</button>
+          ${QUOTE_EMAIL_ENABLED ? `<button class="btn-sec" id="btnPoslatPonuku" ${state.posielamPonuku ? 'disabled' : ''}
+            title="${state.poistnik.email ? 'Odošle klientovi cenovú ponuku s PDF — zmluvu neuzatvára' : 'Klient nemá vyplnený e-mail (Krok 3)'}"
+            ${state.poistnik.email ? '' : 'disabled'}>${state.posielamPonuku ? 'Odosielam…' : '✉ Poslať ponuku klientovi'}</button>` : ''}
           <button class="cta" id="btnStep4Submit" ${(!allOk||state.submitting)?'disabled':''}>${state.submitting?'Odosielam…':'✓ Potvrdiť a odoslať'}</button>
         </div></div>
       </div>
@@ -6735,6 +6738,66 @@ function renderSuccess(zmluvaId) {
   document.querySelectorAll('.sn-step').forEach(el => { el.classList.remove('active','todo'); el.classList.add('done'); const n=el.querySelector('.sn-num'); if(n) n.textContent='✓'; });
   odoslatEmailKlientovi(zmluvaId);   // fire-and-forget: e-mail klientovi s PDF + QR
   oznacDraftUzavreta();              // ak vznikla z draftu, v CRM ju prepne na „uzavretá"
+}
+
+/* ════════════════════════════════════════════════════════
+   PONUKA KLIENTOVI e-mailom (PRED uzavretím zmluvy)
+   Pozor: NEPOUŽÍVA /bcrm/email/send-offer — ten má text pre stav PO uzavretí
+   („ďakujeme za uzatvorenie… uhraďte poistné"). Poslať ho ako ponuku by klienta
+   navádzalo zaplatiť za zmluvu, ktorá ešte neexistuje. Preto samostatný endpoint
+   s vlastným znením, bez platobných údajov a QR.
+   Flag ostáva false, kým backend to znenie nedodá.
+════════════════════════════════════════════════════════ */
+const QUOTE_EMAIL_ENABLED = false;
+const QUOTE_EMAIL_URL     = 'https://api.pripoisti.sk/bcrm/email/send-quote';
+
+async function poslatPonukuKlientovi() {
+  const to = ((state.poistnik && state.poistnik.email) || '').trim();
+  if (!to || state.posielamPonuku) return;
+  state.posielamPonuku = true; render();
+  let uid;
+  try {
+    const calcId = state.allFreqCalcIds?.[state.paymentFreq] || state.calculationId;
+    if (!calcId) throw new Error('Chýba kalkulácia — vráťte sa na Krok 2 a prepočítajte cenu.');
+    uid = await pillowAuth();
+
+    // Kontrolný návrh (createPolicy=false) — ostrú zmluvu NEVYTVÁRA, ale overí údaje
+    // a pripraví kalkuláciu do stavu, z ktorého sa dá vytlačiť PDF návrhu.
+    const chk = parseSaveResponse(await pillowCall(uid, 'par/policies/save/AP2', buildSaveXML(calcId, false)));
+    if (chk.errors.length) throw new Error(chk.errors.map(prelozPillowChybu).join('\n'));
+
+    const printCalc = chk.calcId || calcId;
+    const pres = await fetch(`${PILLOW_CONFIG.BASE_URL}/par/policies/print/AP2/policyPreview/${printCalc}/print`, {
+      method: 'POST', headers: { 'Content-Type': 'text/xml; charset=utf-8', 'RestUid': uid },
+    });
+    if (!pres.ok) throw new Error('PDF ponuky sa nepodarilo vygenerovať.');
+    const blob = await pres.blob();
+    const pdfBase64 = await new Promise(r => {
+      const fr = new FileReader(); fr.onload = () => r(String(fr.result).split(',')[1] || null); fr.readAsDataURL(blob);
+    });
+
+    const fc = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[12];
+    const res = await fetch(QUOTE_EMAIL_URL, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({
+        to,
+        brand: (state.user.rola || '') === 'AutoSklo - Technik'
+          ? (PILLOW_CONFIG.BRAND || 'poistenieskla') : 'automanager',
+        meno: [state.poistnik.meno, state.poistnik.priezvisko].filter(Boolean).join(' ') || state.poistnik.nazov || '',
+        cislo: printCalc,                    // číslo PONUKY (kalkulácie), nie zmluvy
+        suma: totalPrice().toFixed(2),
+        frekvencia: fc.label || '',
+        pdfBase64,
+      }),
+    });
+    if (!res.ok) throw new Error('Odoslanie e-mailu zlyhalo (HTTP ' + res.status + ')');
+    alert(`Ponuka bola odoslaná na ${to}.\nZmluva NEBOLA uzavretá — na to slúži tlačidlo „Potvrdiť a odoslať".`);
+  } catch (err) {
+    alert('Ponuku sa nepodarilo odoslať:\n' + (err.message || err));
+  } finally {
+    if (uid) await pillowLogout(uid);
+    state.posielamPonuku = false; render();
+  }
 }
 
 /* Odoslanie e-mailu klientovi (PDF + QR + odkaz) cez náš backend — best-effort */
@@ -8178,6 +8241,9 @@ function attachListeners() {
   });
 
   // STEP 4
+  const btnPonuka = document.getElementById('btnPoslatPonuku');
+  if (btnPonuka) btnPonuka.addEventListener('click', poslatPonukuKlientovi);
+
   const btnS4Back = document.getElementById('btnStep4Back');
   if (btnS4Back) btnS4Back.addEventListener('click', () => { state.step = 3; render(); });
 
