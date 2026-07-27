@@ -8835,6 +8835,9 @@ async function ssoLogin(tok) {
     if (!res.ok) return false;
     const data = await res.json();
     if (!data || !data.token) return false;
+    // Čistý štart ako pri bežnom prihlásení — ale LEN keď preklik nenesie konkrétnu
+    // ponuku. Ak ju nesie, formulár aj tak naplní nacitatDraft() priamo z CRM.
+    if (!new URLSearchParams(location.search).get('draft')) localStorage.removeItem(STATE_KEY);
     localStorage.setItem('ps_token',   data.token);
     localStorage.setItem('ps_meno',    data.meno    || '');
     localStorage.setItem('ps_rola',    data.rola    || '');

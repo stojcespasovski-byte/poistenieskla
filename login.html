@@ -205,6 +205,11 @@ body{
       });
       if (!resp.ok) { showError('Nesprávne meno alebo heslo.'); return; }
       const data = await resp.json();
+      // Nové prihlásenie = nový prípad: zahoď rozpracovaný formulár z minula.
+      // Medzi krokmi (aj pri obnovení stránky) si portál stav pamätá, ale po
+      // prihlásení má technik začať čistý na Kroku 1 — inak mu tam visí dávno
+      // neaktuálna ponuka. Uložené ponuky ostávajú v „Rozpracované".
+      localStorage.removeItem('poistenie_state_v1');
       localStorage.setItem('ps_token',   data.token);
       localStorage.setItem('ps_meno',    data.meno    || '');
       localStorage.setItem('ps_rola',    data.rola    || '');
