@@ -1973,15 +1973,20 @@ const state = {
   varSym: null,         // variabilný symbol z Pillow save response
 };
 
+/* Adresa backendu na jednom mieste — bola napevno na 20 miestach, takže sa pri
+   zmene ľahko rozišla. Pripravené na presun pod vlastnú doménu
+   (poistenieskla.sk/api), aby klient v dokumentoch a platbe nevidel cudziu značku. */
+const API_BASE = 'https://api.pripoisti.sk';
+
 /* ════════════════════════════════════════════════════════
    PILLOW API — KONFIGURÁCIA
    POZOR: prihlasovacie údaje do Pillow sem NEPATRIA — zdroj stránky je verejný.
    Prihlásenie rieši backend (/pillow/authorize doplní meno aj heslo z env).
 ════════════════════════════════════════════════════════ */
 const PILLOW_CONFIG = {
-  BASE_URL:  'https://api.pripoisti.sk/pillow',
+  BASE_URL:  API_BASE + '/pillow',
   AGENT_ID1: '771',
-  PAY_API:   'https://api.pripoisti.sk/bcrm/payment',
+  PAY_API:   API_BASE + '/bcrm/payment',
   IBAN:      'SK64 8330 0000 0028 0266 5628',   // pevný účet Pillow (Fio banka)
   BENEFICIARY: 'Pillow pojišťovna, a. s.',
 };
@@ -1995,7 +2000,7 @@ const PILLOW_CONFIG = {
    ktorá ostáva funkčná ako poistka.
 ════════════════════════════════════════════════════════ */
 const USE_RATE_MATRIX = true;
-const RATE_MATRIX_URL  = 'https://api.pripoisti.sk/rate-matrix';
+const RATE_MATRIX_URL  = API_BASE + '/rate-matrix';
 const FREQ_KEY = { 12: 'monthly', 4: 'quarterly', 2: 'semiannual', 1: 'annual' };
 // FE Pillow vehicleUse (číselník 82) → kanonický ucel (adaptér ho mapuje späť cez USAGE_82)
 const VYUZITIE_TO_UCEL = {
@@ -4972,7 +4977,7 @@ async function apiLookupVehicle({ ecv, vin }) {
   const params = vin ? `vin=${encodeURIComponent(vin)}` : `ecv=${encodeURIComponent(ecv)}`;
   let raw;
   try {
-    const res = await fetch(`https://api.pripoisti.sk/bcrm/vehicle?${params}`, { headers: authHeaders() });
+    const res = await fetch(`${API_BASE}/bcrm/vehicle?${params}`, { headers: authHeaders() });
     raw = await res.json();
   } catch (e) {
     return { found: false };
@@ -5128,7 +5133,7 @@ function buildBcrmZmluvaPayload(policyId, calcId, pdfBase64) {
 
 async function sendBcrmZmluva(policyId, calcId, pdfBase64) {
   const payload = buildBcrmZmluvaPayload(policyId, calcId, pdfBase64);
-  const resp = await fetch('https://api.pripoisti.sk/bcrm/zmluva', {
+  const resp = await fetch(API_BASE + '/bcrm/zmluva', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(payload),
@@ -6559,7 +6564,7 @@ function renderStep4() {
   });
   let total=0; state.selected.forEach(id=>{ total += (state.apiPrices[id]?.price||0); }); total*=fc.mult;
 
-  const DOC_BASE = 'https://api.pripoisti.sk/docs/';
+  const DOC_BASE = API_BASE + '/docs/';
   const DOCS = [
     { l:'Návrh poistnej zmluvy (s VPP a IPID)', id:'s4DocNavrh' },
     { l:'Obchodné podmienky', url:DOC_BASE+'obchodne_podmienky.pdf' },
@@ -6578,7 +6583,7 @@ function renderStep4() {
   const SUHLASY = [
     { l:'Súhlas s elektronickou komunikáciou', url:DOC_BASE+'suhlas_elektronicka_komunikacia.pdf' },
     { l:'Súhlas so spracovaním osobných údajov', url:DOC_BASE+'suhlas_spracovanie_ou.pdf' },
-    { l:'Súhlas k vyjadreniu k ročnému nájazdu km', url:`https://api.pripoisti.sk/bcrm/docs/najazd?km=${encodeURIComponent(state.vehicle.najazd || '')}` },
+    { l:'Súhlas k vyjadreniu k ročnému nájazdu km', url:`${API_BASE}/bcrm/docs/najazd?km=${encodeURIComponent(state.vehicle.najazd || '')}` },
     { l:'Súhlas k vyjadreniu k zmluve o poskytnutí finančnej služby', url:DOC_BASE+'vyjadrenie_k_zmluve.pdf' },
     { l:'Súhlas s vyjadrením na účely finančného sprostredkovania', url:DOC_BASE+'vyjadrenie_na_ucely_fs.pdf' },
   ];
@@ -6770,10 +6775,10 @@ function renderSuccess(zmluvaId) {
    Flag ostáva false, kým backend to znenie nedodá.
 ════════════════════════════════════════════════════════ */
 const QUOTE_EMAIL_ENABLED = true;
-const QUOTE_EMAIL_URL     = 'https://api.pripoisti.sk/bcrm/email/send-quote';
+const QUOTE_EMAIL_URL     = API_BASE + '/bcrm/email/send-quote';
 // Návrh zmluvy + PDF cez backend. `indicative` je na serveri zamknuté na true —
 // ostrá zmluva sa cez túto cestu vystaviť NEDÁ (poistka proti preklepu vo FE).
-const POLICY_URL          = 'https://api.pripoisti.sk/bcrm/policy';
+const POLICY_URL          = API_BASE + '/bcrm/policy';
 
 /* Výber technika → tvar, ktorý čaká /bcrm/policy (rovnaké kódy ako v cenovej matici) */
 function buildSelection() {
@@ -6907,7 +6912,7 @@ async function odoslatEmailKlientovi(zmluvaId) {
     let zaznamPdfBase64 = null;
     try {
       const zdata = buildZaznamData(); zdata.cisloNavrhu = zmluvaId || zdata.cisloNavrhu;
-      const zres = await fetch('https://api.pripoisti.sk/bcrm/docs/zaznam?format=pdf', {
+      const zres = await fetch(API_BASE + '/bcrm/docs/zaznam?format=pdf', {
         method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, body: JSON.stringify(zdata),
       });
       if (zres.ok) {
@@ -6916,7 +6921,7 @@ async function odoslatEmailKlientovi(zmluvaId) {
       }
     } catch (_) { /* Záznam je doplnková príloha */ }
 
-    const res = await fetch('https://api.pripoisti.sk/bcrm/email/send-offer', {
+    const res = await fetch(API_BASE + '/bcrm/email/send-offer', {
       method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({
         to,
@@ -6991,7 +6996,7 @@ async function zaplatitKartou(btn) {
   if (btn) { btn.disabled = true; btn.innerHTML = 'Presmerúvam…'; }
   const returnUrl = location.origin + location.pathname + '?payreturn=1';
   try {
-    const res = await fetch('https://api.pripoisti.sk/bcrm/payment/create', {
+    const res = await fetch(API_BASE + '/bcrm/payment/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({
@@ -7036,7 +7041,7 @@ async function handlePaymentReturn() {
 
   renderPaymentResult('loading', pend);
   try {
-    const res = await fetch('https://api.pripoisti.sk/bcrm/payment/state?paymentUid=' + encodeURIComponent(pend.objId), { headers: authHeaders() });
+    const res = await fetch(API_BASE + '/bcrm/payment/state?paymentUid=' + encodeURIComponent(pend.objId), { headers: authHeaders() });
     const raw = await res.json();
     const st  = (raw.state || raw.status || raw.paymentState || raw.result || '').toString().toUpperCase();
     const paid = raw.paid === true || ['PAID','DONE','OK','SUCCESS','COMPLETED','TRUE'].includes(st);
@@ -7743,7 +7748,7 @@ function attachListeners() {
     clearTimeout(_orsrTimer);
     _orsrTimer = setTimeout(async () => {
       try {
-        const res  = await fetch(`https://api.pripoisti.sk/bcrm/company?ico=${ico}&stat=SK`, { headers: authHeaders() });
+        const res  = await fetch(`${API_BASE}/bcrm/company?ico=${ico}&stat=SK`, { headers: authHeaders() });
         const data = await res.json();
         if (!data.found) {
           if (statusEl) statusEl.textContent = '✗ ' + (data.error || 'IČO nenájdené');
@@ -8271,7 +8276,7 @@ function attachListeners() {
     clearTimeout(_vlOrsrTimer);
     _vlOrsrTimer = setTimeout(async () => {
       try {
-        const data = await (await fetch(`https://api.pripoisti.sk/bcrm/company?ico=${ico}&stat=SK`, { headers: authHeaders() })).json();
+        const data = await (await fetch(`${API_BASE}/bcrm/company?ico=${ico}&stat=SK`, { headers: authHeaders() })).json();
         if (!data.found) return;
         state.vlastnik.nazov = data.nazov || ''; state.vlastnik.ulica = data.ulica || '';
         state.vlastnik.cislo = data.cislo || ''; state.vlastnik.obec = data.mesto || ''; state.vlastnik.psc = data.psc || '';
@@ -8396,7 +8401,7 @@ function attachListeners() {
   document.getElementById('s4DocZaznam')?.addEventListener('click', async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('https://api.pripoisti.sk/bcrm/docs/zaznam', {
+      const res = await fetch(API_BASE + '/bcrm/docs/zaznam', {
         method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(buildZaznamData()),
       });
@@ -8455,7 +8460,7 @@ function closeZmluvy() {
    ROZPRACOVANÉ PONUKY (drafty) — ukladajú sa do CRM
    Technik vidí svoje, správca/admin všetky (rieši CRM podľa uid).
 ════════════════════════════════════════════════════════ */
-const DRAFT_API = 'https://api.pripoisti.sk/bcrm/ponuky';
+const DRAFT_API = API_BASE + '/bcrm/ponuky';
 
 function draftSnapshot() {
   // rovnaká serializácia ako saveState (Set → pole); deep-copy, nech snapshot
@@ -8818,7 +8823,7 @@ function initAuth() {
    Zlyhanie → štandardná login obrazovka (fallback). */
 async function ssoLogin(tok) {
   try {
-    const res = await fetch('https://api.pripoisti.sk/bcrm/sso-exchange', {
+    const res = await fetch(API_BASE + '/bcrm/sso-exchange', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token: tok }),
     });
@@ -8847,7 +8852,7 @@ async function ssoLogin(tok) {
 // — overené aj na starom /bcrm/ponuky), nie chybou chatu. S reálnym uid technika
 // sa čaká 200. Vypnutie = 1 riadok na false.
 const CHAT_ENABLED    = true;
-const CHAT_API        = 'https://api.pripoisti.sk/bcrm/chat';
+const CHAT_API        = API_BASE + '/bcrm/chat';
 const CHAT_POLL_OPEN  = 5000;    // ms — panel otvorený
 const CHAT_POLL_IDLE  = 20000;   // ms — panel zavretý (len odznak)
 const CHAT_MAX_FILE   = 4 * 1024 * 1024;   // 4 MB / príloha (base64 v tele)
@@ -9191,7 +9196,7 @@ function showDraftLoading() {
    lebo polia poistníka/vlastníka sa renderujú dynamicky. 1 obec = autofill,
    viac obcí (zdieľané vidiecke PSČ) = datalist na výber. Mapovanie *Psc → *Obec. */
 (function () {
-  const CIS = 'https://api.pripoisti.sk/ciselnik/obec?psc=';
+  const CIS = API_BASE + '/ciselnik/obec?psc=';
   const cache = {};
   async function fill(pscEl) {
     const clean = (pscEl.value || '').replace(/\D/g, '');
