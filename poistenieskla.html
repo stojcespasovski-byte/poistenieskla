@@ -6750,31 +6750,54 @@ function renderSuccess(zmluvaId) {
 ════════════════════════════════════════════════════════ */
 const QUOTE_EMAIL_ENABLED = false;
 const QUOTE_EMAIL_URL     = 'https://api.pripoisti.sk/bcrm/email/send-quote';
+// Návrh zmluvy + PDF cez backend. `indicative` je na serveri zamknuté na true —
+// ostrá zmluva sa cez túto cestu vystaviť NEDÁ (poistka proti preklepu vo FE).
+const POLICY_URL          = 'https://api.pripoisti.sk/bcrm/policy';
+
+/* Výber technika → tvar, ktorý čaká /bcrm/policy (rovnaké kódy ako v cenovej matici) */
+function buildSelection() {
+  return Array.from(state.selected)
+    .filter(id => PILLOW_RISK_MAP[id])
+    .map(id => {
+      const risk = PILLOW_RISK_MAP[id];
+      const base = state.selectedVariants[id] || state.apiPrices[id]?.variant || PILLOW_DEFAULT_VARIANTS[risk] || '';
+      return { risk, variant: getEffectiveVariant(id, base) };
+    });
+}
 
 async function poslatPonukuKlientovi() {
   const to = ((state.poistnik && state.poistnik.email) || '').trim();
   if (!to || state.posielamPonuku) return;
+  if (!state.vehicle.vin) { alert('Na vytvorenie ponuky je potrebný VIN vozidla.'); return; }
   state.posielamPonuku = true; render();
-  let uid;
   try {
     const calcId = state.allFreqCalcIds?.[state.paymentFreq] || state.calculationId;
     if (!calcId) throw new Error('Chýba kalkulácia — vráťte sa na Krok 2 a prepočítajte cenu.');
-    uid = await pillowAuth();
 
-    // Kontrolný návrh (createPolicy=false) — ostrú zmluvu NEVYTVÁRA, ale overí údaje
-    // a pripraví kalkuláciu do stavu, z ktorého sa dá vytlačiť PDF návrhu.
-    const chk = parseSaveResponse(await pillowCall(uid, 'par/policies/save/AP2', buildSaveXML(calcId, false)));
-    if (chk.errors.length) throw new Error(chk.errors.map(prelozPillowChybu).join('\n'));
-
-    const printCalc = chk.calcId || calcId;
-    const pres = await fetch(`${PILLOW_CONFIG.BASE_URL}/par/policies/print/AP2/policyPreview/${printCalc}/print`, {
-      method: 'POST', headers: { 'Content-Type': 'text/xml; charset=utf-8', 'RestUid': uid },
+    // Návrh + PDF cez backend. `indicative` je na serveri zamknuté na true, takže
+    // ostrá zmluva takto vzniknúť NEMÔŽE. Pillow session tu už nepotrebujeme.
+    const req = buildMatrixRequest();               // rovnaké vozidlo + poistník ako pri cenách
+    req.vehicle.farba = state.vehicle.farba || '';  // backend si ju zmapuje na Pillow kód
+    const pres = await fetch(POLICY_URL, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({
+        insurer: 'pillow', market: 'sk',
+        vehicle: req.vehicle, party: req.party,
+        start_date: state.zaciatok || null,
+        frequency: state.paymentFreq,
+        calc_id: calcId,
+        indicative: true,
+        selection: buildSelection(),
+      }),
     });
-    if (!pres.ok) throw new Error('PDF ponuky sa nepodarilo vygenerovať.');
-    const blob = await pres.blob();
-    const pdfBase64 = await new Promise(r => {
-      const fr = new FileReader(); fr.onload = () => r(String(fr.result).split(',')[1] || null); fr.readAsDataURL(blob);
-    });
+    if (!pres.ok) {
+      const t = await pres.text().catch(() => '');
+      throw new Error(prelozPillowChybu(t) || ('Návrh sa nepodarilo pripraviť (HTTP ' + pres.status + ')'));
+    }
+    const contract = await pres.json();
+    const pdfBase64 = contract.pdf_base64 || null;
+    if (!pdfBase64) throw new Error('Backend nevrátil PDF ponuky.');
+    const printCalc = contract.reference_number || calcId;
 
     const fc = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[12];
     const res = await fetch(QUOTE_EMAIL_URL, {
@@ -6795,7 +6818,6 @@ async function poslatPonukuKlientovi() {
   } catch (err) {
     alert('Ponuku sa nepodarilo odoslať:\n' + (err.message || err));
   } finally {
-    if (uid) await pillowLogout(uid);
     state.posielamPonuku = false; render();
   }
 }
