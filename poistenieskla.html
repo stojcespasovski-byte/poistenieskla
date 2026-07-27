@@ -1718,6 +1718,9 @@
      (36 vs 38 px, 13 vs 14 px písmo, iné odsadenie), lebo každý krok mal
      vlastnú definíciu a tie sa časom rozišli. */
   .s4 .card-foot { padding:9px 24px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center; }
+  /* Pätička je mimo dvojstĺpcovej mriežky, aby šla cez celú šírku a „Späť" bolo
+     na tom istom mieste ako v Kroku 3 — predtým sedela v stĺpci a držala sa jeho šírky. */
+  .s4 .card-foot-wrap { margin-top:10px; }
   .s4 .btn-back { display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 16px;border:1px solid var(--border-strong);border-radius:5px;background:#fff;font-size:13px;font-weight:500;color:var(--ink-3);cursor:pointer;font-family:inherit;transition:all .12s; }
   .s4 .btn-back:hover { border-color:var(--teal-dark);color:var(--teal-dark); }
   .s4 .cta { display:inline-flex;align-items:center;gap:7px;background:var(--teal-dark);color:#fff;border:none;border-radius:5px;padding:0 22px;height:38px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s; }
@@ -6669,15 +6672,16 @@ function renderStep4() {
           ${suhlasyHtml}
         </div></div>
 
-        <div class="card"><div class="card-foot">
-          <button class="btn-back" id="btnStep4Back">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
-            Späť
-          </button>
-          <button class="cta" id="btnStep4Submit" ${(!allOk||state.submitting)?'disabled':''}>${state.submitting?'Odosielam…':'✓ Uzatvoriť a odoslať'}</button>
-        </div></div>
       </div>
     </div>
+
+    <div class="card card-foot-wrap"><div class="card-foot">
+      <button class="btn-back" id="btnStep4Back">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+        Späť
+      </button>
+      <button class="cta" id="btnStep4Submit" ${(!allOk||state.submitting)?'disabled':''}>${state.submitting?'Odosielam…':'✓ Uzatvoriť a odoslať'}</button>
+    </div></div>
   </div>`;
 }
 
