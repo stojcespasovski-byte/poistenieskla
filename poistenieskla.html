@@ -4876,7 +4876,10 @@ async function ensureCalcId() {
 }
 
 async function prefetchAllPrices() {
-  if (USE_RATE_MATRIX) return fetchPricesMatrix();
+  // Cudzinec (FODN) ide STAROU cestou — kanonický Party pozná len fo/szco/po, takže
+  // maticou by sa cudzinec odoslal ako FORC a Pillow by pýtal rodné číslo, ktoré nemá.
+  // Späť na maticu až keď backend doplní FODN do canonical.
+  if (USE_RATE_MATRIX && !state.poistnik?.cudzinec) return fetchPricesMatrix();
   const FREQS = [1, 2, 4, 12];
 
   if (PILLOW_CONFIG.BASE_URL.includes('PLACEHOLDER')) {
