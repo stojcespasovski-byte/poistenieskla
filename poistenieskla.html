@@ -5526,7 +5526,10 @@ function renderDashboard() {
 }
 
 const STATE_KEY = 'poistenie_state_v1';
-const STATE_SKIP = ['submitting', 'user', 'view', 'dashTab', 'pdfZmluvaB64'];
+// Prechodné príznaky „práve prebieha" sa NESMÚ ukladať — po prerušení (obnovenie
+// stránky uprostred akcie) by ostali uložené ako true a tlačidlo by navždy zostalo
+// zaseknuté na „Odosielam…", pretože obsluha na začiatku kontroluje práve ich.
+const STATE_SKIP = ['submitting', 'posielamPonuku', 'user', 'view', 'dashTab', 'pdfZmluvaB64'];
 
 function saveState() {
   try {
