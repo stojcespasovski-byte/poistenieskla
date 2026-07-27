@@ -6748,7 +6748,7 @@ function renderSuccess(zmluvaId) {
    s vlastným znením, bez platobných údajov a QR.
    Flag ostáva false, kým backend to znenie nedodá.
 ════════════════════════════════════════════════════════ */
-const QUOTE_EMAIL_ENABLED = false;
+const QUOTE_EMAIL_ENABLED = true;
 const QUOTE_EMAIL_URL     = 'https://api.pripoisti.sk/bcrm/email/send-quote';
 // Návrh zmluvy + PDF cez backend. `indicative` je na serveri zamknuté na true —
 // ostrá zmluva sa cez túto cestu vystaviť NEDÁ (poistka proti preklepu vo FE).
@@ -6808,8 +6808,10 @@ async function poslatPonukuKlientovi() {
           ? (PILLOW_CONFIG.BRAND || 'poistenieskla') : 'automanager',
         meno: [state.poistnik.meno, state.poistnik.priezvisko].filter(Boolean).join(' ') || state.poistnik.nazov || '',
         cislo: printCalc,                    // číslo PONUKY (kalkulácie), nie zmluvy
-        suma: totalPrice().toFixed(2),
+        suma: Number(totalPrice().toFixed(2)),
         frekvencia: fc.label || '',
+        // platnostDo zámerne NEPOSIELAME — Pillow expiráciu kalkulácie nevracia,
+        // takže by sme klientovi napísali vymyslený dátum. Backend vetu vynechá.
         pdfBase64,
       }),
     });
