@@ -6155,8 +6155,6 @@ function renderStep2Grid() {
         ? lines.map(l => `<div class="srow"><span class="nm">${l.nm}</span><span class="amt">${loading ? '…' : fmt(l.amt)}</span></div>`).join('')
         : '<div class="sempty">Vyberte poistenia z ponuky vľavo.</div>'}</div>
       <div class="stotal"><span class="tl">Celkom<small>${fc.label.toLowerCase()}</small></span><span class="tv">${loading || !total ? '–' : fmt(total)}</span></div>
-      <button class="scta" id="btnStep2Next" ${state.selected.size === 0 ? 'disabled' : ''}>Pokračovať →</button>
-      <button class="sback" id="btnStep2Back">← Späť na parametre</button>
     </div>
     <div class="g2-mbar">
       <div><div class="mb-tl">Celkom ${fc.label.toLowerCase()}</div><div class="mb-tv">${loading || !total ? '–' : fmt(total)}</div></div>
@@ -6290,10 +6288,6 @@ function renderStep2() {
         ${lines.map(l => `<div class="sm-line${l.hero?' hero':''}"><span class="sm-nm">${l.nm}</span><span class="sm-amt">${loading?'…':fmt(l.amt)}</span></div>`).join('')}
       </div>
       <div class="sm-total"><div class="sm-tl">Celkom<small>${fc.label.toLowerCase()}</small></div><div class="sm-tv">${loading?'…':fmt(total)}</div></div>
-      <div class="sm-foot">
-        <button class="sm-cta" id="btnStep2Next">Pokračovať →</button>
-        <button class="sm-back" id="btnStep2Back">← Späť na parametre</button>
-      </div>
     </div>`;
 
   return `
@@ -8284,9 +8278,7 @@ function attachListeners() {
   });
 
   document.getElementById('btnStep2BackFoot')?.addEventListener('click', () => { state.step = 1; render(); });
-  document.getElementById('btnStep2NextFoot')?.addEventListener('click', () => {
-    document.getElementById('btnStep2Next')?.click();   // tá istá logika ako tlačidlo pri cene
-  });
+  document.getElementById('btnStep2NextFoot')?.addEventListener('click', goStep3);
 
   const btnS2Back = document.getElementById('btnStep2Back');
   if (btnS2Back) btnS2Back.addEventListener('click', () => { state.step = 1; render(); });
@@ -8303,8 +8295,6 @@ function attachListeners() {
     state.step = 3;
     render();
   };
-  const btnS2Next = document.getElementById('btnStep2Next');
-  if (btnS2Next) btnS2Next.addEventListener('click', goStep3);
   const btnS2NextBar = document.getElementById('btnStep2NextBar');
   if (btnS2NextBar) btnS2NextBar.addEventListener('click', goStep3);
 
