@@ -1986,7 +1986,8 @@ const state = {
   apiPrices: {},        // ceny pre aktuálnu frekvenciu (skratka na allFreqPrices[paymentFreq])
   allFreqPrices: {},   // { 1: {sklo:{price,variant},...}, 2: ..., 4: ..., 12: ... }
   allFreqCalcIds: {},  // { 1: calcId, 2: calcId, ... }
-  paymentFreq: 12,     // zvolená frekvencia platby (1=ročne, 2=polročne, 4=štvrťročne, 12=mesačne)
+  paymentFreq: 1,      // zvolená frekvencia platby (1=ročne, 2=polročne, 4=štvrťročne, 12=mesačne)
+                       // ročne = predvolené: klient zaplatí celkovo najmenej
   selected: new Set(),
   selectedVariants: {},  // { productId: variantCode } — len pre AS2 a podobné
   spoluUcast: '300',    // globálna spoluúčasť: '150' | '300' | '600'
@@ -5084,7 +5085,7 @@ async function apiLookupVehicle({ ecv, vin }) {
 // Dáta pre generátor Záznamu o sprostredkovaní (backend /bcrm/docs/zaznam)
 function buildZaznamData() {
   const p = state.poistnik, v = state.vehicle, vl = state.vlastnik;
-  const fc = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[12];
+  const fc = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[1];
   const freqTxt = { 12:'mesačne', 4:'štvrťročne', 2:'polročne', 1:'ročne' }[state.paymentFreq] || 'ročne';
   const ASIST_LBL = { AS2_S:'50 km pri nehode', AS2_M:'50 km v SR', AS2_L:'SR a EÚ', AS2_XL:'Neobmedzene SR+EÚ' };
   const URAZ_LBL  = { UR2_2:'Úraz vodiča max. 20 000 €', UR2_1:'Smrť oboch rodičov' };
@@ -5161,7 +5162,7 @@ function buildBcrmZmluvaPayload(policyId, calcId, pdfBase64) {
     klient.nazovZivnosti = p.nazovZivnosti || '';
   }
 
-  const fc = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[12];
+  const fc = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[1];
   let cena = 0;
   state.selected.forEach(id => { cena += (state.apiPrices[id]?.price || 0); });
   cena = parseFloat((cena * fc.mult).toFixed(2));
@@ -5303,7 +5304,7 @@ function isVehicleNew() {
 }
 
 function totalPrice() {
-  const mult = (FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[12]).mult;
+  const mult = (FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[1]).mult;
   let t = 0;
   state.selected.forEach(id => { t += (state.apiPrices[id]?.price || 0); });
   return t * mult;
@@ -5336,7 +5337,7 @@ function updatePriceBar() {
   // eslint-disable-next-line no-unreachable
   if (state.step !== 2) { bar.style.display = 'none'; return; }
   bar.style.display = 'flex';
-  const fc    = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[12];
+  const fc    = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[1];
   const total = totalPrice();
   const count = state.selected.size;
   document.getElementById('priceBarTotal').innerHTML =
@@ -6058,7 +6059,7 @@ function step2FootHtml() {
 function renderStep2Grid() {
   const prices  = state.apiPrices;
   const loading = Object.keys(prices).length === 0;
-  const fc      = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[12];
+  const fc      = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[1];
   const pp      = id => { const m = prices[id]?.price; return (m != null && !isNaN(m)) ? m * fc.mult : null; };
   const has     = id => state.selected.has(id);
   const v       = state.vehicle;
@@ -6169,7 +6170,7 @@ function renderStep2() {
   if (!state.selected.has(hero.id)) state.selected.add(hero.id); // sklo vždy vybraté
   const prices  = state.apiPrices;
   const loading = Object.keys(prices).length === 0;
-  const fc      = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[12];
+  const fc      = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[1];
   const pp      = id => { const m = prices[id]?.price; return (m != null && !isNaN(m)) ? m * fc.mult : null; };
   const has     = id => state.selected.has(id);
 
@@ -6304,7 +6305,7 @@ function renderStep2_OLD() {
   const addons  = ALL_PRODUCTS.filter(p => p.id !== CONFIG.hero);
   const prices  = state.apiPrices;
   const loading = Object.keys(prices).length === 0;
-  const fc      = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[12];
+  const fc      = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[1];
 
   const periodPrice = (monthPrice) =>
     (monthPrice != null && !isNaN(monthPrice)) ? monthPrice * fc.mult : null;
@@ -6615,7 +6616,7 @@ function renderStep3() {
 function renderStep4() {
   const v = state.vehicle;
   const p = state.poistnik;
-  const fc = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[12];
+  const fc = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[1];
   const has = id => state.selected.has(id);
   const pp = id => { const m = state.apiPrices[id]?.price; return (m!=null && !isNaN(m)) ? m*fc.mult : null; };
   const dDot = d => d ? d.split('-').reverse().join('.') : '';
@@ -6758,7 +6759,7 @@ function renderSuccess(zmluvaId) {
   saveState();
   const pb = document.getElementById('priceBar'); if (pb) pb.style.display = 'none';
 
-  const fc = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[12];
+  const fc = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[1];
   const has = id => state.selected.has(id);
   const pp = id => { const m = state.apiPrices[id]?.price; return (m!=null && !isNaN(m)) ? m*fc.mult : null; };
   const dDot = d => d ? d.split('-').reverse().join('.') : '–';
@@ -6933,7 +6934,7 @@ async function poslatPonukuKlientovi() {
     if (!pdfBase64) throw new Error('Backend nevrátil PDF ponuky.');
     const printCalc = contract.reference_number || '';
 
-    const fc = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[12];
+    const fc = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[1];
     const res = await fetch(QUOTE_EMAIL_URL, {
       method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({
@@ -7052,7 +7053,7 @@ function resetFormState() {
   state.poistnik = { typ:'fo', cudzinec:false, rodneCislo:'', datumNar:'', meno:'', priezvisko:'', ico:'', nazov:'', obec:'', psc:'', dokladCislo:'', statnaPrislusnost:'', zapisanyV:'', email:'', tel:'', ulica:'', cislo:'', titulPred:'', titulZa:'', orsr:false };
   state.suhlasy = [false,false,false,false,false]; state.varSym = null; state.calculationId = null; state.draftId = null; state.draftEvid = null; state.draftIdentity = null; state.pdfZmluvaB64 = null;
   state.vlastnik = { typ:'poistnik', forma:'fo', meno:'', priezvisko:'', rc:'', datumNar:'', nazov:'', ico:'', ulica:'', cislo:'', obec:'', psc:'' };
-  state.paymentFreq = 12;
+  state.paymentFreq = 1;
 }
 
 function novaZmluva() {
