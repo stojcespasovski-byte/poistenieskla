@@ -5230,7 +5230,15 @@ async function apiSubmitBackend() {
   if (!state.vehicle.vin) throw new Error('Na uzatvorenie zmluvy je potrebný VIN vozidla.');
 
   const req = buildMatrixRequest();
-  req.vehicle.farba = state.vehicle.farba || '';   // pri save povinná, backend ju mapuje na Pillow kód
+  req.vehicle.farba  = state.vehicle.farba || '';   // pri save povinná, backend ju mapuje na Pillow kód
+  req.vehicle.tp     = state.vehicle.bezTp ? '' : (state.vehicle.tp || '');
+  req.vehicle.bez_tp = !!state.vehicle.bezTp;
+
+  /* Pri firme je klientom firma, nie konateľ. Bez `obchodne_meno` by backend
+     spadol na fallback a do zmluvy by dal priezvisko oprávnenej osoby. */
+  if (state.poistnik.typ === 'po' && state.poistnik.nazov) {
+    req.party.obchodne_meno = state.poistnik.nazov;
+  }
 
   /* Vlastník vozidla, ak je odlišný od poistníka. Cenová cesta ho neposiela (na cenu
      nemá vplyv), ale do zmluvy patrí — bez neho by sa zmluva vystavila na poistníka. */
