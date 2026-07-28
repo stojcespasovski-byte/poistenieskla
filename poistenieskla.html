@@ -5220,7 +5220,70 @@ async function sendBcrmZmluva(policyId, calcId, pdfBase64) {
   return resp.json();
 }
 
+/* Uzatvorenie zmluvy cez backend (/bcrm/policy). Flag vypnutý — prepne sa až po
+   spoločnom ostrom teste. Rollback = false, pôvodná cesta cez /pillow ostáva. */
+const USE_POLICY_BIND = false;
+
+async function apiSubmitBackend() {
+  const calcId = state.allFreqCalcIds[state.paymentFreq] || state.calculationId;
+  if (!calcId) throw new Error('Chýba kalkulácia — vráťte sa na Krok 2 a prepočítajte cenu.');
+  if (!state.vehicle.vin) throw new Error('Na uzatvorenie zmluvy je potrebný VIN vozidla.');
+
+  const req = buildMatrixRequest();
+  req.vehicle.farba = state.vehicle.farba || '';   // pri save povinná, backend ju mapuje na Pillow kód
+
+  /* Vlastník vozidla, ak je odlišný od poistníka. Cenová cesta ho neposiela (na cenu
+     nemá vplyv), ale do zmluvy patrí — bez neho by sa zmluva vystavila na poistníka. */
+  const vl = state.vlastnik || {};
+  if (vl.typ === 'osoba') {
+    req.vehicle.iny_vlastnik = true;
+    req.vehicle.vlastnik = {
+      typ: vl.forma === 'po' ? 'po' : 'fo',
+      meno: vl.meno || '', priezvisko: vl.priezvisko || '',
+      rc: vl.rc || '', ico: vl.ico || '',
+      ulica: vl.ulica || '', cislo: vl.cislo || '',
+      psc: cleanPsc(vl.psc), obec: vl.obec || '',
+    };
+    if (vl.forma === 'po' && vl.nazov) req.vehicle.vlastnik.priezvisko = vl.nazov;  // PO: obchodné meno
+  }
+
+  const res = await fetch(POLICY_URL, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({
+      insurer: 'pillow', market: 'sk',
+      vehicle: req.vehicle, party: req.party,
+      start_date: state.zaciatok || null,
+      frequency: state.paymentFreq,
+      indicative: false,              // ŽIADOSŤ o ostrú zmluvu; rozhoduje server podľa role
+      selection: buildSelection(),
+    }),
+  });
+  if (!res.ok) {
+    const t = await res.text().catch(() => '');
+    throw new Error(prelozPillowChybu(t) || ('Uzatvorenie zlyhalo (HTTP ' + res.status + ')'));
+  }
+  const contract = await res.json();
+
+  /* KĽÚČOVÉ: bez oprávnenia backend request NEZHODÍ — vráti len návrh. Keby sme
+     kontrolovali „prešlo bez chyby = hotovo", technik by videl uzavretú zmluvu,
+     ktorá neexistuje. To je horšie než chybová hláška, preto kontrolujeme príznak. */
+  if (contract.indicative !== false) {
+    throw new Error('Zmluva NEBOLA uzavretá — vaše konto na to nemá oprávnenie.\nObráťte sa na správcu.');
+  }
+  if (!contract.reference_number) throw new Error('Zmluva nebola vytvorená — skontrolujte údaje.');
+
+  state.pdfZmluvaB64 = contract.pdf_base64 || null;
+  state.varSym = contract.payment?.variable_symbol || null;
+
+  // zápis do CRM ostáva na nás — /bcrm/policy do CRM nezapisuje (potvrdil backend)
+  await sendBcrmZmluva(contract.reference_number, calcId, state.pdfZmluvaB64)
+    .catch(err => console.error('BCRM zmluva:', err));
+
+  return { success: true, zmluvaId: contract.reference_number };
+}
+
 async function apiSubmit() {
+  if (USE_POLICY_BIND) return apiSubmitBackend();
   if (PILLOW_CONFIG.BASE_URL.includes('PLACEHOLDER')) {
     await new Promise(r => setTimeout(r, 1800));
     return { success: true, zmluvaId: 'PLW-' + Math.floor(Math.random()*90000+10000) };
