@@ -2024,6 +2024,25 @@ const state = {
    Rollback = vrátiť sem 'https://api.pripoisti.sk' (backend na nej beží ďalej). */
 const API_BASE = 'https://poistenieskla.sk/api';
 
+/* Zámerne NIE cez /api — tieto odkazy vidí klient a končia v e-mailoch
+   a podpísaných dokumentoch, kde sa neskôr menia ťažko. */
+const DOC_BASE = 'https://poistenieskla.sk/dokumenty/';
+
+/* Súhlasy na jednom mieste: rovnaký zoznam vykresľuje Krok 4 aj zapisuje Záznam
+   z rokovania. Zmysel evidencie je, že texty sedia DOSLOVNE s tým, čo klient
+   odklikol — pri dvoch kópiách by sa časom rozišli. */
+function suhlasyZoznam() {
+  return [
+    { l:'Súhlas s elektronickou komunikáciou', url:DOC_BASE+'suhlas_elektronicka_komunikacia.pdf' },
+    { l:'Súhlas so spracovaním osobných údajov', url:DOC_BASE+'suhlas_spracovanie_ou.pdf' },
+    { l:'Súhlas k vyjadreniu k ročnému nájazdu km', url:`${API_BASE}/bcrm/docs/najazd?km=${encodeURIComponent(state.vehicle.najazd || '')}` },
+    { l:'Súhlas k vyjadreniu k zmluve o poskytnutí finančnej služby', url:DOC_BASE+'vyjadrenie_k_zmluve.pdf' },
+    { l:'Súhlas s vyjadrením na účely finančného sprostredkovania', url:DOC_BASE+'vyjadrenie_na_ucely_fs.pdf' },
+  ];
+}
+/* index 1 = marketingový súhlas → NEPOVINNÝ (ostatné 4 sú povinné pred uzavretím) */
+const MARKETING_IDX = 1;
+
 /* ════════════════════════════════════════════════════════
    PILLOW API — KONFIGURÁCIA
    POZOR: prihlasovacie údaje do Pillow sem NEPATRIA — zdroj stránky je verejný.
@@ -5094,6 +5113,15 @@ function buildZaznamData() {
     },
     rizika, spoluUcast: state.spoluUcast, frekvencia: freqTxt,
     cisloNavrhu: state.varSym || '', marketing: !!state.suhlasy[1],
+    // Prehľad všetkého, čo klient na Súhrne odklikol. Zmluva dokazuje, že vznikla,
+    // nie že klient tieto konkrétne dokumenty videl a odsúhlasil. Texty berieme
+    // zo spoločného zoznamu, takže sedia doslovne s tým, čo mal na obrazovke.
+    // `marketing` vyššie ostáva — sekcia VII má vlastné právne znenie.
+    suhlasy: [
+      ...suhlasyZoznam().map((sh, i) => ({ text: sh.l, hodnota: !!state.suhlasy[i] })),
+      { text: 'Predpokladaný ročný nájazd',
+        hodnota: state.vehicle.najazd ? Number(state.vehicle.najazd).toLocaleString('sk-SK') + ' km' : '–' },
+    ],
     datum: new Date().toLocaleDateString('sk-SK'),
   };
 }
@@ -6643,7 +6671,6 @@ function renderStep4() {
 
   // Zámerne NIE cez /api — tieto odkazy vidí klient a končia v e-mailoch
   // a podpísaných dokumentoch, kde sa neskôr menia ťažko.
-  const DOC_BASE = 'https://poistenieskla.sk/dokumenty/';
   const DOCS = [
     { l:'Návrh poistnej zmluvy (s VPP a IPID)', id:'s4DocNavrh' },
     { l:'Obchodné podmienky', url:DOC_BASE+'obchodne_podmienky.pdf' },
@@ -6659,15 +6686,7 @@ function renderStep4() {
   :         `<a class="doc-item" href="#" onclick="return false;" style="opacity:.45;cursor:default;">${DOC_ICON} ${d.l}</a>`
   ).join('');
 
-  const SUHLASY = [
-    { l:'Súhlas s elektronickou komunikáciou', url:DOC_BASE+'suhlas_elektronicka_komunikacia.pdf' },
-    { l:'Súhlas so spracovaním osobných údajov', url:DOC_BASE+'suhlas_spracovanie_ou.pdf' },
-    { l:'Súhlas k vyjadreniu k ročnému nájazdu km', url:`${API_BASE}/bcrm/docs/najazd?km=${encodeURIComponent(state.vehicle.najazd || '')}` },
-    { l:'Súhlas k vyjadreniu k zmluve o poskytnutí finančnej služby', url:DOC_BASE+'vyjadrenie_k_zmluve.pdf' },
-    { l:'Súhlas s vyjadrením na účely finančného sprostredkovania', url:DOC_BASE+'vyjadrenie_na_ucely_fs.pdf' },
-  ];
-  // index 1 = marketingový súhlas → NEPOVINNÝ (ostatné 4 sú povinné pred uzavretím)
-  const MARKETING_IDX = 1;
+  const SUHLASY = suhlasyZoznam();
   const suhlasyHtml = SUHLASY.map((s,i)=>`<label class="suhlas-item"><input type="checkbox" class="s4-suhlas" data-idx="${i}" ${state.suhlasy[i]?'checked':''}><span><a href="${s.url}" target="_blank" rel="noopener" class="suhlas-link" onclick="event.stopPropagation()">${s.l}</a>${i===MARKETING_IDX?' <span style="color:var(--ink-4);font-weight:400;">(nepovinné)</span>':''}</span></label>`).join('');
   const allOk = state.suhlasy.every((v,i)=>i===MARKETING_IDX||v);
 
