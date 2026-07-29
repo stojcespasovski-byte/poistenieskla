@@ -7791,11 +7791,23 @@ function attachListeners() {
     state.vehicle.x4 = false;
     state.vehicle.znacka = '';
     state.vehicle.model = '';
+    // Roletky Značka/Model sa riadia KÓDMI, nie názvami — bez ich vymazania
+    // ostali po resete vybraté (nahlásené userom).
+    state.vehicle.brandCode = '';
+    state.vehicle.modelCode = '';
+    state.vehicle.typ = '';
     state.vehicle.datumReg = '';
     state.vehicle.palivo = 'benzin';
     state.vehicle.vykon = '';
     state.vehicle.objem = '';
     state.vehicle.hmotnost = '';
+    state.vehicle.farba = '';
+    state.vehicle.tp = '';
+    state.vehicle.bezTp = false;
+    state.vehicle.cenaVozidla = '';
+    // ceny patria k pôvodnému vozidlu — po jeho výmene by boli klamlivé
+    state.apiPrices = {}; state.allFreqPrices = {}; state.allFreqCalcIds = {};
+    state.priceCache = {}; state.calculationId = null;
     render();
   }
 
