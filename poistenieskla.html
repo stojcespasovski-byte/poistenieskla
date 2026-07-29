@@ -8350,7 +8350,6 @@ function attachListeners() {
   });
 
   document.getElementById('btnStep2BackFoot')?.addEventListener('click', () => { state.step = 1; render(); });
-  document.getElementById('btnStep2NextFoot')?.addEventListener('click', goStep3);
 
   const btnS2Back = document.getElementById('btnStep2Back');
   if (btnS2Back) btnS2Back.addEventListener('click', () => { state.step = 1; render(); });
@@ -8367,6 +8366,9 @@ function attachListeners() {
     state.step = 3;
     render();
   };
+  // POZOR: goStep3 je const (nehoistuje sa), takže napojenie musí byť AŽ TU —
+  // vyššie by hodilo „Cannot access 'goStep3' before initialization" a zhodilo výpočet.
+  document.getElementById('btnStep2NextFoot')?.addEventListener('click', goStep3);
   const btnS2NextBar = document.getElementById('btnStep2NextBar');
   if (btnS2NextBar) btnS2NextBar.addEventListener('click', goStep3);
 
