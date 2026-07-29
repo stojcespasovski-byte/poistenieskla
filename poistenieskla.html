@@ -5239,7 +5239,7 @@ async function sendBcrmZmluva(policyId, calcId, pdfBase64) {
 
 /* Uzatvorenie zmluvy cez backend (/bcrm/policy). Flag vypnutý — prepne sa až po
    spoločnom ostrom teste. Rollback = false, pôvodná cesta cez /pillow ostáva. */
-const USE_POLICY_BIND = false;
+const USE_POLICY_BIND = true;
 
 async function apiSubmitBackend() {
   const calcId = state.allFreqCalcIds[state.paymentFreq] || state.calculationId;
