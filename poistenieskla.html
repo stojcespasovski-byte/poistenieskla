@@ -5093,6 +5093,13 @@ async function apiLookupVehicle({ ecv, vin }) {
 }
 
 // Dáta pre generátor Záznamu o sprostredkovaní (backend /bcrm/docs/zaznam)
+/* ⚠️ DOČASNÉ — Záznam o sprostredkovaní skladá zatiaľ prehliadač.
+   Právny doklad tu byť nemá; ostáva len preto, že `Contract` z /bcrm/policy
+   nenesie ceny za jednotlivé riziká, a bez nich by bola sekcia rizík prázdna.
+   My ich máme v `state.apiPrices` (z cenovej matice), backend nie.
+   AŽ adaptér začne vracať `Contract.risk_premiums` (kanonické kódy rizík),
+   presunúť generovanie na backend — `pillow_crm.zloz_payload_z_kanonickeho`
+   — a túto funkciu aj volanie /bcrm/docs/zaznam odtiaľto zmazať. */
 function buildZaznamData() {
   const p = state.poistnik, v = state.vehicle, vl = state.vlastnik;
   const fc = FREQ_CONFIG[state.paymentFreq] || FREQ_CONFIG[1];
@@ -5274,6 +5281,14 @@ async function apiSubmitBackend() {
       frequency: state.paymentFreq,
       indicative: false,              // ŽIADOSŤ o ostrú zmluvu; rozhoduje server podľa role
       selection: buildSelection(),
+      /* Údaje, ktoré Pillow vo svojom XML nemá. Súhlasy posielame už teraz, hoci
+         backend zatiaľ Záznam neskladá — nech sa tvar overí v prevádzke skôr, než
+         na ňom bude visieť právny doklad. */
+      doplnky: {
+        dokladCislo: state.poistnik.dokladCislo || '',
+        statnaPrislusnost: state.poistnik.statnaPrislusnost || '',
+        suhlasy: buildZaznamData().suhlasy,
+      },
     }),
   });
   if (!res.ok) {
@@ -5293,9 +5308,9 @@ async function apiSubmitBackend() {
   state.pdfZmluvaB64 = contract.pdf_base64 || null;
   state.varSym = contract.payment?.variable_symbol || null;
 
-  // zápis do CRM ostáva na nás — /bcrm/policy do CRM nezapisuje (potvrdil backend)
-  await sendBcrmZmluva(contract.reference_number, calcId, state.pdfZmluvaB64)
-    .catch(err => console.error('BCRM zmluva:', err));
+  /* Zápis zmluvy do CRM tu ZÁMERNE NIE JE — pri tejto ceste ho robí backend
+     z toho, čo Pillow naozaj potvrdil. Prehliadač už obchod neorchestruje.
+     (Stará cesta cez /pillow si sendBcrmZmluva ponecháva, tam backend nezapisuje.) */
 
   return { success: true, zmluvaId: contract.reference_number };
 }
