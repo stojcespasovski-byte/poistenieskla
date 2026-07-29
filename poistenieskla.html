@@ -1316,6 +1316,16 @@
 
   /* Block sekcia */
   .blk { margin-bottom:0; }
+  /* Parametre vozidla sa ukážu až po načítaní auta — technik na prvej obrazovke
+     vidí len to, čo má vyplniť (EČV/VIN), nie prázdny formulár pod tým.
+     Trieda `open` sa pridáva po vyhľadaní (aj neúspešnom → ručné vyplnenie). */
+  #vehicleDetails { display:none; }
+  #vehicleDetails.open { display:block; animation:fadeUp .25s ease both; }
+  /* S parametrami sa skryje aj to, čo nasleduje — oddeľovač a Doplnkové informácie
+     (je v nich tlačidlo „Vypočítať cenu"). Inak by technik klikol na výpočet a dostal
+     zoznam chýbajúcich polí, ktoré nemá kde vyplniť. */
+  #vehicleDetails:not(.open) ~ .divider-new,
+  #vehicleDetails:not(.open) ~ .blk { display:none; }
   .blk + .blk { margin-top:12px; }
   .blk-hd { display:flex;align-items:center;gap:6px;margin-bottom:8px; }
   .blk-icon {
@@ -7833,7 +7843,10 @@ function attachListeners() {
   document.getElementById('btnResetAll')?.addEventListener('click', resetAll);
 
   // Obnoviť stav po re-renderi zo state
-  if (state.vehicle.ecv || state.vehicle.vin) {
+  // Otvoriť aj pri ručnom vypĺňaní a po neúspešnom vyhľadaní — inak by technik
+  // bez zhody v registri nemal kam zadať údaje vozidla.
+  if (state.vehicle.ecv || state.vehicle.vin || state.lookupDone ||
+      state.vehicle.znacka || state.vehicle.typ || state.vehicle.maEcv === false) {
     vehicleDetails.classList.add('open');
     btnReset?.classList.add('visible');
   }
