@@ -8170,13 +8170,19 @@ function attachListeners() {
       if (el) { el.classList.add('toggle-error'); errors.push(el); zapisChybajuce(el); }
     }
 
-    // EČV alebo VIN (aspoň jedno)
+    /* VIN je POVINNÝ už tu. Pillow ho na výpočet ceny nepotrebuje, ale na uzatvorenie
+       zmluvy áno — a v Kroku 3 je pole len na čítanie, takže by ho technik nemal kde
+       doplniť a narazil by až pri uzatváraní. */
     const ecvEl = document.getElementById('fEcv');
     const vinEl = document.getElementById('fVin');
+    if (!v.vin) {
+      vinEl?.classList.add('input-error');
+      if (vinEl) errors.push(vinEl);
+      if (!chybaju.includes('VIN')) chybaju.push('VIN');
+    }
     if (!v.ecv && !v.vin) {
-      ecvEl?.classList.add('input-error'); vinEl?.classList.add('input-error');
+      ecvEl?.classList.add('input-error');
       if (ecvEl) errors.push(ecvEl);
-      if (!chybaju.includes('EČV alebo VIN')) chybaju.push('EČV alebo VIN');
     }
 
     // Toggle – musia byť zakliknuté (nie null)
