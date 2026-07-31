@@ -947,7 +947,13 @@
   .zmluvy-table td.sep-left   { border-left: 2px solid #e5e7eb; }
   .zmluvy-table td {
     padding: 9px 8px; border-bottom: 1px solid #f0f0f0;
-    vertical-align: middle;
+    vertical-align: middle; overflow-wrap: anywhere;
+  }
+  /* VIN je 17 znakov bez medzery — bez lámania sám osebe drží tabuľku
+     o ~150 px širšiu, než je nutné, a vyrobí vodorovný scroll. */
+  .zmluvy-table .vin {
+    display: block; font-size: 10px; color: #aaa;
+    letter-spacing: .5px; word-break: break-all;
   }
   .zmluvy-table tr:hover td { background: #f8f9ff; }
   .zmluvy-table .badge {
@@ -8994,7 +9000,7 @@ function renderZmluvyTable() {
       <td class="sep-left">${z.klient || '—'}</td>
       <td>${z.telefon || '—'}</td>
       <td class="sep-left">${z.vozidlo || '—'}</td>
-      <td><span class="badge">${z.ecv || '—'}</span>${z.vin ? `<br><span style="font-size:10px;color:#aaa;letter-spacing:.5px;">${z.vin}</span>` : ''}</td>
+      <td><span class="badge">${z.ecv || '—'}</span>${z.vin ? `<span class="vin">${z.vin}</span>` : ''}</td>
       <td class="sep-left" style="text-align:right">${eur(z.poistne_lehotne)}</td>
       <td>${lehota(z.lehota)}</td>
     </tr>`).join('');
