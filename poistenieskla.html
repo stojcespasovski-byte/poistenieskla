@@ -8987,7 +8987,7 @@ function renderZmluvyTable() {
       <td><span class="badge">${z.cislo || '—'}</span></td>
       <td class="sep-left">${z.klient || '—'}</td>
       <td class="sep-left">${z.vozidlo || '—'}</td>
-      <td><span class="badge">${z.ecv || '—'}</span></td>
+      <td><span class="badge">${z.ecv || '—'}</span>${z.vin ? `<br><span style="font-size:10px;color:#aaa;letter-spacing:.5px;">${z.vin}</span>` : ''}</td>
       <td>${z.produkt || '—'}</td>
       <td style="text-align:right">${eur(z.poistne_rocne)}</td>
       <td style="text-align:center">${z.stav || '—'}</td>
@@ -9007,7 +9007,7 @@ function renderZmluvyTable() {
           <th>Číslo zmluvy</th>
           <th class="sep-left">Klient</th>
           <th class="sep-left">Vozidlo</th>
-          <th>EČV</th>
+          <th>EČV / VIN</th>
           <th>Produkt</th>
           <th style="text-align:right">Poistné ročne</th>
           <th style="text-align:center">Stav</th>
