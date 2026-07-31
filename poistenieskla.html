@@ -8996,7 +8996,6 @@ function renderZmluvyTable() {
       <td><span class="badge">${z.ecv || '—'}</span>${z.vin ? `<br><span style="font-size:10px;color:#aaa;letter-spacing:.5px;">${z.vin}</span>` : ''}</td>
       <td class="sep-left" style="text-align:right">${eur(z.poistne_lehotne)}</td>
       <td>${lehota(z.lehota)}</td>
-      <td style="text-align:center">${z.stav || '—'}</td>
     </tr>`).join('');
   return `
     <table class="zmluvy-table">
@@ -9005,7 +9004,7 @@ function renderZmluvyTable() {
           <th colspan="4" class="section-label sec-zapis">Zápis</th>
           <th colspan="2" class="section-label sec-klient">Klient</th>
           <th colspan="2" class="section-label sec-vozidlo">Vozidlo</th>
-          <th colspan="3" class="section-label sec-zapis">Poistenie</th>
+          <th colspan="2" class="section-label sec-zapis">Poistenie</th>
         </tr>
         <tr>
           <th>Dojednané</th>
@@ -9018,7 +9017,6 @@ function renderZmluvyTable() {
           <th>EČV / VIN</th>
           <th class="sep-left" style="text-align:right">Lehotné poistné</th>
           <th>Lehota</th>
-          <th style="text-align:center">Stav</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
