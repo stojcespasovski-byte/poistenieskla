@@ -5707,7 +5707,9 @@ function renderDashboard() {
     firma:     { title: u.meno,          sub: 'Správa firmy' },
     prevadzka: { title: u.meno,          sub: MOCK_FIRMY.find(f=>f.id===u.firmaId)?.nazov || 'Správa prevádzky' },
   };
-  const { title, sub } = titles[rola] || { title: 'Dashboard', sub: '' };
+  let { title, sub } = titles[rola] || { title: 'Zmluvy', sub: '' };
+  // Technik má na tejto obrazovke len zoznam zmlúv — nadpis nech to aj hovorí
+  if (tabName === 'Zmluvy' && !titles[rola]) { title = 'Zmluvy'; sub = ''; }
 
   const showNewBtn = rola !== 'admin';
 
@@ -6854,6 +6856,9 @@ function renderSuccess(zmluvaId) {
   state.lastZmluvaId = zmluvaId;
   state.zmluvy.unshift({
     cislo:      zmluvaId,
+    // bez firmy/prevádzky ju zoznam odfiltruje — filtruje sa podľa nich
+    firmaId:    state.user.firmaId || null,
+    prevadzkaId: state.user.prevadzkaId || null,
     pracovnik:  state.user.meno,
     pobocka:    state.user.pobocka || state.user.meno,
     datum,
