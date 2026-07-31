@@ -955,6 +955,11 @@
     display: block; font-size: 10px; color: #aaa;
     letter-spacing: .5px; word-break: break-all;
   }
+  /* Druhý riadok v bunke — telefón pod klientom, lehota pod poistným.
+     Dva stĺpce menej sa pri užšom okne oplatia viac než vlastný stĺpec. */
+  .zmluvy-table .sub {
+    display: block; font-size: 11px; color: var(--text-muted); margin-top: 2px;
+  }
   .zmluvy-table tr:hover td { background: #f8f9ff; }
   .zmluvy-table .badge {
     font-size: 11px; font-weight: 600; padding: 2px 8px;
@@ -8998,33 +9003,29 @@ function renderZmluvyTable() {
       <td>${z.technik || '—'}</td>
       <td>${z.pobocka || '—'}</td>
       <td><span class="badge">${z.cislo || '—'}</span></td>
-      <td class="sep-left">${z.klient || '—'}</td>
-      <td>${z.telefon || '—'}</td>
+      <td class="sep-left">${z.klient || '—'}${z.telefon ? `<span class="sub">${z.telefon}</span>` : ''}</td>
       <td class="sep-left">${z.vozidlo || '—'}</td>
       <td><span class="badge">${z.ecv || '—'}</span>${z.vin ? `<span class="vin">${z.vin}</span>` : ''}</td>
-      <td class="sep-left" style="text-align:right">${eur(z.poistne_lehotne)}</td>
-      <td>${lehota(z.lehota)}</td>
+      <td class="sep-left" style="text-align:right">${eur(z.poistne_lehotne)}<span class="sub">${lehota(z.lehota)}</span></td>
     </tr>`).join('');
   return `
     <table class="zmluvy-table">
       <thead>
         <tr>
           <th colspan="4" class="section-label sec-zapis">Zápis</th>
-          <th colspan="2" class="section-label sec-klient">Klient</th>
+          <th class="section-label sec-klient">Klient</th>
           <th colspan="2" class="section-label sec-vozidlo">Vozidlo</th>
-          <th colspan="2" class="section-label sec-zapis">Poistenie</th>
+          <th class="section-label sec-zapis">Poistenie</th>
         </tr>
         <tr>
           <th>Dojednané</th>
           <th>Technik</th>
           <th>Pobočka</th>
           <th>Číslo zmluvy</th>
-          <th class="sep-left">Klient</th>
-          <th>Telefón</th>
+          <th class="sep-left">Klient / Telefón</th>
           <th class="sep-left">Vozidlo</th>
           <th>EČV / VIN</th>
           <th class="sep-left" style="text-align:right">Lehotné poistné</th>
-          <th>Lehota</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
