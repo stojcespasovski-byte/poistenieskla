@@ -5698,7 +5698,8 @@ function renderDashboard() {
   }
 
   if (tabName === 'Zmluvy') {
-    contentHtml = `<div class="dash-card" style="overflow-x:auto">${renderZmluvyTable(zmluvy)}</div>`;
+    if (state.zmluvyStav == null) nacitatZmluvy();   // prvé otvorenie → dotiahni z CRM
+    contentHtml = `<div class="dash-card" style="overflow-x:auto">${renderZmluvyTable()}</div>`;
   }
 
   // ── Title ────────────────────────────────────────────
@@ -8948,38 +8949,68 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeServisy();
 });
 
-function renderZmluvyTable(zmluvy = MOCK_ZMLUVY) {
+/* Zoznam zmlúv sa ťahá z CRM — jediný zdroj pravdy. Predtým žil len v localStorage,
+   takže technik ho nevidel na inom počítači a strácal sa pri čistení prehliadača.
+   `uid` neposielame, backend si ho berie z overeného tokenu (inak by si technik
+   prepísaním parametra pozrel cudzie zmluvy). Rozsah (kto koho vidí) rieši CRM
+   podľa hierarchie — dnes každý vidí seba a svojich podriadených. */
+async function nacitatZmluvy() {
+  if (state.zmluvyStav === 'nacitavam') return;
+  state.zmluvyStav = 'nacitavam';
+  try {
+    const res = await fetch(`${API_BASE}/bcrm/zmluvy?page=1&per_page=200`, { headers: authHeaders() });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    state.zmluvyCrm = Array.isArray(data.zmluvy) ? data.zmluvy : [];
+    state.zmluvyStav = 'nacitane';
+  } catch (err) {
+    console.warn('Zmluvy z CRM:', err);
+    state.zmluvyStav = 'chyba';
+  }
+  render();
+}
+
+function renderZmluvyTable() {
+  if (state.zmluvyStav === 'nacitavam' || state.zmluvyStav == null) {
+    return `<div class="zmluvy-empty">Načítavam zmluvy…</div>`;
+  }
+  if (state.zmluvyStav === 'chyba') {
+    return `<div class="zmluvy-empty">Zmluvy sa nepodarilo načítať. Skúste obnoviť stránku.</div>`;
+  }
+  const zmluvy = state.zmluvyCrm || [];
   if (!zmluvy.length) return `<div class="zmluvy-empty">Žiadne zmluvy</div>`;
+  const eur = v => (v == null || isNaN(v)) ? '—' : Number(v).toLocaleString('sk-SK', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
   const rows = zmluvy.map(z => `
-    <tr${z.real ? ' style="background:#f0fdf4;"' : ''}>
-      <td>${z.datum.replace(' ', '<br><span style="color:#888;font-size:12px;">') + '</span>'}</td>
-      <td>${z.pracovnik}</td>
-      <td>${z.pobocka}</td>
-      <td><span class="badge"${z.real ? ' style="background:#dcfce7;color:#16a34a;"' : ''}>${z.cislo}</span></td>
-      <td class="sep-left">${z.klient}<br><span style="color:#888;font-size:12px;">${z.tel}</span></td>
-      <td>${z.obec}</td>
-      <td class="sep-left">${z.auto}</td>
-      <td><span class="badge">${z.ecv}</span><br><span style="font-size:10px;color:#aaa;letter-spacing:.5px;">${z.vin}</span></td>
-      <td style="text-align:center">${z.priloha ? '📎' : '—'}</td>
+    <tr>
+      <td>${z.dojednane || '—'}</td>
+      <td>${z.technik || '—'}</td>
+      <td><span class="badge">${z.cislo || '—'}</span></td>
+      <td class="sep-left">${z.klient || '—'}</td>
+      <td class="sep-left">${z.vozidlo || '—'}</td>
+      <td><span class="badge">${z.ecv || '—'}</span></td>
+      <td>${z.produkt || '—'}</td>
+      <td style="text-align:right">${eur(z.poistne_rocne)}</td>
+      <td style="text-align:center">${z.stav || '—'}</td>
     </tr>`).join('');
   return `
     <table class="zmluvy-table">
       <thead>
         <tr>
-          <th colspan="4" class="section-label sec-zapis">Zápis</th>
-          <th colspan="2" class="section-label sec-klient">Klient</th>
-          <th colspan="3" class="section-label sec-vozidlo">Vozidlo</th>
+          <th colspan="3" class="section-label sec-zapis">Zápis</th>
+          <th class="section-label sec-klient">Klient</th>
+          <th colspan="2" class="section-label sec-vozidlo">Vozidlo</th>
+          <th colspan="3" class="section-label sec-zapis">Poistenie</th>
         </tr>
         <tr>
-          <th>Dátum / čas</th>
-          <th>Pracovník</th>
-          <th>Pobočka</th>
+          <th>Dojednané</th>
+          <th>Technik</th>
           <th>Číslo zmluvy</th>
           <th class="sep-left">Klient</th>
-          <th>Obec</th>
           <th class="sep-left">Vozidlo</th>
-          <th>EČV / VIN</th>
-          <th>Príloha</th>
+          <th>EČV</th>
+          <th>Produkt</th>
+          <th style="text-align:right">Poistné ročne</th>
+          <th style="text-align:center">Stav</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -9490,12 +9521,10 @@ function showDraftLoading() {
 
 <script>
   function refreshZmluvyPanel() {
-    const u = state.user;
-    const filtered = MOCK_ZMLUVY
-      .filter(z => !u.firmaId     || z.firmaId     === u.firmaId)
-      .filter(z => !u.prevadzkaId || z.prevadzkaId === u.prevadzkaId);
-    document.getElementById('zmluvyBody').innerHTML = renderZmluvyTable(filtered);
+    // ukazuje to isté ako obrazovka Zmluvy — skutočné dáta z CRM, nie ukážkové
+    document.getElementById('zmluvyBody').innerHTML = renderZmluvyTable();
   }
+  if (state.zmluvyStav == null) nacitatZmluvy();
   refreshZmluvyPanel();
 </script>
 
