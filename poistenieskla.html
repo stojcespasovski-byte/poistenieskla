@@ -8981,36 +8981,43 @@ function renderZmluvyTable() {
   const zmluvy = state.zmluvyCrm || [];
   if (!zmluvy.length) return `<div class="zmluvy-empty">Žiadne zmluvy</div>`;
   const eur = v => (v == null || isNaN(v)) ? '—' : Number(v).toLocaleString('sk-SK', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
+  // CRM môže lehotu poslať ako text alebo ako počet splátok za rok — zobrazíme text.
+  const LEHOTY = { 1: 'ročne', 2: 'polročne', 4: 'štvrťročne', 12: 'mesačne' };
+  const lehota = v => (v == null || v === '') ? '—' : (LEHOTY[v] || String(v));
   const rows = zmluvy.map(z => `
     <tr>
       <td>${z.dojednane || '—'}</td>
       <td>${z.technik || '—'}</td>
+      <td>${z.pobocka || '—'}</td>
       <td><span class="badge">${z.cislo || '—'}</span></td>
       <td class="sep-left">${z.klient || '—'}</td>
+      <td>${z.telefon || '—'}</td>
       <td class="sep-left">${z.vozidlo || '—'}</td>
       <td><span class="badge">${z.ecv || '—'}</span>${z.vin ? `<br><span style="font-size:10px;color:#aaa;letter-spacing:.5px;">${z.vin}</span>` : ''}</td>
-      <td>${z.produkt || '—'}</td>
-      <td style="text-align:right">${eur(z.poistne_rocne)}</td>
+      <td class="sep-left" style="text-align:right">${eur(z.poistne_lehotne)}</td>
+      <td>${lehota(z.lehota)}</td>
       <td style="text-align:center">${z.stav || '—'}</td>
     </tr>`).join('');
   return `
     <table class="zmluvy-table">
       <thead>
         <tr>
-          <th colspan="3" class="section-label sec-zapis">Zápis</th>
-          <th class="section-label sec-klient">Klient</th>
+          <th colspan="4" class="section-label sec-zapis">Zápis</th>
+          <th colspan="2" class="section-label sec-klient">Klient</th>
           <th colspan="2" class="section-label sec-vozidlo">Vozidlo</th>
           <th colspan="3" class="section-label sec-zapis">Poistenie</th>
         </tr>
         <tr>
           <th>Dojednané</th>
           <th>Technik</th>
+          <th>Pobočka</th>
           <th>Číslo zmluvy</th>
           <th class="sep-left">Klient</th>
+          <th>Telefón</th>
           <th class="sep-left">Vozidlo</th>
           <th>EČV / VIN</th>
-          <th>Produkt</th>
-          <th style="text-align:right">Poistné ročne</th>
+          <th class="sep-left" style="text-align:right">Lehotné poistné</th>
+          <th>Lehota</th>
           <th style="text-align:center">Stav</th>
         </tr>
       </thead>
