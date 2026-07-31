@@ -5622,9 +5622,10 @@ function renderDashboard() {
     admin:     ['Firmy','Zmluvy'],
     firma:     ['Zmluvy'],
     prevadzka: ['Zmluvy'],
-  }[rola] || [];
+  }[rola] || ['Zmluvy'];   // technik (a každá neznáma rola) vidí zoznam zmlúv
 
-  const tabsHtml = tabCfg.map((t,i) =>
+  // Jedna záložka = žiadna voľba; nadpis obrazovky už hovorí, čo tu je.
+  const tabsHtml = tabCfg.length < 2 ? '' : tabCfg.map((t,i) =>
     `<button class="dash-tab${tab===i?' active':''}" data-dtab="${i}">${t}</button>`
   ).join('');
 
