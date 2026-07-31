@@ -4405,6 +4405,20 @@ function xe(tag, val) {
 }
 
 
+/* Pillow prijíma telefón len v medzinárodnom tvare — „0944536353" odmietne
+   s „Nesprávny formát telefónneho čísla". Pole má vzor +421…, ale nič ho
+   nevynucovalo, takže padlo až pri uzatváraní zmluvy. Cudzie predvoľby
+   (+420, +43…) nechávame tak, ako ich technik zadal. */
+function normTel(t) {
+  const v = String(t || '').replace(/[\s\-()]/g, '');
+  if (!v) return '';
+  if (v.startsWith('+')) return v;
+  if (v.startsWith('00')) return '+' + v.slice(2);
+  if (v.startsWith('421')) return '+' + v;
+  if (v.startsWith('0')) return '+421' + v.slice(1);   // 0944… → +421944…
+  return v;
+}
+
 function cleanPsc(psc) {
   return (psc || '').replace(/\s/g, '');
 }
@@ -8458,7 +8472,7 @@ function attachListeners() {
     state.poistnik.email = this.value;
   });
   document.getElementById('s3Tel')?.addEventListener('input', function() {
-    state.poistnik.tel = this.value;
+    state.poistnik.tel = normTel(this.value);
   });
   document.getElementById('s3DokladCislo')?.addEventListener('input', function() {
     state.poistnik.dokladCislo = this.value;
@@ -8533,7 +8547,7 @@ function attachListeners() {
     state.vehicle.vin              = document.getElementById('s3Vin')?.value         || state.vehicle.vin;
     state.vehicle.farba            = document.getElementById('s3Farba')?.value       || state.vehicle.farba;
     state.poistnik.email           = document.getElementById('s3Email')?.value       || state.poistnik.email;
-    state.poistnik.tel             = document.getElementById('s3Tel')?.value         || state.poistnik.tel;
+    state.poistnik.tel             = normTel(document.getElementById('s3Tel')?.value) || state.poistnik.tel;
     state.poistnik.meno            = document.getElementById('s3Meno')?.value        || state.poistnik.meno;
     state.poistnik.priezvisko      = document.getElementById('s3Priezvisko')?.value  || state.poistnik.priezvisko;
     state.poistnik.dokladCislo     = document.getElementById('s3DokladCislo')?.value ?? state.poistnik.dokladCislo;
