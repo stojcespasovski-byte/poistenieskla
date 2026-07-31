@@ -5747,7 +5747,11 @@ const STATE_KEY = 'poistenie_state_v1';
 // Prechodné príznaky „práve prebieha" sa NESMÚ ukladať — po prerušení (obnovenie
 // stránky uprostred akcie) by ostali uložené ako true a tlačidlo by navždy zostalo
 // zaseknuté na „Odosielam…", pretože obsluha na začiatku kontroluje práve ich.
-const STATE_SKIP = ['submitting', 'posielamPonuku', 'user', 'view', 'dashTab', 'pdfZmluvaB64'];
+// Zoznam zmlúv je serverové dáta — patrí CRM, nie localStorage. Keď sa ukladal,
+// `zmluvyStav` prežilo obnovenie stránky, podmienka na dotiahnutie nikdy neprešla
+// a technik pozeral prvú odpoveď navždy (nové stĺpce z CRM sa nikdy neukázali).
+const STATE_SKIP = ['submitting', 'posielamPonuku', 'user', 'view', 'dashTab', 'pdfZmluvaB64',
+                    'zmluvyStav', 'zmluvyCrm'];
 
 function saveState() {
   try {
