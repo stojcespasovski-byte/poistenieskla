@@ -1786,6 +1786,7 @@
   .s5 .btn-sec:hover { border-color:var(--teal-dark);color:var(--teal-dark); }
   .s5 .btn-pri { display:inline-flex;align-items:center;gap:7px;background:var(--teal-dark);color:#fff;border:none;border-radius:5px;padding:0 24px;height:42px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s; }
   .s5 .btn-pri:hover { background:var(--teal-mid); }
+  .s5 .doc-static { color:var(--ink-3);cursor:default;text-decoration:none; }
 
   /* ═══ CHAT s back-office (bublina technika) — na všetkých krokoch ═══ */
   #chatFab {
@@ -6952,9 +6953,12 @@ function renderSuccess(zmluvaId) {
 
         <div class="box" style="margin-top:12px;">
           <div class="box-hd">Prílohy</div>
-          <a class="doc-link">${DOC_ICON} Návrh poistnej zmluvy</a>
-          <a class="doc-link">${DOC_ICON} VPP</a>
-          <a class="doc-link">${DOC_ICON} IPID</a>
+          <a class="doc-link" onclick="stiahnutZmluvu()" style="cursor:pointer;">${DOC_ICON} Návrh poistnej zmluvy</a>
+          <!-- VPP a IPID zatiaľ nie sú medzi dokumentmi na našej doméne (backend ich má
+               doplniť do /docs). Do tej doby nie sú odkazmi — predtým vyzerali klikateľne
+               a kliknutie nespravilo nič. Klient ich dostáva v e-maile. -->
+          <span class="doc-link doc-static">${DOC_ICON} VPP</span>
+          <span class="doc-link doc-static">${DOC_ICON} IPID</span>
         </div>
 
         <div class="actions">
