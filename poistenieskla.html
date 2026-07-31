@@ -925,15 +925,16 @@
   }
   .zmluvy-close:hover { background: rgba(255,255,255,.28); }
   .zmluvy-body { flex: 1; overflow-y: auto; overflow-x: auto; padding: 24px; }
+  /* Bez pevného minima a s lámaním hlavičiek sa tabuľka vojde do okna
+     aj s 10 stĺpcami — technik tak nemusí vodorovne rolovať. */
   .zmluvy-table {
     width: 100%; border-collapse: collapse; font-size: 13px;
-    min-width: 960px;
+    table-layout: auto;
   }
   .zmluvy-table th {
     text-align: left; font-size: 11px; font-weight: 600; letter-spacing: .06em;
     text-transform: uppercase; color: var(--text-muted);
-    padding: 7px 10px; border-bottom: 2px solid var(--border);
-    white-space: nowrap;
+    padding: 7px 8px; border-bottom: 2px solid var(--border);
   }
   .zmluvy-table th.section-label {
     font-size: 10px; font-weight: 700; letter-spacing: .08em;
@@ -945,7 +946,7 @@
   .zmluvy-table th.sec-vozidlo{ background: #fff7ed; color: #ea580c; }
   .zmluvy-table td.sep-left   { border-left: 2px solid #e5e7eb; }
   .zmluvy-table td {
-    padding: 9px 10px; border-bottom: 1px solid #f0f0f0;
+    padding: 9px 8px; border-bottom: 1px solid #f0f0f0;
     vertical-align: middle;
   }
   .zmluvy-table tr:hover td { background: #f8f9ff; }
