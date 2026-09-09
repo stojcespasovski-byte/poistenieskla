@@ -970,6 +970,31 @@
     text-align: center; color: var(--text-muted); padding: 60px 0; font-size: 15px;
   }
 
+  /* ─── DETAIL ZMLUVY (rozbalenie v riadku) ─────────────── */
+  .zmluvy-row { cursor: pointer; }
+  .zmluvy-row.open td { background: #f4f7ff; border-bottom-color: transparent; }
+  .zmluvy-detail-row > td { padding: 0 8px 14px; background: #f4f7ff; }
+  .zmluva-detail {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 18px; padding: 14px 12px 4px; border-top: 1px solid #dde5f7;
+  }
+  .zd-h { font-size: 10px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 7px; }
+  .zd-dl { display: flex; flex-direction: column; gap: 5px; }
+  .zd-par { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; }
+  .zd-par dt { color: var(--text-muted); }
+  .zd-par dd { font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+  .zd-kv { font-size: 13px; font-weight: 600; overflow-wrap: anywhere; margin-bottom: 3px; }
+  .zd-rizika { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .zd-rizika td { padding: 4px 0; border-bottom: 1px solid #e4ebfa; vertical-align: top; }
+  .zd-btn {
+    margin-top: 9px; font-size: 12px; font-weight: 600; cursor: pointer;
+    padding: 5px 11px; border-radius: 7px;
+    border: 1px solid var(--accent); background: #fff; color: var(--accent);
+  }
+  .zd-btn:hover { background: var(--accent); color: #fff; }
+  .zd-note { font-size: 10.5px; color: var(--text-muted); margin-top: 6px; line-height: 1.45; }
+
   /* ─── AUTOCOMPLETE OBEC ───────────────────────────────── */
   .ac-wrap { position: relative; }
   .ac-dropdown {
@@ -1986,6 +2011,7 @@ const state = {
   step: 0,
   view: 'login',   // 'login' | 'form' | 'dashboard'
   dashTab: 0,
+  zmluvaOtvorena: null,   // id rozbaleného riadka v zozname zmlúv
   user: { uid: '', meno: '', rola: '', pobocka: '' },
   lookupDone: false,
   vehicleStatus: null,   // null | 'loading' | 'found' | 'not-found'
@@ -5751,7 +5777,7 @@ const STATE_KEY = 'poistenie_state_v1';
 // `zmluvyStav` prežilo obnovenie stránky, podmienka na dotiahnutie nikdy neprešla
 // a technik pozeral prvú odpoveď navždy (nové stĺpce z CRM sa nikdy neukázali).
 const STATE_SKIP = ['submitting', 'posielamPonuku', 'user', 'view', 'dashTab', 'pdfZmluvaB64',
-                    'zmluvyStav', 'zmluvyCrm'];
+                    'zmluvyStav', 'zmluvyCrm', 'zmluvaOtvorena'];
 
 function saveState() {
   try {
@@ -7572,6 +7598,7 @@ function attachListeners() {
     document.getElementById('btnNovZmluva')?.addEventListener('click', () => {
       state.view = 'form'; state.step = 1; render();
     });
+
   }
 
   if (state.step === 1) {
@@ -8973,6 +9000,30 @@ document.addEventListener('click', e => {
   if (e.target.id === 'btnZmluvy') openZmluvy();
   if (e.target.id === 'zmluvyClose' || e.target.id === 'zmluvyOverlay') closeZmluvy();
   if (e.target.id === 'srvOverlay') closeServisy();   // klik na tmavé pozadie zavrie modál
+
+  // Zoznam zmlúv — delegovane, lebo ten istý zoznam kreslí obrazovka Zmluvy
+  // aj bočný panel; každý si ho vykresľuje sám a viazať to dvakrát je zbytočné.
+  const opravaBtn = e.target.closest?.('[data-oprava]');
+  if (opravaBtn) {
+    e.stopPropagation();                     // inak by klik zavrel rozbalený riadok
+    // Opravu robíme my — technik ju nemá kde zadať, zmena musí ísť aj do poisťovne.
+    chatToggle(true);
+    const ta = document.getElementById('chatText');
+    if (ta) {
+      ta.value = `Zmluva ${opravaBtn.dataset.oprava}: prosím o opravu údajov klienta — `;
+      ta.focus();
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+    }
+    return;
+  }
+  const row = e.target.closest?.('.zmluvy-row');
+  if (row) {
+    const zid = row.dataset.zid;
+    state.zmluvaOtvorena = (state.zmluvaOtvorena === zid) ? null : zid;
+    render();
+    if (document.getElementById('zmluvyPanel')?.classList.contains('open')
+        && typeof refreshZmluvyPanel === 'function') refreshZmluvyPanel();
+  }
 });
 
 /* Modál zmluvných servisov — PDF sa načíta až pri prvom otvorení (lazy) */
@@ -9012,6 +9063,76 @@ async function nacitatZmluvy() {
   render();
 }
 
+/* Detail rozbalený pod riadkom. Zobrazuje len to, čo CRM naozaj pošle —
+   blok, pre ktorý dáta nie sú, sa vôbec nevykreslí (žiadne prázdne škatuľky).
+   Riziká a e-mail klienta dnes v odpovedi nie sú; keď ich CRM doplní, objavia
+   sa samy bez ďalšieho zásahu. */
+function renderZmluvaDetail(z, eur, lehota) {
+  const par = (label, val) => val ? `<div class="zd-par"><dt>${label}</dt><dd>${val}</dd></div>` : '';
+
+  const rizika = Array.isArray(z.rizika) ? z.rizika : [];
+  const rizikaHtml = rizika.length ? `
+    <div class="zd-block">
+      <div class="zd-h">Uzatvorené riziká</div>
+      <table class="zd-rizika">
+        <tbody>${rizika.map(r => {
+          const nazov = typeof r === 'string' ? r : (r.nazov || r.kod || '—');
+          const det   = typeof r === 'string' ? '' :
+            [r.variant, r.spoluucast].filter(Boolean).join(' · ');
+          const cena  = typeof r === 'string' ? '' : (r.poistne_rocne != null ? eur(r.poistne_rocne) : '');
+          return `<tr>
+            <td>${nazov}${det ? `<span class="sub">${det}</span>` : ''}</td>
+            <td style="text-align:right;white-space:nowrap">${cena}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>` : '';
+
+  const kontaktHtml = (z.email || z.telefon) ? `
+    <div class="zd-block">
+      <div class="zd-h">Kontakt klienta</div>
+      <div class="zd-kontakt">
+        ${z.email  ? `<div class="zd-kv">${z.email}</div>` : ''}
+        ${z.telefon? `<div class="zd-kv">${z.telefon}</div>` : ''}
+      </div>
+      <button class="zd-btn" data-oprava="${String(z.cislo || '').replace(/[^0-9]/g,'')}">
+        Nahlásiť opravu
+      </button>
+      <div class="zd-note">Údaje meníme my — opravíme ich aj v poisťovni a doklady klientovi pošleme znova.</div>
+    </div>` : '';
+
+  const poistenieHtml = `
+    <div class="zd-block">
+      <div class="zd-h">Poistenie</div>
+      <dl class="zd-dl">
+        ${par('Poisťovňa', z.poistovna)}
+        ${par('Produkt', z.produkt)}
+        ${par('Začiatok', z.zaciatok)}
+        ${par('Lehotné poistné', z.poistne_lehotne != null ? eur(z.poistne_lehotne) : '')}
+        ${par('Lehota', z.lehota != null ? lehota(z.lehota) : '')}
+        ${par('Ročné poistné', z.poistne_rocne != null ? eur(z.poistne_rocne) : '')}
+        ${par('Stav', z.stav)}
+      </dl>
+    </div>`;
+
+  const vozidloHtml = `
+    <div class="zd-block">
+      <div class="zd-h">Vozidlo</div>
+      <dl class="zd-dl">
+        ${par('Vozidlo', z.vozidlo)}
+        ${par('EČV', z.ecv)}
+        ${par('VIN', z.vin)}
+      </dl>
+    </div>`;
+
+  return `<div class="zmluva-detail">
+    ${kontaktHtml}
+    ${rizikaHtml}
+    ${poistenieHtml}
+    ${vozidloHtml}
+  </div>`;
+}
+
 function renderZmluvyTable() {
   if (state.zmluvyStav === 'nacitavam' || state.zmluvyStav == null) {
     return `<div class="zmluvy-empty">Načítavam zmluvy…</div>`;
@@ -9025,8 +9146,12 @@ function renderZmluvyTable() {
   // CRM môže lehotu poslať ako text alebo ako počet splátok za rok — zobrazíme text.
   const LEHOTY = { 1: 'ročne', 2: 'polročne', 4: 'štvrťročne', 12: 'mesačne' };
   const lehota = v => (v == null || v === '') ? '—' : (LEHOTY[v] || String(v));
-  const rows = zmluvy.map(z => `
-    <tr>
+  const rows = zmluvy.map(z => {
+    // id z CRM je UUID, číslo zmluvy je číslice — čokoľvek iné do atribútu nepustíme.
+    const zid = String(z.id ?? z.cislo ?? '').replace(/[^A-Za-z0-9-]/g, '');
+    const open = state.zmluvaOtvorena === zid;
+    return `
+    <tr class="zmluvy-row${open ? ' open' : ''}" data-zid="${zid}">
       <td>${z.dojednane || '—'}</td>
       <td>${z.technik || '—'}</td>
       <td>${z.pobocka || '—'}</td>
@@ -9035,7 +9160,9 @@ function renderZmluvyTable() {
       <td class="sep-left">${z.vozidlo || '—'}</td>
       <td><span class="badge">${z.ecv || '—'}</span>${z.vin ? `<span class="vin">${z.vin}</span>` : ''}</td>
       <td class="sep-left" style="text-align:right">${eur(z.poistne_lehotne)}<span class="sub">${lehota(z.lehota)}</span></td>
-    </tr>`).join('');
+    </tr>
+    ${open ? `<tr class="zmluvy-detail-row"><td colspan="8">${renderZmluvaDetail(z, eur, lehota)}</td></tr>` : ''}`;
+  }).join('');
   return `
     <table class="zmluvy-table">
       <thead>
