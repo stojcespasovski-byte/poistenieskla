@@ -8588,6 +8588,8 @@ function attachListeners() {
 
     // validácia podľa typu
     const s3errors = [];
+    // Bez tohto by pole ostalo červené aj po oprave — Krok 3 sa medzitým nerenderuje.
+    document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
     const markS3 = id => {
       const el = document.getElementById(id);
       if (el) { el.classList.add('input-error'); s3errors.push(el); }
@@ -8604,6 +8606,28 @@ function attachListeners() {
     }
     if (!state.poistnik.email)              markS3('s3Email');
     if (!state.poistnik.tel)                markS3('s3Tel');
+    // Adresa ide do zmluvy (`street` v SAVE XML) — bez nej sa dá prejsť až na
+    // poslednú obrazovku a odoslať zmluvu s prázdnou adresou. PSČ a obec sú tu
+    // len na čítanie (nesú sa z Kroku 1), preto sa kontrolujú len tie dve polia,
+    // ktoré technik na tejto obrazovke naozaj vyplní.
+    if (!String(state.poistnik.ulica || '').trim()) markS3('s3Ulica');
+    if (!String(state.poistnik.cislo || '').trim()) markS3('s3Cislo');
+
+    // Vlastník, keď je to iná osoba než poistník — jeho adresa ide do XML rovnako.
+    if (state.vlastnik.typ === 'osoba') {
+      const vl = state.vlastnik;
+      if (vl.forma === 'po') {
+        if (!String(vl.nazov || '').trim()) markS3('vlNazov');
+        if (!String(vl.ico   || '').trim()) markS3('vlIco');
+      } else {
+        if (!String(vl.meno      || '').trim()) markS3('vlMeno');
+        if (!String(vl.priezvisko|| '').trim()) markS3('vlPriezvisko');
+      }
+      if (!String(vl.ulica || '').trim()) markS3('vlUlica');
+      if (!String(vl.cislo || '').trim()) markS3('vlCislo');
+      if (!String(vl.psc   || '').trim()) markS3('vlPsc');
+      if (!String(vl.obec  || '').trim()) markS3('vlObec');
+    }
 
     if (s3errors.length > 0) {
       s3errors[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
