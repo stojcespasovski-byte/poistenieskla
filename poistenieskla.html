@@ -994,7 +994,6 @@
   }
   .zd-btn:hover { background: var(--accent); color: #fff; }
   .zd-note { font-size: 10.5px; color: var(--text-muted); margin-top: 6px; line-height: 1.45; }
-  .zd-balik { font-size: 11px; color: var(--text-muted); font-style: italic; }
 
   /* ─── AUTOCOMPLETE OBEC ───────────────────────────────── */
   .ac-wrap { position: relative; }
@@ -9071,19 +9070,27 @@ async function nacitatZmluvy() {
 function renderZmluvaDetail(z, eur, lehota) {
   const par = (label, val) => val ? `<div class="zd-par"><dt>${label}</dt><dd>${val}</dd></div>` : '';
 
-  const rizika = Array.isArray(z.rizika) ? z.rizika : [];
+  // Názov: čo pošle CRM; inak si ho doplníme z kanonického kódu vlastným zoznamom.
+  // Pri starších zmluvách býva `kod` prázdny reťazec a CRM ho dohadovať nebude —
+  // taký riadok nemá čo zobraziť, preto ho vynechávame, nech nevznikne prázdny.
+  const rizikoNazov = r =>
+    (r.nazov || '').trim()
+    || (ALL_PRODUCTS.find(p => p.id === r.kod)?.name || '')
+    || (r.kod || '').trim();
+  const rizika = (Array.isArray(z.rizika) ? z.rizika : [])
+    .filter(r => r && (rizikoNazov(r) || r.cena != null || (r.spoluucast || '').trim()));
   const rizikaHtml = rizika.length ? `
     <div class="zd-block">
       <div class="zd-h">Uzatvorené riziká</div>
       <table class="zd-rizika">
         <tbody>${rizika.map(r => {
-          const nazov = r.nazov || r.kod || '';
-          const sp    = (r.spoluucast || '').trim();
-          // `cena: null` nie je chýbajúci údaj — pri balíkovej zmluve dala poisťovňa
-          // len cenu balíka. Nedopočítavame ju a nevypisujeme nulu.
-          const cena  = r.cena != null ? eur(r.cena) : '<span class="zd-balik">v cene balíka</span>';
+          const sp = (r.spoluucast || '').trim();
+          // `cena: null` = cenu za riziko nemáme (CRM ju do e999835 zahadzovalo,
+          // a poisťovňa ju pri balíku ani nedáva). Nedopočítavame ju a nepíšeme
+          // ani nulu, ani pomlčku — prázdna bunka je jediná pravdivá.
+          const cena = r.cena != null ? eur(r.cena) : '';
           return `<tr>
-            <td>${nazov}${sp ? `<span class="sub">spoluúčasť ${sp}</span>` : ''}</td>
+            <td>${rizikoNazov(r)}${sp ? `<span class="sub">spoluúčasť ${sp}</span>` : ''}</td>
             <td style="text-align:right;white-space:nowrap">${cena}</td>
           </tr>`;
         }).join('')}</tbody>
