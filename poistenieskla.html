@@ -994,6 +994,7 @@
   }
   .zd-btn:hover { background: var(--accent); color: #fff; }
   .zd-note { font-size: 10.5px; color: var(--text-muted); margin-top: 6px; line-height: 1.45; }
+  .zd-balik { font-size: 11px; color: var(--text-muted); font-style: italic; }
 
   /* ─── AUTOCOMPLETE OBEC ───────────────────────────────── */
   .ac-wrap { position: relative; }
@@ -9076,12 +9077,13 @@ function renderZmluvaDetail(z, eur, lehota) {
       <div class="zd-h">Uzatvorené riziká</div>
       <table class="zd-rizika">
         <tbody>${rizika.map(r => {
-          const nazov = typeof r === 'string' ? r : (r.nazov || r.kod || '—');
-          const det   = typeof r === 'string' ? '' :
-            [r.variant, r.spoluucast].filter(Boolean).join(' · ');
-          const cena  = typeof r === 'string' ? '' : (r.poistne_rocne != null ? eur(r.poistne_rocne) : '');
+          const nazov = r.nazov || r.kod || '';
+          const sp    = (r.spoluucast || '').trim();
+          // `cena: null` nie je chýbajúci údaj — pri balíkovej zmluve dala poisťovňa
+          // len cenu balíka. Nedopočítavame ju a nevypisujeme nulu.
+          const cena  = r.cena != null ? eur(r.cena) : '<span class="zd-balik">v cene balíka</span>';
           return `<tr>
-            <td>${nazov}${det ? `<span class="sub">${det}</span>` : ''}</td>
+            <td>${nazov}${sp ? `<span class="sub">spoluúčasť ${sp}</span>` : ''}</td>
             <td style="text-align:right;white-space:nowrap">${cena}</td>
           </tr>`;
         }).join('')}</tbody>
