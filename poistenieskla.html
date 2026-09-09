@@ -2071,12 +2071,14 @@ const state = {
    vzorec, na ktorý sú ľudia školení neklikať a filtre ho tak vyhodnocujú.
    Bonus: je to same-origin, takže odpadá CORS aj preflight.
    Overené, že Vercel preposiela hlavičku Authorization nedotknutú.
-   Rollback = vrátiť sem 'https://api.pripoisti.sk' (backend na nej beží ďalej). */
-const API_BASE = 'https://poistenieskla.sk/api';
+   Rollback = vrátiť sem 'https://api.pripoisti.sk' (backend na nej beží ďalej).
+   Relatívne, nie natvrdo doménou: appku servíruje poistenieautoskiel.sk aj
+   (prechodne) poistenieskla.sk a takto je volanie na oboch same-origin. */
+const API_BASE = '/api';
 
 /* Zámerne NIE cez /api — tieto odkazy vidí klient a končia v e-mailoch
    a podpísaných dokumentoch, kde sa neskôr menia ťažko. */
-const DOC_BASE = 'https://poistenieskla.sk/dokumenty/';
+const DOC_BASE = 'https://poistenieautoskiel.sk/dokumenty/';
 
 /* Súhlasy na jednom mieste: rovnaký zoznam vykresľuje Krok 4 aj zapisuje Záznam
    z rokovania. Zmysel evidencie je, že texty sedia DOSLOVNE s tým, čo klient

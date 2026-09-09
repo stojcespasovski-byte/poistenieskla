@@ -151,7 +151,9 @@ body{
 </div>
 
 <script>
-  const API = 'https://poistenieskla.sk/api';   // cez vlastnú doménu (Vercel rewrite)
+  // Relatívne, nie natvrdo doménou — appku servíruje poistenieautoskiel.sk aj
+  // (prechodne) poistenieskla.sk a takto je volanie na oboch same-origin.
+  const API = '/api';   // Vercel rewrite → alexapi.sk
 
   (function checkExistingSession() {
     const raw = localStorage.getItem('ps_token');
