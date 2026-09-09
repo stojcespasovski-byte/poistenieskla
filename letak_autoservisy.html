@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<title>Poistenieskla.sk — leták pre autosklá a autoservisy</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --teal:#0e7c86;
+    --teal-dark:#0a5b63;
+    --ink:#0f172a;
+    --muted:#5b6472;
+    --line:#e3e8ee;
+    --wash:#f2f8f9;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+
+  @page{ size:A4; margin:0; }
+  html,body{ background:#e9edf0; }
+  body{
+    font-family:'Inter',-apple-system,system-ui,sans-serif;
+    color:var(--ink); -webkit-font-smoothing:antialiased;
+  }
+  .page{
+    width:210mm; height:297mm; margin:16px auto; background:#fff;
+    padding:16mm 15mm 12mm; display:flex; flex-direction:column;
+    box-shadow:0 8px 40px rgba(0,0,0,.14);
+  }
+
+  /* ── hlavička ───────────────────────────────────────── */
+  .top{ display:flex; align-items:flex-start; justify-content:space-between; gap:12mm; }
+  .brand{ font-family:'Instrument Serif',serif; font-size:27pt; line-height:1; color:var(--teal); }
+  .brand span{ color:var(--ink); }
+  .brand-sub{ font-size:8pt; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--muted); margin-top:5px; font-weight:600; }
+  .top-note{ text-align:right; font-size:8.5pt; color:var(--muted); line-height:1.5; padding-top:4px; }
+  .top-note b{ color:var(--ink); font-weight:600; }
+
+  .claim{
+    font-family:'Instrument Serif',serif; font-size:31pt; line-height:1.12;
+    margin-top:11mm; letter-spacing:-.01em;
+  }
+  .claim em{ font-style:italic; color:var(--teal); }
+  .lead{ font-size:10.5pt; line-height:1.6; color:var(--muted); margin-top:5mm; max-width:150mm; }
+
+  .rule{ height:2px; background:var(--teal); width:22mm; margin:7mm 0 0; }
+
+  /* ── prínosy ────────────────────────────────────────── */
+  .h{ font-size:8.5pt; letter-spacing:.16em; text-transform:uppercase;
+    font-weight:700; color:var(--teal); margin-bottom:4mm; }
+  .benefits{ display:grid; grid-template-columns:1fr 1fr; gap:5mm 9mm; margin-top:7mm; }
+  .b-t{ font-size:11pt; font-weight:700; margin-bottom:1.5mm; }
+  .b-d{ font-size:9.5pt; line-height:1.55; color:var(--muted); }
+
+  /* ── postup ─────────────────────────────────────────── */
+  .flow{ margin-top:8mm; background:var(--wash); border-radius:4mm; padding:7mm 7mm 6mm; }
+  .steps{ display:grid; grid-template-columns:repeat(4,1fr); gap:6mm; margin-top:1mm; }
+  .step-n{ font-family:'Instrument Serif',serif; font-size:20pt; color:var(--teal); line-height:1; }
+  .step-t{ font-size:10pt; font-weight:700; margin:2.5mm 0 1.5mm; }
+  .step-d{ font-size:9pt; line-height:1.5; color:var(--muted); }
+  .flow-foot{ font-size:9.5pt; color:var(--teal-dark); font-weight:600; margin-top:6mm;
+    border-top:1px solid #d6e6e8; padding-top:4mm; }
+
+  /* ── krytie ─────────────────────────────────────────── */
+  .cover{ margin-top:8mm; }
+  .chips{ display:flex; flex-wrap:wrap; gap:2mm; }
+  .chip{ font-size:9pt; font-weight:600; padding:1.6mm 3.4mm; border-radius:20px;
+    border:1px solid var(--line); color:var(--ink); }
+  .chip.on{ background:var(--teal); border-color:var(--teal); color:#fff; }
+
+  /* ── pätička ────────────────────────────────────────── */
+  .spacer{ flex:1; }
+  .foot{ border-top:1px solid var(--line); padding-top:5mm; display:flex;
+    align-items:flex-end; justify-content:space-between; gap:10mm; }
+  .cta-l{ font-size:8.5pt; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--muted); font-weight:600; }
+  .cta-u{ font-family:'Instrument Serif',serif; font-size:22pt; color:var(--teal); line-height:1.1; margin-top:1.5mm; }
+  .cta-c{ font-size:10pt; color:var(--ink); margin-top:2mm; line-height:1.6; }
+  .legal{ font-size:7.5pt; line-height:1.5; color:#8a93a0; text-align:right; max-width:78mm; }
+
+  @media print{
+    html,body{ background:#fff; }
+    .page{ margin:0; box-shadow:none; }
+    *{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="top">
+    <div>
+      <div class="brand">Poistenie<span>skla</span>.sk</div>
+      <div class="brand-sub">Portál pre autosklá a autoservisy</div>
+    </div>
+    <div class="top-note">
+      Poistenie skiel a pripoistenia<br>
+      od poisťovne <b>Pillow</b>
+    </div>
+  </div>
+
+  <div class="claim">
+    Sklo meníte vy.<br>
+    <em>Poistenie predáte tiež.</em>
+  </div>
+
+  <p class="lead">
+    Zákazník sedí u vás v čakárni a rieši prasknuté sklo. To je jediný moment, keď ho
+    poistenie skiel naozaj zaujíma. Poistenieskla.sk je portál, cez ktorý mu ho na mieste
+    vypočítate aj uzatvoríte — z počítača na pulte, bez papierov a bez volania na centrálu.
+  </p>
+
+  <div class="rule"></div>
+
+  <div class="benefits">
+    <div>
+      <div class="b-t">Ďalší príjem z práce, ktorú už robíte</div>
+      <div class="b-d">Za každú uzatvorenú zmluvu dostávate províziu. Nepredávate nič
+        navyše — len ponúknete to, čo zákazník práve potrebuje.</div>
+    </div>
+    <div>
+      <div class="b-t">Poistený zákazník sa vráti k vám</div>
+      <div class="b-d">Ďalšie prasknuté sklo už rieši poisťovňa a zákazník príde tam,
+        kde ho poistil. Z jednorazovej opravy sa stáva stály klient.</div>
+    </div>
+    <div>
+      <div class="b-t">Portál nesie vašu značku</div>
+      <div class="b-d">Vaše logo a vaša farba — zákazník vidí obrazovku vašej prevádzky,
+        nie cudziu. Aj e-mail s dokladmi mu príde s vašou značkou.</div>
+    </div>
+    <div>
+      <div class="b-t">Prehľad a pomoc po ruke</div>
+      <div class="b-d">Všetky uzatvorené zmluvy na jednom mieste. Keď si technik nevie
+        rady, píše priamo z rozpracovanej zmluvy na naše back-office.</div>
+    </div>
+  </div>
+
+  <div class="flow">
+    <div class="h">Ako to prebieha</div>
+    <div class="steps">
+      <div>
+        <div class="step-n">1</div>
+        <div class="step-t">Vozidlo</div>
+        <div class="step-d">Zadáte EČV alebo VIN. Značka, model, objem aj výkon sa
+          doplnia samy z registra.</div>
+      </div>
+      <div>
+        <div class="step-n">2</div>
+        <div class="step-t">Cena</div>
+        <div class="step-d">Cena naživo z poisťovne. Zákazník si vyberie spoluúčasť
+          a čo si chce pripoistiť.</div>
+      </div>
+      <div>
+        <div class="step-n">3</div>
+        <div class="step-t">Klient</div>
+        <div class="step-d">Meno, adresa, doklad. Firmu načítame z IČO, obec z PSČ —
+          píšete minimum.</div>
+      </div>
+      <div>
+        <div class="step-n">4</div>
+        <div class="step-t">Uzatvorenie</div>
+        <div class="step-d">Zmluva vznikne hneď. Zákazník dostáva doklady e-mailom
+          a QR kód na zaplatenie.</div>
+      </div>
+    </div>
+    <div class="flow-foot">
+      Portál beží v bežnom internetovom prehliadači — nič sa neinštaluje a funguje aj
+      na tablete.
+    </div>
+  </div>
+
+  <div class="cover">
+    <div class="h">Čo si zákazník môže poistiť</div>
+    <div class="chips">
+      <span class="chip on">Sklá</span>
+      <span class="chip">Havária</span>
+      <span class="chip">Krádež</span>
+      <span class="chip">Živel</span>
+      <span class="chip">Stret so zverou</span>
+      <span class="chip">Vandalizmus</span>
+      <span class="chip">Asistencia</span>
+      <span class="chip">Batožina</span>
+      <span class="chip">Úraz vodiča</span>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+
+  <div class="foot">
+    <div>
+      <div class="cta-l">Chcete to mať u seba na pulte?</div>
+      <div class="cta-u">poistenieautoskiel.sk</div>
+      <div class="cta-c">info@pripoisti.sk · +421 948 105 090</div>
+    </div>
+    <div class="legal">
+      Poistenie poskytuje Pillow. Sprostredkovateľom je automanager s.r.o.,
+      IČO 23 482 753. Rozsah krytia, limity a spoluúčasti sú záväzne určené
+      poistnou zmluvou a všeobecnými poistnými podmienkami; tento leták je
+      informatívny a nie je ponukou na uzavretie zmluvy.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
