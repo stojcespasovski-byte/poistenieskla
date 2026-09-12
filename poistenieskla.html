@@ -2137,6 +2137,29 @@ function authHeaders() {
   return t ? { 'Authorization': 'Bearer ' + t } : {};
 }
 
+/* Backend od 12. 9. 2026 vyžaduje identifikáciu na KAŽDEJ ceste (dôvod: /pillow/*
+   bol verejný s našimi produkčnými prístupmi do Pillow). Hlavičku nesú historicky
+   len volania /bcrm/*, takže /pillow/*, /rate-matrix a /ciselnik/* išli bez nej
+   a po zavretí vracali 401 — technik nespočítal ani neuzavrel zmluvu.
+   Namiesto dopĺňania na ~20 miestach ju pridávame tu, jednému hrdlu všetkých
+   volaní na /api/* — platí to aj pre volania, ktoré pribudnú neskôr.
+   Cudzie domény sa nedotýkame. Pred prihlásením token nie je, a /bcrm/auth
+   a /bcrm/sso-exchange sú na backende povolené výnimky. X-Api-Key sem nepatrí —
+   zdroják portálu je verejný. */
+{
+  const povodnyFetch = window.fetch.bind(window);
+  window.fetch = (input, init = {}) => {
+    const url = typeof input === 'string' ? input : (input && input.url) || '';
+    const naApi = url.startsWith(API_BASE + '/') ||
+                  url.startsWith(location.origin + API_BASE + '/');
+    const t = naApi ? localStorage.getItem('ps_token') : null;
+    if (!t) return povodnyFetch(input, init);
+    const h = new Headers(init.headers || (typeof input !== 'string' ? input.headers : undefined));
+    if (!h.has('Authorization')) h.set('Authorization', 'Bearer ' + t);
+    return povodnyFetch(input, { ...init, headers: h });
+  };
+}
+
 /* ─── Mapovanie: ID produktu → kód rizika Pillow ─── */
 const FREQ_CONFIG = {
   12: { label: 'Mesačne',    period: 'mes.',      mult: 1  },
