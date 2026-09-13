@@ -2132,6 +2132,12 @@ const VYUZITIE_TO_UCEL = {
    /bcrm/docs/najazd (navigácia prehliadača vlastnú hlavičku poslať nevie).
    /bcrm/vehicle a /bcrm/company ostávajú verejné (volá ich aj pripoisti.sk bez
    tokenu) — hlavička tam neškodí, backend ju ignoruje. */
+/* Kľúč značky pre backend — vyberá odosielateľa e-mailov, šablónu, logo a platobnú
+   stránku. NIE je to doména ani zobrazovaný názov. Premenované z 'poistenieskla'
+   13. 9. 2026 spolu s presunom na poistenieautoskiel.sk (user odsúhlasil; backend
+   PR #874 prijíma aj starý kľúč). Jedno miesto — predtým bol literál na troch. */
+const BRAND_KEY = 'poistenieautoskiel';
+
 function authHeaders() {
   const t = localStorage.getItem('ps_token') || '';
   return t ? { 'Authorization': 'Bearer ' + t } : {};
@@ -7124,8 +7130,7 @@ async function poslatPonukuKlientovi() {
       method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({
         to,
-        brand: (state.user.rola || '') === 'AutoSklo - Technik'
-          ? (PILLOW_CONFIG.BRAND || 'poistenieskla') : 'automanager',
+        brand: (state.user.rola || '') === 'AutoSklo - Technik' ? BRAND_KEY : 'automanager',
         meno: klientMeno(),
         // číslo ponuky z CRM (to isté, ktoré vidí back-office); Pillow kalkulácia až ako záloha
         cislo: state.draftEvid || printCalc,
@@ -7184,9 +7189,7 @@ async function odoslatEmailKlientovi(zmluvaId) {
     const fc = FREQ_CONFIG[state.paymentFreq] || {};
     // odosielateľ podľa roly: technik → značka portálu; maklér/CRM personál → automanager
     const jeTechnik = (state.user.rola || '') === 'AutoSklo - Technik';
-    const emailBrand = jeTechnik
-      ? ((typeof PILLOW_CONFIG !== 'undefined' && PILLOW_CONFIG.BRAND) || 'poistenieskla')
-      : 'automanager';
+    const emailBrand = jeTechnik ? BRAND_KEY : 'automanager';
     // Záznam o sprostredkovaní ako PDF príloha (číslo návrhu = číslo zmluvy)
     let zaznamPdfBase64 = null;
     try {
@@ -7285,7 +7288,7 @@ async function zaplatitKartou(btn) {
         currency: 'EUR',
         returnUrl,                            // sem sa klient vráti po platbe (s markerom)
         policyId: state.policyId || null,
-        brand: (typeof PILLOW_CONFIG !== 'undefined' && PILLOW_CONFIG.BRAND) || 'poistenieskla',
+        brand: BRAND_KEY,
       }),
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
