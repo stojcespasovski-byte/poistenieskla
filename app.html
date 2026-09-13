@@ -4524,17 +4524,13 @@ function getModelCode(brandCode, modelName) {
 // lokálna vec — preklad kódov, nie sadzobník; mení sa, len keď pribudne druh vozidla.
 // Rovnakú tabuľku má backend (canonical.DIALEKT_NA_DRUH). Portálové OA = kanonické OA aj DOD.
 const NAJAZD_DRUH = { OA:'OA', NA:'NA', AB:'AB', OBY:'OBY', TAH:'TAH', SAN:'SAN',
-                      MO:'MOTO', '4K':'STVORKOLKA', TRA:'TR', PV:'PRIVES', PN:'NAVES' };
+                      MO:'MOTO', '4K':'STVORKOLKA', TRA:'TR', PV:'PRIVES', PN:'NAVES',
+                      ABM:'AB_MHD', TBM:'TROLEJBUS', EK:'EKOLOBEZKA', EV:'EVOZIK', VZV:'VZV' };
 
-// VÝNIMKA s dôvodom: tieto Pillow druhy nemajú kanonický druh, takže im schéma rozsah
-// niesť nevie (backend 13. 9. 2026). Ostávajú pri tom, čo portál ponúkal doteraz —
-// ABM/TBM pásma Pillow číselníka, ostatné bez nájazdu. Ak ich treba do schémy, je to
-// rozšírenie kanonického číselníka na backende, nie úprava tu.
-const _kmLbl = k => String(k).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' km';
-const _najazdAutobus = [[10000,'10 000 km a menej'],
-  ...[15000,20000,25000,30000,35000,40000,45000,50000,55000,60000,65000,70000,75000,80000,85000,90000,95000].map(k=>[k,_kmLbl(k)]),
-  [100000,'100 000 km a viac']];
-const NAJAZD_VYNIMKY = { ABM:_najazdAutobus, TBM:_najazdAutobus, SPS:null, VZV:null, EB:null, EK:null, EV:null };
+// VÝNIMKA s dôvodom: SPS a EB nemajú kanonický druh, schéma im rozsah niesť nevie
+// (backend 13. 9. 2026) — nájazd sa pri nich nezobrazuje ani neposiela. Ak ich treba,
+// je to rozšírenie kanonického číselníka na backende, nie úprava tu.
+const NAJAZD_VYNIMKY = { SPS:null, EB:null };
 
 let najazdSchema = null;        // pole vehicle.najazd zo schémy — drží sa len v pamäti stránky
 let najazdSchemaStav = null;    // null | 'nacitavam' | 'ok' | 'chyba'
