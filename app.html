@@ -2029,7 +2029,7 @@ const state = {
     garazovane: false,    // true/false
     zmluvnyServis: false, // true/false
     x4: false,
-    najazd: "25000",
+    najazd: "",
     cenaVozidla: "",
   },
   apiPrices: {},        // ceny pre aktuálnu frekvenciu (skratka na allFreqPrices[paymentFreq])
@@ -4512,18 +4512,95 @@ function getModelCode(brandCode, modelName) {
   return found ? found[0] : '';
 }
 
-/* ─── Ročný nájazd — pásma podľa typu vozidla (Pillow číselníky) ─── */
+/* ─── Ročný nájazd — zo schémy backendu, NIE z lokálnej kópie ───────────────────
+   Zdroj: GET /api/porovnavac/schema → pole `vehicle.najazd`. Roletka =
+   `moznosti_podla[druh]` prefiltrované na `rozsah_pre.pillow[druh]` ([min, max];
+   null = druh nájazd nemá → pole sa nezobrazuje ani neposiela). Portál je len Pillow,
+   preto jej rozsah: hodnotu pod minimom Pillow potichu oreže (3 000 počíta ako 5 000).
+   Predtým tu bola ručná kópia pásiem — keď sa v schéme zmenia, portál by ponúkal staré
+   hodnoty. Predvoľbu neurčujeme: schéma ju nemá, technik musí vybrať. */
+
+// Preklad Pillow vehicleType (drží ho roletka typu) → kanonický druh schémy. Jediná
+// lokálna vec — preklad kódov, nie sadzobník; mení sa, len keď pribudne druh vozidla.
+// Rovnakú tabuľku má backend (canonical.DIALEKT_NA_DRUH). Portálové OA = kanonické OA aj DOD.
+const NAJAZD_DRUH = { OA:'OA', NA:'NA', AB:'AB', OBY:'OBY', TAH:'TAH', SAN:'SAN',
+                      MO:'MOTO', '4K':'STVORKOLKA', TRA:'TR', PV:'PRIVES', PN:'NAVES' };
+
+// VÝNIMKA s dôvodom: tieto Pillow druhy nemajú kanonický druh, takže im schéma rozsah
+// niesť nevie (backend 13. 9. 2026). Ostávajú pri tom, čo portál ponúkal doteraz —
+// ABM/TBM pásma Pillow číselníka, ostatné bez nájazdu. Ak ich treba do schémy, je to
+// rozšírenie kanonického číselníka na backende, nie úprava tu.
 const _kmLbl = k => String(k).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' km';
-function najazdBrackets(typ) {
-  if (typ === 'MO')                                            // moto: 1 000 a menej … 10 000 a viac
-    return [[1000,'1 000 km a menej'],...[2000,3000,4000,5000,6000,7000,8000,9000].map(k=>[k,_kmLbl(k)]),[10000,'10 000 km a viac']];
-  if (['NA','OBY','AB','ABM','TBM','TAH','SAN','4K'].includes(typ))   // číselník 5252: 10 000 a menej … 100 000 a viac
-    return [[10000,'10 000 km a menej'],...[15000,20000,25000,30000,35000,40000,45000,50000,55000,60000,65000,70000,75000,80000,85000,90000,95000].map(k=>[k,_kmLbl(k)]),[100000,'100 000 km a viac']];
-  return [[5000,'5 000 km a menej'],...[6000,7000,8000,9000,10000,11000,12000,13000,14000,15000,16000,17000,18000,19000,20000,21000,22000,23000,24000].map(k=>[k,_kmLbl(k)]),[25000,'25 000 km a viac']];  // OA
+const _najazdAutobus = [[10000,'10 000 km a menej'],
+  ...[15000,20000,25000,30000,35000,40000,45000,50000,55000,60000,65000,70000,75000,80000,85000,90000,95000].map(k=>[k,_kmLbl(k)]),
+  [100000,'100 000 km a viac']];
+const NAJAZD_VYNIMKY = { ABM:_najazdAutobus, TBM:_najazdAutobus, SPS:null, VZV:null, EB:null, EK:null, EV:null };
+
+let najazdSchema = null;        // pole vehicle.najazd zo schémy — drží sa len v pamäti stránky
+let najazdSchemaStav = null;    // null | 'nacitavam' | 'ok' | 'chyba'
+
+async function nacitajSchemuNajazdu() {
+  if (najazdSchemaStav === 'nacitavam' || najazdSchemaStav === 'ok') return;
+  najazdSchemaStav = 'nacitavam';
+  try {
+    const res = await fetch(`${API_BASE}/porovnavac/schema`, { headers: authHeaders() });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const pole = ((await res.json()).polia || []).find(p => p.kluc === 'vehicle.najazd');
+    if (!pole) throw new Error('schéma nemá pole vehicle.najazd');
+    najazdSchema = pole;
+    najazdSchemaStav = 'ok';
+  } catch (err) {
+    console.warn('Schéma nájazdu:', err);
+    najazdSchemaStav = 'chyba';
+  }
+  // Len pole, nie celý render — technik môže práve písať do iných polí Kroku 1.
+  obnovPoleNajazdu(document.getElementById('fTyp')?.value || state.vehicle.typ);
 }
+
+/* [[hodnota, popis], …]  ·  [] = zatiaľ nevieme (schéma sa načítava / zlyhala)
+   ·  null = pre tento druh sa pole nezobrazuje. Druh, ktorý v rozsahu Pillow vôbec
+   nie je uvedený, berieme ako „nevieme" → skryť: poslať neoverený rozsah je horšie,
+   než keď backend dosadí maximum. */
+function najazdMoznosti(typ) {
+  if (typ in NAJAZD_VYNIMKY) return NAJAZD_VYNIMKY[typ];
+  const druh = NAJAZD_DRUH[typ];
+  if (!druh) return null;
+  if (najazdSchemaStav !== 'ok') return [];
+  const moz = najazdSchema.moznosti_podla?.[druh];
+  const roz = najazdSchema.rozsah_pre?.pillow?.[druh];
+  if (!moz || !roz) return null;
+  const [min, max] = roz;
+  return Object.entries(moz)
+    .filter(([k]) => Number(k) >= min && Number(k) <= max)
+    .sort((a, b) => Number(a[0]) - Number(b[0]));
+}
+
 function najazdOptionsHtml(typ, sel) {
+  const moz = najazdMoznosti(typ);
+  if (moz === null) return '';
+  if (!moz.length) {
+    return `<option value="">${najazdSchemaStav === 'chyba'
+      ? 'Nepodarilo sa načítať — obnovte stránku' : 'Načítavam…'}</option>`;
+  }
   return '<option value="">– Vyberte –</option>' +
-    najazdBrackets(typ).map(([v,l]) => `<option value="${v}"${String(sel)===String(v)?' selected':''}>${l}</option>`).join('');
+    moz.map(([v,l]) => `<option value="${v}"${String(sel)===String(v)?' selected':''}>${l}</option>`).join('');
+}
+
+function obnovPoleNajazdu(typ) {
+  const field = document.getElementById('fieldNajazd');
+  const sel   = document.getElementById('fNajazd');
+  if (field) field.style.display = najazdMoznosti(typ) === null ? 'none' : '';
+  if (sel) sel.innerHTML = najazdOptionsHtml(typ, sel.value || state.vehicle.najazd);
+}
+
+/* Do Pillow XML rovnaké pravidlo ako backend (_expected_km): zvolený nájazd; keď chýba,
+   maximum rozsahu druhu (ponuka nesmie vyjsť nižšie než zmluva); druh bez nájazdu tag
+   nemá (xe() prázdnu hodnotu vynechá). Predtým tu bolo napevno 15 000 — tichý odhad. */
+function expectedKmPreXml(v) {
+  const km = parseInt(v.najazd);
+  if (km) return km;
+  const moz = najazdMoznosti(v.typ);
+  return moz && moz.length ? Number(moz[moz.length - 1][0]) : '';
 }
 
 /* ─── XML builder: Kalkulácia ─── */
@@ -4572,7 +4649,7 @@ function buildRateXML(freq = 12, { su = null, asistCode = null } = {}) {
     ${xe('contractualService', v.zmluvnyServis ? 'true' : 'false')}
     ${xe('equipment', v.x4 ? 'A' : 'NA')}
     ${xe('x4x4', v.x4 ? 'true' : 'false')}
-    ${xe('expectedKm', parseInt(v.najazd) || 15000)}
+    ${xe('expectedKm', expectedKmPreXml(v))}
     ${xe('vehicleName', [v.znacka, v.model].filter(Boolean).join(' '))}
     ${xe('noTechnicalCertificate', v.bezTp ? 'true' : 'false')}
     ${!v.bezTp && v.tp ? xe('technicalCertificateNumber', v.tp) : ''}
@@ -4698,7 +4775,7 @@ function buildSaveXML(calcId, createPolicy) {
     ${xe('contractualService', v.zmluvnyServis ? 'true' : 'false')}
     ${xe('equipment', v.x4 ? 'A' : 'NA')}
     ${xe('x4x4', v.x4 ? 'true' : 'false')}
-    ${xe('expectedKm', parseInt(v.najazd) || 15000)}
+    ${xe('expectedKm', expectedKmPreXml(v))}
     ${xe('vehicleName', [v.znacka, v.model].filter(Boolean).join(' '))}
     ${xe('noTechnicalCertificate', v.bezTp ? 'true' : 'false')}
     ${!v.bezTp && v.tp ? xe('technicalCertificateNumber', v.tp) : ''}
@@ -4944,7 +5021,7 @@ function buildMatrixRequest() {
       first_registration: v.datumReg || null,
       palivo: v.palivo || '',
       objem: parseInt(v.objem) || 0, vykon: parseInt(v.vykon) || 0, hmotnost: parseInt(v.hmotnost) || 0,
-      najazd: parseInt(v.najazd) || null,
+      ...(parseInt(v.najazd) ? { najazd: parseInt(v.najazd) } : {}),   // bez výberu nič — backend dosadí max rozsahu
       x4: !!v.x4,
       value: cena || null,
       ucel: VYUZITIE_TO_UCEL[v.vyuzitie] || 'bezna',
@@ -6170,7 +6247,7 @@ function renderStep1() {
               ${chipHtml('x4',        '4×4',               v.x4)}
             </div>
           </div>
-          <div class="fld" id="fieldNajazd" ${['PN','PV','TRA','SPS','VZV','EB','EK','EV'].includes(v.typ) ? 'style="display:none"' : ''}><label>Ročný nájazd</label>
+          <div class="fld" id="fieldNajazd" ${najazdMoznosti(v.typ) === null ? 'style="display:none"' : ''}><label>Ročný nájazd</label>
             <select id="fNajazd">${najazdOptionsHtml(v.typ, v.najazd)}</select>
           </div>
         </div>
@@ -7235,7 +7312,7 @@ function qrFallback(img) {
 /* Reset formulára na čisté defaulty — pred novou zmluvou aj pred načítaním draftu
    (draft z CRM sa nesmie miešať so stavom zapamätaným v prehliadači) */
 function resetFormState() {
-  state.vehicle = { ecv:'', vin:'', novePredReg:null, maEcv:null, typ:'', vyuzitie:'10', datumReg:'', znacka:'', model:'', brandCode:'', modelCode:'', objem:'', vykon:'', hmotnost:'', palivo:'', garazovane:false, zmluvnyServis:false, x4:false, farba:'', tp:'', bezTp:false, najazd:'25000', cenaVozidla:'' };
+  state.vehicle = { ecv:'', vin:'', novePredReg:null, maEcv:null, typ:'', vyuzitie:'10', datumReg:'', znacka:'', model:'', brandCode:'', modelCode:'', objem:'', vykon:'', hmotnost:'', palivo:'', garazovane:false, zmluvnyServis:false, x4:false, farba:'', tp:'', bezTp:false, najazd:'', cenaVozidla:'' };
   state.apiPrices = {}; state.allFreqPrices = {}; state.allFreqCalcIds = {}; state.selected = new Set(); state.selectedVariants = {};
   state.spoluUcast = '300'; state.withGAP = false; state.priceCache = {}; state.doplnkyOpen = false; state.rezim = null;
   state.poistnik = { typ:'fo', cudzinec:false, rodneCislo:'', datumNar:'', meno:'', priezvisko:'', ico:'', nazov:'', obec:'', psc:'', dokladCislo:'', statnaPrislusnost:'', zapisanyV:'', email:'', tel:'', ulica:'', cislo:'', titulPred:'', titulZa:'', orsr:false };
@@ -7931,7 +8008,7 @@ function attachListeners() {
       x4: false,
       farba: '',
       tp: '', bezTp: false,
-      najazd: '25000',
+      najazd: '',
     };
     state.lookupDone = false;
     state.vehicleStatus = null;
@@ -8171,8 +8248,6 @@ function attachListeners() {
     });
   });
 
-  // Typ vozidla → schová/zobrazí pole nájazd
-  const TYPY_BEZ_NAJAZDU = new Set(['PN','PV','TRA','SPS','VZV','EB','EK','EV']);
   function updateCenaVozidlaField() {
     const typ = document.getElementById('fTyp')?.value || state.vehicle.typ;
     const datumReg = document.getElementById('fDatumReg')?.value || state.vehicle.datumReg;
@@ -8194,11 +8269,7 @@ function attachListeners() {
   const fTypEl = document.getElementById('fTyp');
   if (fTypEl) {
     fTypEl.addEventListener('change', () => {
-      const fieldNajazd = document.getElementById('fieldNajazd');
-      if (fieldNajazd) fieldNajazd.style.display = TYPY_BEZ_NAJAZDU.has(fTypEl.value) ? 'none' : '';
-      // pásma nájazdu závisia od typu (MO / 5252 / OA) — prerenderuj možnosti
-      const fNajazd = document.getElementById('fNajazd');
-      if (fNajazd) fNajazd.innerHTML = najazdOptionsHtml(fTypEl.value, state.vehicle.najazd);
+      obnovPoleNajazdu(fTypEl.value);     // pásma nájazdu aj viditeľnosť poľa závisia od druhu
       updateCenaVozidlaField();
     });
   }
@@ -8308,6 +8379,9 @@ function attachListeners() {
     if (!v.objem)    markInput('fObjem');
     if (!v.vykon)    markInput('fVykon');
     if (!v.hmotnost) markInput('fHmotnost');
+    // Ročný nájazd je povinný všade, kde sa pole zobrazuje — predvoľbu schéma nemá
+    // a bez výberu by do ceny išiel odhad namiesto skutočného nájazdu technika.
+    if (najazdMoznosti(v.typ) !== null && !v.najazd) markInput('fNajazd');
 
     // Poistník
     const p = state.poistnik;
@@ -9615,6 +9689,7 @@ function bootPortal() {
   }
   applyBranding();
   initChat();                // bublina mimo #main → drží sa na všetkých krokoch
+  nacitajSchemuNajazdu();    // pásma ročného nájazdu — raz po prihlásení, drží sa v pamäti stránky
 
   // ?draft= → NEZOBRAZUJ zapamätaný stav (preblikol by nesprávny režim Kroku 2);
   // ukáž neutrálny loading a vykresli až podľa reálneho draftu z CRM
