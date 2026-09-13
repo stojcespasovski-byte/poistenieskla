@@ -1,9 +1,12 @@
 {
   "rewrites": [
-    { "source": "/app", "destination": "/poistenieskla.html" },
+    { "source": "/app", "destination": "/app.html" },
     { "source": "/dokumenty/:path*", "destination": "https://alexapi.sk/docs/:path*" },
     { "source": "/api/:path*", "destination": "https://alexapi.sk/:path*" },
     { "source": "/", "destination": "/login.html" }
+  ],
+  "redirects": [
+    { "source": "/poistenieskla.html", "destination": "/app", "permanent": true }
   ],
   "headers": [
     {

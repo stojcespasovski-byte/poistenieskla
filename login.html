@@ -116,7 +116,7 @@ body{
     try {
       const payload = JSON.parse(atob(raw.split('.')[1]));
       if (payload.exp * 1000 > Date.now()) {
-        window.location.replace('poistenieskla.html');
+        window.location.replace('/app');
       }
     } catch (_) {}
   })();
@@ -181,7 +181,7 @@ body{
       else            localStorage.removeItem('ps_farba');
       if (data.firma) localStorage.setItem('ps_firma', data.firma);
       else            localStorage.removeItem('ps_firma');
-      window.location.replace('poistenieskla.html');
+      window.location.replace('/app');
     } catch (err) {
       showError('Chyba pripojenia. Skontrolujte internet a skúste znova.');
     } finally {
