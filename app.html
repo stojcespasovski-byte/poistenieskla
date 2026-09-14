@@ -4652,7 +4652,7 @@ function buildRateXML(freq = 12, { su = null, asistCode = null } = {}) {
     ${xe('colour', getColorCode(v.farba))}
     ${xe('withoutRegistration', 'false')}
     ${(() => {
-      const cena = parseFloat(v.cenaVozidla);
+      const cena = cenaVozidlaPreOdoslanie(v);
       if (!cena) return '';
       return isVehicleNew()
         ? xe('clientsNewVehiclePrice', cena)
@@ -4778,7 +4778,7 @@ function buildSaveXML(calcId, createPolicy) {
     ${xe('colour', getColorCode(v.farba))}
     ${xe('withoutRegistration', 'false')}
     ${(() => {
-      const cena = parseFloat(v.cenaVozidla);
+      const cena = cenaVozidlaPreOdoslanie(v);
       if (!cena) return '';
       return isVehicleNew()
         ? xe('clientsNewVehiclePrice', cena)
@@ -5005,7 +5005,7 @@ function buildMatrixRequest() {
   let brandCode = v.brandCode || getBrandCode(v.znacka);
   let modelCode = v.modelCode;
   if (!brandCode || brandCode === 'OSTATNE' || !modelCode) { brandCode = 'NEUVEDENA'; modelCode = '529'; }
-  const cena = parseFloat(v.cenaVozidla);
+  const cena = cenaVozidlaPreOdoslanie(v);
   return {
     insurer: 'pillow', market: 'sk',
     start_date: state.zaciatok || null,
@@ -5538,22 +5538,40 @@ function getEffectiveVariant(productId, fallbackCode, su = state.spoluUcast) {
   return base;
 }
 
-function isVehicleNew() {
+/* Posun o N mesiacov KALENDÁRNE, s orezaním dňa na koniec mesiaca (31. 8. − 6 m =
+   28./29. 2.). Rovnaké pravidlo ako gramatika schémy backendu (`dnes-6m`). Holé
+   Date.setMonth deň neoreže a pretečie do ďalšieho mesiaca (31. 8. − 6 m = 3. 3.) —
+   auto registrované v tých dňoch by portál nepovažoval za nové a cenu nevypýtal. */
+function posunMesiace(datum, n) {
+  const r = new Date(datum.getFullYear(), datum.getMonth() + n, 1);
+  const posledny = new Date(r.getFullYear(), r.getMonth() + 1, 0).getDate();
+  r.setDate(Math.min(datum.getDate(), posledny));
+  return r;
+}
+
+/* Vozidlo s prvou evidenciou za posledných 6 mesiacov (vrátane hraničného dňa).
+   Pillow pri takom osobnom aute vyžaduje hodnotu vozidla pre riziká závislé od hodnoty
+   (aj sklo), pri staršom si ju určí sám a zadanú odmietne. `dnes` len pre test. */
+function isVehicleNew(dnes = new Date()) {
   const raw = state.vehicle?.datumReg;
   if (!raw) return false;
-  let d;
-  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
-    d = new Date(raw);
-  } else if (/^\d{2}\.\d{2}\.\d{4}$/.test(raw)) {
-    const [dd, mm, yyyy] = raw.split('.');
-    d = new Date(`${yyyy}-${mm}-${dd}`);
-  } else {
-    return false;
-  }
+  let y, m, dd;
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw))        [y, m, dd] = raw.slice(0, 10).split('-').map(Number);
+  else if (/^\d{2}\.\d{2}\.\d{4}$/.test(raw)) [dd, m, y] = raw.split('.').map(Number);
+  else return false;
+  const d = new Date(y, m - 1, dd);                     // lokálny dátum, bez posunu časovým pásmom
   if (isNaN(d)) return false;
-  const cutoff = new Date();
-  cutoff.setMonth(cutoff.getMonth() - 6);
-  return d >= cutoff;
+  const hranica = posunMesiace(new Date(dnes.getFullYear(), dnes.getMonth(), dnes.getDate()), -6);
+  return d >= hranica;
+}
+
+/* Hodnotu vozidla posielame len tam, kde ju Pillow chce (nie OA, alebo nové OA).
+   Pole sa pri staršom osobnom aute skryje, ale hodnota v ňom ostane — keby technik
+   najprv zadal mladší dátum a cenu a potom dátum opravil, odišla by a Pillow by ju
+   pri uzatvorení odmietol. Platí aj pre ponuky otvorené z CRM, ktoré Krok 1 obídu. */
+function cenaVozidlaPreOdoslanie(v) {
+  const potrebna = v.typ !== 'OA' || isVehicleNew();
+  return potrebna ? (parseFloat(v.cenaVozidla) || 0) : 0;
 }
 
 function totalPrice() {
