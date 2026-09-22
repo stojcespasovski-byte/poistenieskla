@@ -4512,6 +4512,28 @@ function getModelCode(brandCode, modelName) {
   return found ? found[0] : '';
 }
 
+/* Kód modelu: prednosť má kód z backendového resolvera (`pillowModelKod`), ak
+   patrí tejto značke a je v našom zozname; inak presná zhoda názvu. */
+function modelCodeFromLookup(brandCode, d) {
+  const kod = String(d?.pillowModelKod || '');
+  if (kod && (!d.pillowBrandKod || d.pillowBrandKod === brandCode)
+      && (PILLOW_MODELS[brandCode] || []).some(([id]) => id === kod)) return kod;
+  return getModelCode(brandCode, d?.model || '');
+}
+
+/* Draft z CRM nesie model ako text z registra („COMBO VAN"). Keď ho presná zhoda
+   nenájde, kód si vypýtame od backendového resolvera cez lookup vozidla podľa
+   VIN/EČV (CRM 21.–22. 9. 2026: portál ukázal „– Vyberte model –" a PZP bez ceny). */
+async function resolveDraftModelCode(v) {
+  if (!v || !v.brandCode || v.modelCode || !(v.vin || v.ecv)) return;
+  try {
+    const r = await apiLookupVehicle({ ecv: v.ecv, vin: v.vin });
+    if (!r.found) return;
+    const mc = modelCodeFromLookup(v.brandCode, r.data);
+    if (mc) v.modelCode = mc;
+  } catch (e) { /* draft sa otvorí aj bez modelu — technik ho vyberie ručne */ }
+}
+
 /* ─── Ročný nájazd — zo schémy backendu, NIE z lokálnej kópie ───────────────────
    Zdroj: GET /api/porovnavac/schema → pole `vehicle.najazd`. Roletka =
    `moznosti_podla[druh]` prefiltrované na `rozsah_pre.pillow[druh]` ([min, max];
@@ -5245,6 +5267,11 @@ async function apiLookupVehicle({ ecv, vin }) {
       // číslo dokladu: staré autá = veľký TP (tp) + malé osvedčenie (oev, druhé v poradí);
       // novšie jediný doklad poe, najstaršia éra oe — berieme prvý vyplnený
       tp:       raw.cislo_tp || raw.cislo_poe || raw.cislo_oe || raw.cislo_oev || '',
+      // Kódy Pillow z BACKENDOVÉHO resolvera (routers/model_resolver.py — jeden zdroj
+      // pravdy pre register → Pillow katalóg: „COMBO VAN" → Combo). Lokálny
+      // getModelCode je len presná zhoda názvu a je záložný.
+      pillowBrandKod: raw.pillow_brand_kod || '',
+      pillowModelKod: raw.pillow_model_kod || '',
     }
   };
 }
@@ -7774,7 +7801,7 @@ function attachListeners() {
           (PILLOW_MODELS[bc] || []).map(([id, name]) => `<option value="${id}">${name}</option>`).join('');
         // auto-vybrať model ak ho nájdeme
         if (d.model) {
-          const mc = getModelCode(bc, d.model);
+          const mc = modelCodeFromLookup(bc, d);
           if (mc) { fModel.value = mc; state.vehicle.modelCode = mc; state.vehicle.model = d.model; }
         }
       }
@@ -9071,6 +9098,7 @@ async function nacitatDraft(id) {
     const dv = state.vehicle;
     if (dv && dv.znacka && !dv.brandCode) dv.brandCode = getBrandCode(dv.znacka);
     if (dv && dv.brandCode && dv.model && !dv.modelCode) dv.modelCode = getModelCode(dv.brandCode, dv.model) || '';
+    if (dv && dv.brandCode && !dv.modelCode) await resolveDraftModelCode(dv);
     // draft z CRM: chce cenu (step>=2), ale nemá kalkuláciu → spustíme ju sami
     // rovnakou cestou ako klik „Vypočítať cenu" (vrátane validácie Kroku 1)
     const autoCalc = state.step >= 2 && !Object.keys(state.apiPrices || {}).length;
