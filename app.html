@@ -4540,7 +4540,7 @@ async function resolveDraftModelCode(v) {
    null = druh nájazd nemá → pole sa nezobrazuje ani neposiela). Portál je len Pillow,
    preto jej rozsah: hodnotu pod minimom Pillow potichu oreže (3 000 počíta ako 5 000).
    Predtým tu bola ručná kópia pásiem — keď sa v schéme zmenia, portál by ponúkal staré
-   hodnoty. Predvoľbu neurčujeme: schéma ju nemá, technik musí vybrať. */
+   hodnoty. Predvoľba = najvyšší nájazd rozsahu druhu (user 23. 9. 2026). */
 
 // Preklad Pillow vehicleType (drží ho roletka typu) → kanonický druh schémy. Jediná
 // lokálna vec — preklad kódov, nie sadzobník; mení sa, len keď pribudne druh vozidla.
@@ -4600,8 +4600,12 @@ function najazdOptionsHtml(typ, sel) {
     return `<option value="">${najazdSchemaStav === 'chyba'
       ? 'Nepodarilo sa načítať — obnovte stránku' : 'Načítavam…'}</option>`;
   }
-  return '<option value="">– Vyberte –</option>' +
-    moz.map(([v,l]) => `<option value="${v}"${String(sel)===String(v)?' selected':''}>${l}</option>`).join('');
+  // Predvoľba = NAJVYŠŠÍ nájazd rozsahu druhu (osobné 25 000) — user 23. 9. 2026.
+  // Ponuka tak nikdy nevyjde nižšie než zmluva; technik môže znížiť. Rovnaké
+  // pravidlo, aké backend použije, keď nájazd nepríde (_expected_km).
+  const platna = moz.some(([v]) => String(sel) === String(v));
+  const zvolena = platna ? String(sel) : String(moz[moz.length - 1][0]);
+  return moz.map(([v,l]) => `<option value="${v}"${zvolena===String(v)?' selected':''}>${l}</option>`).join('');
 }
 
 function obnovPoleNajazdu(typ) {
