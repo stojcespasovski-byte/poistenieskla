@@ -4940,6 +4940,16 @@ async function pillowCall(uid, endpoint, xmlBody) {
   return text;
 }
 
+/* Prečíta dôvod z neúspešnej odpovede Pillow. Doteraz sa telo zahadzovalo a technik
+   videl len „HTTP 400", z čoho sa príčina nedala zistiť ani z prehliadača. */
+async function pillowDovodChyby(res) {
+  let text = '';
+  try { text = await res.text(); } catch (_) {}
+  const doc  = new DOMParser().parseFromString(text || '', 'text/xml');
+  const msgs = [...doc.querySelectorAll('msgText')].map(e => prelozPillowChybu(e.textContent)).join('\n');
+  return msgs || (text || '').trim().slice(0, 300) || `HTTP ${res.status}`;
+}
+
 /* ─── Hlavné API volania ─── */
 async function apiGetPrices() {
   const FREQS = [1, 2, 4, 12]; // ročne, polročne, štvrťročne, mesačne
@@ -8826,7 +8836,7 @@ function attachListeners() {
           headers: { 'Content-Type': 'text/xml; charset=utf-8', 'RestUid': uid },
         }).then(res => {
           pillowLogout(uid);
-          if (!res.ok) throw new Error('HTTP ' + res.status);
+          if (!res.ok) return pillowDovodChyby(res).then(d => { throw new Error(d); });
           return res.blob();
         });
       }).then(blob => {
@@ -8864,10 +8874,10 @@ function attachListeners() {
         method: 'POST', headers: { 'Content-Type': 'text/xml; charset=utf-8', 'RestUid': uid },
       });
       pillowLogout(uid);
-      if (!res.ok) throw new Error('HTTP ' + res.status);
+      if (!res.ok) throw new Error(await pillowDovodChyby(res));
       const url = URL.createObjectURL(await res.blob());
       window.open(url, '_blank');
-    } catch (err) { alert('Náhľad nie je dostupný: ' + err.message); }
+    } catch (err) { alert('Náhľad návrhu zmluvy nie je dostupný.\n\n' + err.message); }
   });
 
   // Záznam o sprostredkovaní → vygeneruj z dát a otvor náhľad
