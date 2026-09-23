@@ -7385,12 +7385,16 @@ function stiahnutZmluvu() {
   pillowAuth().then(uid =>
     fetch(`${PILLOW_CONFIG.BASE_URL}/par/policies/print/AP2/policyPreview/${calcId}/print`, {
       method:'POST', headers:{ 'Content-Type':'text/xml; charset=utf-8', 'RestUid':uid },
-    }).then(res => { pillowLogout(uid); if(!res.ok) throw new Error('HTTP '+res.status); return res.blob(); })
+    /* Po vystavení zmluvy Pillow print odmieta, takže táto záloha spravidla zlyhá.
+       Vlastné PDF z uzatvorenia sa nepersistuje (STATE_SKIP), čiže po obnovení
+       stránky technik zmluvu nestiahne. Správne ju má vydať backend z CRM —
+       zadané, čaká na endpoint príloh od BCRM. Dovtedy aspoň zrozumiteľná veta. */
+    }).then(res => { pillowLogout(uid); if(!res.ok) throw new Error('nedostupné'); return res.blob(); })
   ).then(blob => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = 'poistna_zmluva.pdf'; a.click();
     setTimeout(()=>URL.revokeObjectURL(url), 4000);
-  }).catch(err => alert('Stiahnutie zlyhalo: '+err.message));
+  }).catch(() => alert('Dokument nie je k dispozícii.\n\nSkúste ho stiahnuť z e-mailu, ktorý dostal klient, alebo napíšte na back-office cez chat.'));
 }
 
 /* Online platba kartou — cez náš backend → Pillow thePay (THEPAY20) */
