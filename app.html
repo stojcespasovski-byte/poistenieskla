@@ -7290,22 +7290,9 @@ async function odoslatEmailKlientovi(zmluvaId) {
     if (el) { el.textContent = txt; el.style.color = color || 'var(--ink-3)'; }
   };
 
-  // 1) PDF návrhu — primárne z apiSubmit (po vystavení zmluvy už Pillow print nejde)
-  let pdfBase64 = state.pdfZmluvaB64 || null;
-  try {
-    const calcId = state.allFreqCalcIds[state.paymentFreq] || state.calculationId;
-    if (!pdfBase64 && calcId) {
-      const uid = await pillowAuth();
-      const res = await fetch(`${PILLOW_CONFIG.BASE_URL}/par/policies/print/AP2/policyPreview/${calcId}/print`, {
-        method: 'POST', headers: { 'Content-Type': 'text/xml; charset=utf-8', 'RestUid': uid },
-      });
-      await pillowLogout(uid);
-      if (res.ok) {
-        const blob = await res.blob();
-        pdfBase64 = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
-      }
-    }
-  } catch (_) { /* ignorujeme — pošleme bez PDF */ }
+  // PDF prílohu si k e-mailu doplní backend sám pri uzatvorení zmluvy; prehliadač
+  // ho už z Pillow neťahá (po vystavení zmluvy print aj tak odmieta).
+  const pdfBase64 = state.pdfZmluvaB64 || null;
 
   // 2) odoslať e-mail cez backend (bez SendGrid kľúča vráti no-op)
   try {
@@ -7371,30 +7358,49 @@ function novaZmluva() {
   resetFormState();
   state.step = 1; render();
 }
-function stiahnutZmluvu() {
-  // primárne PDF odložené z apiSubmit — po vystavení zmluvy Pillow print odmieta
+function stiahniPdf(blobAleboUrl, nazov) {
+  const a = document.createElement('a');
+  a.href = blobAleboUrl; a.download = nazov; a.target = '_blank'; a.click();
+}
+
+/* Zmluvu vydáva CRM, nie Pillow: po vystavení zmluvy Pillow print náhľadu odmieta
+   a PDF odložené z uzatvorenia sa zámerne neukladá (STATE_SKIP), takže po obnovení
+   stránky technik nemal odkiaľ brať. Prílohy sú v CRM od zápisu zmluvy.
+   Rozsah rieši CRM podľa tokenu technika — cudziu zmluvu vráti ako 404. */
+async function stiahnutZmluvu() {
+  // ak PDF z práve uzavretej zmluvy ešte držíme v pamäti, netreba nikam chodiť
   if (state.pdfZmluvaB64) {
-    const bytes = Uint8Array.from(atob(state.pdfZmluvaB64), c => c.charCodeAt(0));
-    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
-    const a = document.createElement('a'); a.href = url; a.download = 'poistna_zmluva.pdf'; a.click();
+    const bajty = Uint8Array.from(atob(state.pdfZmluvaB64), c => c.charCodeAt(0));
+    const url = URL.createObjectURL(new Blob([bajty], { type: 'application/pdf' }));
+    stiahniPdf(url, 'poistna_zmluva.pdf');
     setTimeout(() => URL.revokeObjectURL(url), 4000);
     return;
   }
-  const calcId = state.allFreqCalcIds[state.paymentFreq] || state.calculationId;
-  if (!calcId) { alert('Zmluva sa pripravuje, skúste o chvíľu.'); return; }
-  pillowAuth().then(uid =>
-    fetch(`${PILLOW_CONFIG.BASE_URL}/par/policies/print/AP2/policyPreview/${calcId}/print`, {
-      method:'POST', headers:{ 'Content-Type':'text/xml; charset=utf-8', 'RestUid':uid },
-    /* Po vystavení zmluvy Pillow print odmieta, takže táto záloha spravidla zlyhá.
-       Vlastné PDF z uzatvorenia sa nepersistuje (STATE_SKIP), čiže po obnovení
-       stránky technik zmluvu nestiahne. Správne ju má vydať backend z CRM —
-       zadané, čaká na endpoint príloh od BCRM. Dovtedy aspoň zrozumiteľná veta. */
-    }).then(res => { pillowLogout(uid); if(!res.ok) throw new Error('nedostupné'); return res.blob(); })
-  ).then(blob => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'poistna_zmluva.pdf'; a.click();
-    setTimeout(()=>URL.revokeObjectURL(url), 4000);
-  }).catch(() => alert('Dokument nie je k dispozícii.\n\nSkúste ho stiahnuť z e-mailu, ktorý dostal klient, alebo napíšte na back-office cez chat.'));
+  const cislo = state.lastZmluvaId;
+  if (!cislo) { alert('Zmluva sa pripravuje, skúste o chvíľu.'); return; }
+  const nedostupne = 'Dokument nie je k dispozícii.\n\nSkúste ho stiahnuť z e-mailu, ktorý dostal klient, alebo napíšte na back-office cez chat.';
+  try {
+    const res = await fetch(`${API_BASE}/bcrm/zmluva/${encodeURIComponent(cislo)}/dokumenty`, { headers: authHeaders() });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const prilohy = (await res.json()).prilohy || [];
+    // Názov súboru sa líši podľa toho, kadiaľ zmluva vznikla; keď nesedí ani jeden,
+    // vezmeme prvé dostupné PDF — lepšie než povedať technikovi, že nič nie je.
+    const hladane = [`Zmluva_${cislo}.pdf`, `navrh_zmluvy_${cislo}.pdf`];
+    const zmluva = prilohy.find(x => hladane.includes(x.nazov_suboru))
+                || prilohy.find(x => x.typ === 'application/pdf' && (x.url || x.obsah));
+    if (!zmluva || zmluva.chyba || (!zmluva.url && !zmluva.obsah)) { alert(nedostupne); return; }
+    if (zmluva.url) {                       // podpísaná URL platí hodinu — otvárame hneď, neukladáme
+      stiahniPdf(zmluva.url, zmluva.nazov_suboru || 'poistna_zmluva.pdf');
+      return;
+    }
+    const bajty = Uint8Array.from(atob(zmluva.obsah), c => c.charCodeAt(0));
+    const url = URL.createObjectURL(new Blob([bajty], { type: zmluva.typ || 'application/pdf' }));
+    stiahniPdf(url, zmluva.nazov_suboru || 'poistna_zmluva.pdf');
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  } catch (err) {
+    console.warn('Dokumenty zmluvy:', err);
+    alert(nedostupne);
+  }
 }
 
 /* Online platba kartou — cez náš backend → Pillow thePay (THEPAY20) */
