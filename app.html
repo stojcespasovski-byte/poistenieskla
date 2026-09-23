@@ -4940,15 +4940,6 @@ async function pillowCall(uid, endpoint, xmlBody) {
   return text;
 }
 
-/* Prečíta dôvod z neúspešnej odpovede Pillow. Doteraz sa telo zahadzovalo a technik
-   videl len „HTTP 400", z čoho sa príčina nedala zistiť ani z prehliadača. */
-async function pillowDovodChyby(res) {
-  let text = '';
-  try { text = await res.text(); } catch (_) {}
-  const doc  = new DOMParser().parseFromString(text || '', 'text/xml');
-  const msgs = [...doc.querySelectorAll('msgText')].map(e => prelozPillowChybu(e.textContent)).join('\n');
-  return msgs || (text || '').trim().slice(0, 300) || `HTTP ${res.status}`;
-}
 
 /* ─── Hlavné API volania ─── */
 async function apiGetPrices() {
@@ -8826,33 +8817,9 @@ function attachListeners() {
   const btnS4Back = document.getElementById('btnStep4Back');
   if (btnS4Back) btnS4Back.addEventListener('click', () => { state.step = 3; render(); });
 
-  // PDF náhľad zmluvy
-  if (document.getElementById('s4PdfContainer')) {
-    const calcId = state.allFreqCalcIds[state.paymentFreq] || state.calculationId;
-    if (calcId) {
-      pillowAuth().then(uid => {
-        return fetch(`${PILLOW_CONFIG.BASE_URL}/par/policies/print/AP2/policyPreview/${calcId}/print`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/xml; charset=utf-8', 'RestUid': uid },
-        }).then(res => {
-          pillowLogout(uid);
-          if (!res.ok) return pillowDovodChyby(res).then(d => { throw new Error(d); });
-          return res.blob();
-        });
-      }).then(blob => {
-        const url = URL.createObjectURL(blob);
-        const container = document.getElementById('s4PdfContainer');
-        if (container) {
-          container.innerHTML = `<iframe src="${url}" style="width:100%;height:600px;border:none;" title="Náhľad zmluvy"></iframe>`;
-        }
-      }).catch(err => {
-        const container = document.getElementById('s4PdfContainer');
-        if (container) container.innerHTML = `<div style="color:var(--text-muted);padding:24px;font-size:13px;">Náhľad nie je dostupný: ${err.message}</div>`;
-      });
-    } else {
-      document.getElementById('s4PdfContainer').innerHTML = `<div style="color:var(--text-muted);padding:24px;font-size:13px;">Náhľad nie je dostupný — najprv dokončite kalkuláciu.</div>`;
-    }
-  }
+  // (blok s inline náhľadom s4PdfContainer odstránený — kontajner sa nikde
+  //  nevykresľoval a volal Pillow priamo, čo od zavedenia /pillow/navrh neplatí)
+
 
   // Súhlasy (gating odoslania)
   document.querySelectorAll('.s4-suhlas').forEach(cb => {
@@ -8863,21 +8830,41 @@ function attachListeners() {
     });
   });
 
-  // Návrh zmluvy → otvoriť PDF náhľad v novom okne
+  /* Návrh zmluvy → PDF od backendu. Pillow náhľad vydá až kalkulácii v stave PRE,
+     teda po kontrolnom uzatvorení — samotný výpočet ceny mu nestačí („Kalkulácia musí
+     byť v stave PRE."). Celý ten sled (authorize → save-check → policyPreview pod
+     jedným uid) robí backend; `createPolicy` si vždy prepíše na false, takže zmluva
+     vzniknúť nemôže. Portál posiela len to isté AP2 save XML ako pri uzatváraní. */
   document.getElementById('s4DocNavrh')?.addEventListener('click', async (e) => {
     e.preventDefault();
+    const odkaz = e.currentTarget;
     const calcId = state.allFreqCalcIds[state.paymentFreq] || state.calculationId;
     if (!calcId) { alert('Náhľad nie je dostupný — najprv dokončite kalkuláciu.'); return; }
+    const povodny = odkaz.style.opacity;
+    odkaz.style.opacity = '.5';                 // kontrola v Pillow trvá, nech to nevyzerá zaseknuto
     try {
-      const uid = await pillowAuth();
-      const res = await fetch(`${PILLOW_CONFIG.BASE_URL}/par/policies/print/AP2/policyPreview/${calcId}/print`, {
-        method: 'POST', headers: { 'Content-Type': 'text/xml; charset=utf-8', 'RestUid': uid },
+      const res = await fetch(API_BASE + '/pillow/navrh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/xml; charset=utf-8', ...authHeaders() },
+        body: buildSaveXML(calcId, false),
       });
-      pillowLogout(uid);
-      if (!res.ok) throw new Error(await pillowDovodChyby(res));
-      const url = URL.createObjectURL(await res.blob());
+      const data = await res.json().catch(() => ({}));
+      const chyby = Array.isArray(data.chyby) ? data.chyby : [];
+      // save-check môže vrátiť novú kalkuláciu — ďalej pracujeme s ňou
+      if (data.calc_id) state.allFreqCalcIds[state.paymentFreq] = data.calc_id;
+      if (!res.ok || !data.pdf_base64) {
+        // Validačné hlášky Pillow ukazujeme doslova — technik ich musí opraviť
+        // ešte teraz, nie až pri uzatváraní.
+        throw new Error(chyby.length ? chyby.join('\n') : `HTTP ${res.status}`);
+      }
+      const bajty = Uint8Array.from(atob(data.pdf_base64), c => c.charCodeAt(0));
+      const url = URL.createObjectURL(new Blob([bajty], { type: 'application/pdf' }));
       window.open(url, '_blank');
-    } catch (err) { alert('Náhľad návrhu zmluvy nie je dostupný.\n\n' + err.message); }
+    } catch (err) {
+      alert('Návrh zmluvy sa nepodarilo pripraviť.\n\n' + err.message);
+    } finally {
+      odkaz.style.opacity = povodny;
+    }
   });
 
   // Záznam o sprostredkovaní → vygeneruj z dát a otvor náhľad
