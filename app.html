@@ -2138,6 +2138,18 @@ const VYUZITIE_TO_UCEL = {
    PR #874 prijíma aj starý kľúč). Jedno miesto — predtým bol literál na troch. */
 const BRAND_KEY = 'poistenieautoskiel';
 
+/* Odosielateľ e-mailov podľa roly: technik autoskla → značka portálu, maklér a CRM
+   personál → automanager. Rolu porovnávame znášanlivo, nie na presný reťazec: v CRM
+   je zapísaná s dlhou pomlčkou („AutoSklo – Technik"), takže rovnosť s bežnou
+   pomlčkou neplatila a e-maily technikov chodili pod značkou automanager. */
+function jeTechnikAutoskla() {
+  const r = (state.user?.rola || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')   // bez diakritiky
+    .replace(/[\u2010-\u2015\u2212]/g, '-')            // všetky druhy pomlčiek
+    .toLowerCase();
+  return r.includes('autosklo') && r.includes('technik');
+}
+
 function authHeaders() {
   const t = localStorage.getItem('ps_token') || '';
   return t ? { 'Authorization': 'Bearer ' + t } : {};
@@ -7253,7 +7265,7 @@ async function poslatPonukuKlientovi() {
       method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({
         to,
-        brand: (state.user.rola || '') === 'AutoSklo - Technik' ? BRAND_KEY : 'automanager',
+        brand: jeTechnikAutoskla() ? BRAND_KEY : 'automanager',
         meno: klientMeno(),
         // číslo ponuky z CRM (to isté, ktoré vidí back-office); Pillow kalkulácia až ako záloha
         cislo: state.draftEvid || printCalc,
@@ -7297,8 +7309,7 @@ async function odoslatEmailKlientovi(zmluvaId) {
   // 2) odoslať e-mail cez backend (bez SendGrid kľúča vráti no-op)
   try {
     const fc = FREQ_CONFIG[state.paymentFreq] || {};
-    // odosielateľ podľa roly: technik → značka portálu; maklér/CRM personál → automanager
-    const jeTechnik = (state.user.rola || '') === 'AutoSklo - Technik';
+    const jeTechnik = jeTechnikAutoskla();
     const emailBrand = jeTechnik ? BRAND_KEY : 'automanager';
     // Záznam o sprostredkovaní ako PDF príloha (číslo návrhu = číslo zmluvy)
     let zaznamPdfBase64 = null;
