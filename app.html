@@ -7324,6 +7324,7 @@ async function odoslatEmailKlientovi(zmluvaId) {
       body: JSON.stringify({
         to,
         brand: BRAND_KEY,          // značku určuje web, z ktorého zmluva prišla
+        poistovna: 'pillow',       // bez nej klient v e-maile nevidí príjemcu platby ani odstúpenie
         meno: klientMeno(),
         zmluvaId,
         suma: state.paySuma,
