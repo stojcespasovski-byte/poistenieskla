@@ -7289,11 +7289,15 @@ async function poslatPonukuKlientovi() {
 /* Odoslanie e-mailu klientovi (PDF + QR + odkaz) cez náš backend — best-effort */
 async function odoslatEmailKlientovi(zmluvaId) {
   const to = ((state.poistnik && state.poistnik.email) || '').trim();
-  if (!to) return;  // bez e-mailu neposielame
   const setStatus = (txt, color) => {
     const el = document.getElementById('emailStatus');
     if (el) { el.textContent = txt; el.style.color = color || 'var(--ink-3)'; }
   };
+  /* Každý koniec musí byť vidieť. Doteraz sa pri chýbajúcom e-maile aj pri zlyhaní
+     mlčalo, takže technik nevedel, či klientovi niečo odišlo — a zistilo sa to až
+     tým, že sa klient neozval. */
+  if (!to) { setStatus('Klient nemá e-mail — doklady mu portál neposlal.', '#d97706'); return; }
+  setStatus('Odosielam doklady klientovi…');
 
   // PDF prílohu si k e-mailu doplní backend sám pri uzatvorení zmluvy; prehliadač
   // ho už z Pillow neťahá (po vystavení zmluvy print aj tak odmieta).
@@ -7331,9 +7335,17 @@ async function odoslatEmailKlientovi(zmluvaId) {
       }),
     });
     const data = await res.json().catch(() => ({}));
-    if (data && data.sent) setStatus('E-mail s dokladmi bol odoslaný klientovi ✓', '#16a34a');
-    // no-op (kým nie je SendGrid kľúč) → status nezobrazujeme
-  } catch (_) { /* ticho — e-mail je doplnková akcia */ }
+    if (res.ok && data && data.sent) {
+      setStatus('E-mail s dokladmi bol odoslaný klientovi ✓', '#16a34a');
+    } else {
+      const dovod = (data && (data.detail || data.chyba || data.error)) || ('HTTP ' + res.status);
+      setStatus('Doklady sa klientovi NEPODARILO odoslať (' + dovod + '). Pošlite mu ich prosím ručne.', '#d97706');
+      console.warn('send-offer:', res.status, data);
+    }
+  } catch (err) {
+    setStatus('Doklady sa klientovi NEPODARILO odoslať. Pošlite mu ich prosím ručne.', '#d97706');
+    console.warn('send-offer:', err);
+  }
 }
 
 /* QR fallback — ak backend QR endpoint nie je dostupný / IBAN nie je nastavený */
