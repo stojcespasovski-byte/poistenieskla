@@ -7459,14 +7459,16 @@ async function handlePaymentReturn() {
   renderPaymentResult('loading', pend);
   try {
     const res = await fetch(API_BASE + '/bcrm/payment/state?paymentUid=' + encodeURIComponent(pend.objId), { headers: authHeaders() });
-    const raw = await res.json();
+    /* Zaplatené hlásime LEN pri jednoznačnom potvrdení. Všetko ostatné je
+       „nebola dokončená" — vrátane ne-200: pri zmluve 27111205 vrátila brána 404
+       („platba s týmto uid neexistuje", technik bránu len otvoril a zavrel) a portál
+       z toho spravil „platbu spracováva banka", čo nebola pravda.
+       Stav „spracúva sa" nepoužívame, kým nepoznáme hodnotu, ktorá ho naozaj
+       znamená — číselník stavov od Pillow zatiaľ nemáme a vymýšľať si ho nebudeme. */
+    const raw = res.ok ? await res.json().catch(() => ({})) : {};
     const st  = (raw.state || raw.status || raw.paymentState || raw.result || '').toString().toUpperCase();
-    const paid = raw.paid === true || ['PAID','DONE','OK','SUCCESS','COMPLETED','TRUE'].includes(st);
-    // platba kartou je asynchrónna — po návrate býva stav „waiting_for_payment".
-    // „neprebehla" len pri EXPLICITNOM zlyhaní; inak „spracúva sa" (nie falošné zlyhanie).
-    const FAIL = ['CANCELLED','CANCELED','EXPIRED','ERROR','FAILED','DECLINED','REJECTED','STORNO','TIMEOUT'];
-    const failed = !paid && FAIL.includes(st);
-    renderPaymentResult(paid ? 'paid' : (failed ? 'unpaid' : 'pending'), pend, raw);
+    const paid = res.ok && (raw.paid === true || ['PAID','DONE','OK','SUCCESS','COMPLETED','TRUE'].includes(st));
+    renderPaymentResult(paid ? 'paid' : 'unpaid', pend, raw);
   } catch (_) {
     renderPaymentResult('error', pend);
   } finally {
@@ -7491,18 +7493,11 @@ function renderPaymentResult(status, pend, raw) {
     title = 'Platba prebehla úspešne';
     sub = cislo ? `Zmluva ${cislo} je uhradená. Potvrdenie sme poslali na e-mail.` : 'Vaša platba bola prijatá.';
     actions = `<button class="btn-pri" onclick="novaZmluva()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7-7 7 7"/></svg> Nová zmluva</button>`;
-  } else if (status === 'pending') {
-    state.varSym = pend.vs; state.paySuma = pend.amount;
-    icon = ICN.info; color = 'var(--teal-dark)';
-    title = 'Platba sa spracúva';
-    sub = 'Platbu spracováva banka. Po pripísaní vám poistku zašleme e-mailom. Ak ste ju nedokončili, uhraďte ju cez QR kód v potvrdzovacom e-maile alebo skúste znova.';
-    actions = `<button class="btn-sec" onclick="novaZmluva()">Nová zmluva</button>
-               <button class="btn-pri" onclick="zaplatitKartou(this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Skúsiť znova</button>`;
   } else if (status === 'unpaid') {
     state.varSym = pend.vs; state.paySuma = pend.amount;
     icon = ICN.x; color = '#d97706';
     title = 'Platba neprebehla';
-    sub = 'Platba nebola dokončená. Skúste to znova alebo uhraďte prevodom cez QR kód v potvrdzovacom e-maile.';
+    sub = 'Skúste to znova alebo uhraďte prevodom cez QR kód v potvrdzovacom e-maile. Ak ste práve zaplatili, potvrdenie vám príde e-mailom.';
     actions = `<button class="btn-sec" onclick="novaZmluva()">Nová zmluva</button>
                <button class="btn-pri" onclick="zaplatitKartou(this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Skúsiť znova</button>`;
   } else { // unknown / error
