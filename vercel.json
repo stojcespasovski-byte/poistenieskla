@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/app", "destination": "/app.html" },
+    { "source": "/capi/:path*", "destination": "/api/capi/:path*" },
     { "source": "/dokumenty/:path*", "destination": "https://alexapi.sk/docs/:path*" },
     { "source": "/api/:path*", "destination": "https://alexapi.sk/:path*" },
     { "source": "/", "destination": "/login.html" }
