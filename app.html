@@ -7124,7 +7124,6 @@ function renderSuccess(zmluvaId) {
         <div class="success-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
         <div class="success-title">Návrh poistnej zmluvy <span style="color:var(--teal-dark);">${zmluvaId}</span> bol úspešne odoslaný.</div>
         <div class="success-subtitle">Všetky doklady nájdete v e-maile: ${state.poistnik.email || '–'}</div>
-        <div id="emailStatus" style="font-size:12.5px;font-weight:500;margin-top:4px;min-height:16px;"></div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;">
           <div class="box">
@@ -7176,7 +7175,12 @@ function renderSuccess(zmluvaId) {
     </div>
   </div>`;
   document.querySelectorAll('.sn-step').forEach(el => { el.classList.remove('active','todo'); el.classList.add('done'); const n=el.querySelector('.sn-num'); if(n) n.textContent='✓'; });
-  odoslatEmailKlientovi(zmluvaId);   // fire-and-forget: e-mail klientovi s PDF + QR
+  /* E-mail klientovi posiela backend sám z /bcrm/policy — plný, s ôsmimi prílohami,
+     Záznamom a QR. Portál ho posielal tiež a backend to druhé volanie zahadzoval
+     („uz_odoslane"). Overené na ostrej zmluve 27126726: klientovi príde jeden
+     e-mail, ten z backendu. Zámka proti duplicite u nich drží v pamäti procesu,
+     takže pri viacerých procesoch by prestala platiť — o dôvod viac neposielať
+     druhý e-mail odtiaľto. */
   oznacDraftUzavreta();              // ak vznikla z draftu, v CRM ju prepne na „uzavretá"
 }
 
@@ -7288,67 +7292,6 @@ async function poslatPonukuKlientovi() {
 }
 
 /* Odoslanie e-mailu klientovi (PDF + QR + odkaz) cez náš backend — best-effort */
-async function odoslatEmailKlientovi(zmluvaId) {
-  const to = ((state.poistnik && state.poistnik.email) || '').trim();
-  const setStatus = (txt, color) => {
-    const el = document.getElementById('emailStatus');
-    if (el) { el.textContent = txt; el.style.color = color || 'var(--ink-3)'; }
-  };
-  /* Každý koniec musí byť vidieť. Doteraz sa pri chýbajúcom e-maile aj pri zlyhaní
-     mlčalo, takže technik nevedel, či klientovi niečo odišlo — a zistilo sa to až
-     tým, že sa klient neozval. */
-  if (!to) { setStatus('Klient nemá e-mail — doklady mu portál neposlal.', '#d97706'); return; }
-  setStatus('Odosielam doklady klientovi…');
-
-  // PDF prílohu si k e-mailu doplní backend sám pri uzatvorení zmluvy; prehliadač
-  // ho už z Pillow neťahá (po vystavení zmluvy print aj tak odmieta).
-  const pdfBase64 = state.pdfZmluvaB64 || null;
-
-  // 2) odoslať e-mail cez backend (bez SendGrid kľúča vráti no-op)
-  try {
-    const fc = FREQ_CONFIG[state.paymentFreq] || {};
-    // Záznam o sprostredkovaní ako PDF príloha (číslo návrhu = číslo zmluvy)
-    let zaznamPdfBase64 = null;
-    try {
-      const zdata = buildZaznamData(); zdata.cisloNavrhu = zmluvaId || zdata.cisloNavrhu;
-      const zres = await fetch(API_BASE + '/bcrm/docs/zaznam?format=pdf', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, body: JSON.stringify(zdata),
-      });
-      if (zres.ok) {
-        const zblob = await zres.blob();
-        zaznamPdfBase64 = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(String(fr.result).split(',')[1] || null); fr.readAsDataURL(zblob); });
-      }
-    } catch (_) { /* Záznam je doplnková príloha */ }
-
-    const res = await fetch(API_BASE + '/bcrm/email/send-offer', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify({
-        to,
-        brand: BRAND_KEY,          // značku určuje web, z ktorého zmluva prišla
-        poistovna: 'pillow',       // bez nej klient v e-maile nevidí príjemcu platby ani odstúpenie
-        meno: klientMeno(),
-        zmluvaId,
-        suma: state.paySuma,
-        vs: state.varSym || '',
-        splatnost: state.zaciatok || '',
-        frekvencia: fc.label || '',
-        pdfBase64,
-        zaznamPdfBase64,
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (res.ok && data && data.sent) {
-      setStatus('E-mail s dokladmi bol odoslaný klientovi ✓', '#16a34a');
-    } else {
-      const dovod = (data && (data.detail || data.chyba || data.error)) || ('HTTP ' + res.status);
-      setStatus('Doklady sa klientovi NEPODARILO odoslať (' + dovod + '). Pošlite mu ich prosím ručne.', '#d97706');
-      console.warn('send-offer:', res.status, data);
-    }
-  } catch (err) {
-    setStatus('Doklady sa klientovi NEPODARILO odoslať. Pošlite mu ich prosím ručne.', '#d97706');
-    console.warn('send-offer:', err);
-  }
-}
 
 /* QR fallback — ak backend QR endpoint nie je dostupný / IBAN nie je nastavený */
 function qrFallback(img) {
