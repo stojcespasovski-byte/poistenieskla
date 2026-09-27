@@ -1,0 +1,1101 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Poistenie skla — celý tok</title>
+<link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --znacka:#1A4E9B; --akcia:#E9722B;
+    --znacka-tmava:color-mix(in oklab, var(--znacka) 88%, #05141a);
+    --znacka-svetla:color-mix(in oklab, var(--znacka) 62%, #fff);
+    --znacka-tint:color-mix(in srgb, var(--znacka) 8%, #fff);
+    --pismo:"Titillium Web";
+    --r-karta:6px; --r-velka:8px; --r-mala:6px;
+    --ink:#0f172a; --ink-2:#374151; --ink-3:#6b7280; --ink-4:#9ca3af;
+    --bg:#eef2f3; --border:#e2e6ea; --zle:#C23B3B; --dobre:#1E8E5A; --dobre-tint:#E6F5ED;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);font-family:var(--pismo),-apple-system,system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;}
+  button{font:inherit;color:inherit;cursor:pointer}
+  :focus-visible{outline:3px solid var(--znacka);outline-offset:2px}
+  [hidden]{display:none !important}
+  .telefon{max-width:420px;margin:0 auto;min-height:100vh;padding-bottom:120px;}
+
+  /* hlavička */
+  .hlava{background:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;
+    border-bottom:3px solid var(--znacka);position:sticky;top:0;z-index:5;}
+  .logo-servis img{height:34px;width:auto;display:block;}
+  .hlava-sub{font-size:11.5px;color:var(--ink-3);line-height:1.35;}
+  .hlava-sub b{display:block;color:var(--ink);font-size:13.5px;}
+
+  .obal{padding:16px;}
+  h1{font-size:21px;font-weight:700;letter-spacing:-.01em;text-transform:uppercase;line-height:1.2;}
+  .pod{font-size:14px;color:var(--ink-2);margin-top:6px;}
+
+  /* karty a polia */
+  .karta{background:#fff;border:1px solid var(--border);border-radius:var(--r-karta);padding:15px 14px;margin-top:14px;}
+  label{display:block;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px;}
+  .inp{width:100%;height:52px;border:1px solid var(--border);border-radius:var(--r-mala);background:#fff;
+    padding:0 13px;font:inherit;font-size:17px;font-weight:600;color:var(--ink);}
+  .inp.velke{text-transform:uppercase;letter-spacing:.04em;}
+  .inp::placeholder{color:var(--ink-4);font-weight:400;letter-spacing:0;text-transform:none;}
+  .inp:focus{outline:0;border-color:var(--znacka);box-shadow:0 0 0 3px color-mix(in srgb, var(--znacka) 18%, transparent);}
+  .inp.zle{border-color:var(--zle)}
+  .napoveda{font-size:11.5px;color:var(--ink-4);margin-top:6px;}
+  .dvojica{display:grid;grid-template-columns:1fr 1.3fr;gap:10px;margin-top:12px;}
+  select.inp{font-size:15px;font-weight:600;}
+
+  .najdene{margin-top:12px;background:var(--znacka-tint);border:1px solid color-mix(in srgb, var(--znacka) 22%, #fff);
+    border-radius:var(--r-mala);padding:12px 13px;display:flex;gap:10px;align-items:flex-start;}
+  .najdene svg{color:var(--znacka);flex:0 0 auto;margin-top:1px}
+  .najdene b{display:block;font-size:14.5px;}
+  .najdene span{display:block;font-size:12.5px;color:var(--ink-2);margin-top:2px;}
+  .najdene .kod{display:block;font-size:12.5px;color:var(--ink-2);letter-spacing:.04em;margin-top:4px;}
+  .najdene .zmen{margin-left:auto;font-size:12px;font-weight:600;color:var(--znacka);background:none;border:0;
+    border-bottom:1px solid color-mix(in srgb, var(--znacka) 30%, #fff);padding:0 0 1px;align-self:center;}
+  .hlada{margin-top:12px;display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ink-3);}
+  .spin{width:15px;height:15px;border:2px solid var(--border);border-top-color:var(--znacka);border-radius:50%;animation:t .7s linear infinite;}
+  @keyframes t{to{transform:rotate(360deg)}}
+  .chyba{margin-top:12px;font-size:13px;color:var(--zle);line-height:1.5;}
+  .chyba b{display:block;font-weight:600}
+
+  /* hlavná dlaždica so sklami */
+  .hero{background:var(--znacka-tmava);border-radius:var(--r-velka);padding:20px 16px 18px;color:#fff;
+    box-shadow:0 10px 26px color-mix(in srgb, var(--znacka) 26%, transparent);position:relative;overflow:hidden;margin-top:14px;}
+  .hero::after{content:"";position:absolute;right:-60px;top:-60px;width:190px;height:190px;border-radius:50%;background:rgba(255,255,255,.06);}
+  .hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;position:relative;}
+  .hero-t{font-size:20px;font-weight:700;letter-spacing:-.02em;line-height:1.15;text-transform:uppercase;max-width:8.5em;}
+  .hero-cena{text-align:right;line-height:1.05;}
+  .hero-cena b{font-size:27px;font-weight:700;display:block;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .hero-cena span{font-size:11.5px;color:var(--znacka-svetla);}
+  .hero-body{margin-top:14px;display:grid;gap:9px;position:relative;}
+  .p{display:flex;gap:9px;font-size:14px;align-items:flex-start;line-height:1.35;}
+  .p svg{flex:0 0 auto;margin-top:2px}
+  .p small{display:block;color:var(--znacka-svetla);font-size:12px;margin-top:1px;}
+  .lehoty{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:18px;position:relative;}
+  .l{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.14);border-radius:var(--r-mala);
+    padding:9px 4px;color:#fff;text-align:center;}
+  .l.on{background:#fff;border-color:#fff;color:var(--znacka-tmava);}
+  .l b{display:block;font-size:12px;font-weight:500;color:var(--znacka-svetla);}
+  .l.on b{color:var(--ink-3);}
+  .l span{display:block;font-size:13px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums;color:var(--znacka-svetla);}
+  .l.on span{font-size:14px;font-weight:700;color:inherit;}
+
+  /* pripoistenia */
+  .blok{width:100%;margin-top:18px;background:#fff;border:1px solid var(--border);border-radius:var(--r-karta);
+    padding:14px;display:flex;align-items:center;gap:10px;text-align:left;}
+  .blok-t{font-size:14.5px;font-weight:600;letter-spacing:-.01em;}
+  .blok-c{margin-left:auto;font-size:12.5px;color:var(--ink-3);}
+  .blok-c b{color:var(--znacka);font-weight:600;}
+  .blok svg{color:var(--ink-3);transition:transform .15s;flex:0 0 auto;}
+  .blok.otvoreny svg{transform:rotate(180deg)}
+  .blok-ceny{font-size:12.5px;color:var(--ink-3);margin:12px 2px 10px;}
+  .dlazdice{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .d{background:#fff;border:1px solid var(--border);border-radius:var(--r-karta);padding:13px 13px 12px;
+    text-align:left;position:relative;display:flex;flex-direction:column;gap:3px;min-height:106px;}
+  .d.on{border-color:var(--znacka);background:var(--znacka-tint);box-shadow:inset 0 0 0 1px var(--znacka);}
+  .d-ikona{color:var(--znacka);opacity:.85;line-height:0;}
+  .d-n{font-size:14px;font-weight:600;letter-spacing:-.01em;}
+  .d-var{font-size:11.5px;color:var(--ink-3);margin-top:1px;}
+  .d-spodok{display:flex;align-items:baseline;gap:8px;margin-top:auto;}
+  .d-c{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .d-zmen{margin-left:auto;font-size:12px;font-weight:600;color:var(--znacka);
+    border-bottom:1px solid color-mix(in srgb, var(--znacka) 30%, #fff);padding-bottom:1px;}
+  .d-check{position:absolute;top:11px;right:11px;width:22px;height:22px;border-radius:50%;
+    border:1.5px solid #cbd6dc;background:#fff;display:flex;align-items:center;justify-content:center;}
+  .d.on .d-check{background:var(--znacka);border-color:var(--znacka);}
+
+  /* spoluúčasť */
+  .su{margin-top:12px;background:#fff;border:1px solid var(--border);border-radius:var(--r-karta);padding:14px 13px 13px;}
+  .su-h{font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:.01em;}
+  .su-volby{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:10px;}
+  .su-volby button{background:#fff;border:1px solid var(--border);border-radius:var(--r-mala);padding:9px 2px;
+    text-align:center;color:var(--ink-2);line-height:1.15;}
+  .su-volby button b{display:block;font-size:13.5px;font-weight:600;}
+  .su-volby button span{display:block;font-size:10.5px;color:var(--ink-4);margin-top:1px;}
+  .su-volby button.on{background:var(--znacka);border-color:var(--znacka);color:#fff;}
+  .su-volby button.on span{color:rgba(255,255,255,.75);}
+  .su-volby button:disabled{opacity:.4;cursor:not-allowed;}
+  .su-plati{font-size:11.5px;color:var(--ink-3);margin-top:9px;line-height:1.45;}
+  .su-pozn{font-size:11.5px;color:var(--znacka);margin-top:6px;line-height:1.45;}
+
+  /* rekapitulácia v uzavretí */
+  .rek{background:#fff;border:1px solid var(--border);border-radius:var(--r-karta);padding:14px;margin-top:14px;}
+  .rek .r{display:flex;gap:10px;font-size:13.5px;padding:7px 0;border-bottom:1px solid var(--border);}
+  .rek .r:last-child{border-bottom:0;padding-bottom:0}
+  .rek .r:first-child{padding-top:0}
+  .rek .r span{color:var(--ink-3);flex:0 0 112px;}
+  .rek .r b{font-weight:600;}
+  .rek .r .suma{font-variant-numeric:tabular-nums;}
+
+  .chk{display:flex;gap:11px;align-items:flex-start;font-size:13.5px;color:var(--ink-2);line-height:1.45;
+    margin-top:12px;text-transform:none;letter-spacing:0;font-weight:400;margin-bottom:0;}
+  .chk:first-child{margin-top:0}
+  .chk input{width:20px;height:20px;margin-top:1px;accent-color:var(--znacka);flex-shrink:0;}
+  .chk a{color:var(--znacka);}
+
+  /* hotovo */
+  .hotovo{text-align:center;padding:14px 14px 2px;}
+  .hotovo .ok.caka{background:#FEF3E2;color:#B4531A;}
+  .hotovo .ok.zle{background:#FDEBEA;color:var(--zle);}
+  .uloha{display:flex;gap:11px;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);}
+  .uloha:last-of-type{border-bottom:0;padding-bottom:2px}
+  .uloha .ik{width:30px;height:30px;border-radius:50%;background:var(--znacka-tint);color:var(--znacka);
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  .uloha.hotova .ik{background:var(--dobre-tint);color:var(--dobre);}
+  .uloha .txt{flex:1;min-width:0}
+  .uloha b{display:block;font-size:14px;font-weight:600;}
+  .uloha span{display:block;font-size:12.5px;color:var(--ink-3);margin-top:2px;line-height:1.45;}
+  .uloha button{align-self:center;flex:0 0 auto;border:1px solid var(--znacka);background:#fff;color:var(--znacka);
+    border-radius:var(--r-mala);padding:9px 13px;font-size:13px;font-weight:600;white-space:nowrap;}
+  .uloha.hotova button{border-color:var(--border);color:var(--ink-3);}
+  .ulohy2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;}
+  .ulohy2 button{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;
+    background:var(--znacka);border:1px solid var(--znacka);color:#fff;border-radius:var(--r-mala);
+    padding:13px 8px;font-size:13.5px;font-weight:600;line-height:1.25;}
+  .ulohy2 button.hotova{border-color:var(--dobre);color:var(--dobre);background:var(--dobre-tint);}
+  .ulohy2 button svg{flex:0 0 auto}
+  .qr-klik{display:block;width:100%;background:none;border:0;padding:0;}
+  .qr-klik .qr-pod{margin-top:2px;text-decoration:underline;text-underline-offset:2px;}
+  .lupa{position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:30;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:14px;padding:20px;}
+  .lupa img{width:min(78vw,320px);height:auto;background:#fff;border-radius:10px;padding:12px;}
+  .lupa .ul{background:var(--akcia);color:#fff;border:0;border-radius:var(--r-mala);height:46px;padding:0 22px;
+    font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;}
+  .lupa .zavri{background:none;border:0;color:#fff;font-size:13.5px;opacity:.9;padding:6px 10px;}
+  .potom{font-size:12.5px;color:var(--ink-3);line-height:1.5;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+  .demo-stavy{margin-top:18px;text-align:center;font-size:11.5px;color:var(--ink-4);}
+  .demo-stavy button{border:1px solid var(--border);background:#fff;border-radius:var(--r-mala);
+    padding:6px 10px;font-size:11.5px;margin:6px 3px 0;color:var(--ink-2);}
+  .demo-stavy button.on{border-color:var(--ink);color:var(--ink);font-weight:600;}
+  .hotovo h1{display:inline-block;position:relative;}
+  .hotovo .ok{position:absolute;right:100%;top:50%;transform:translateY(-50%);margin-right:10px;
+    width:32px;height:32px;border-radius:50%;background:var(--dobre-tint);color:var(--dobre);
+    display:flex;align-items:center;justify-content:center;}
+  .hotovo h1{text-transform:none;font-size:23px;}
+  .hotovo p{font-size:13.5px;color:var(--ink-2);margin-top:7px;line-height:1.45;}
+  .dalsie{background:#fff;border:1px solid var(--border);border-radius:var(--r-karta);padding:14px;margin-top:16px;text-align:left;}
+  .dalsie h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);margin-bottom:10px;}
+  .krok{display:flex;gap:11px;font-size:13.5px;line-height:1.45;padding:7px 0;}
+  .krok i{font-style:normal;width:22px;height:22px;border-radius:50%;background:var(--znacka-tint);color:var(--znacka);
+    font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  .ukazka{font-size:11.5px;color:var(--ink-4);text-align:center;margin-top:16px;}
+
+  /* platba */
+  .platba{background:#fff;border:1px solid var(--border);border-radius:var(--r-karta);padding:16px 14px;margin-top:14px;text-align:center;}
+  .platba .suma-riadok{display:flex;align-items:baseline;justify-content:center;gap:9px;}
+  .platba .suma-velka{font-size:28px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
+  .platba .suma-popis{font-size:12px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;}
+  .qr{width:168px;height:168px;margin:14px auto 10px;border:1px solid var(--border);border-radius:var(--r-mala);padding:8px;background:#fff;}
+  .qr-pod{font-size:11.5px;color:var(--ink-3);}
+  .prevod{margin-top:14px;border-top:1px solid var(--border);padding-top:12px;text-align:left;}
+  .prevod .r{display:flex;gap:10px;font-size:13px;padding:5px 0;}
+  .prevod .r span{color:var(--ink-3);flex:0 0 92px;}
+  .prevod .r b{font-weight:600;font-variant-numeric:tabular-nums;}
+  .platba-cta{width:100%;height:50px;margin-top:14px;background:var(--akcia);color:#fff;border:none;
+    border-radius:var(--r-mala);font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;}
+  .platba-cta:disabled{background:#e2e6ea;color:#9aa6b4;}
+  .stav-platby{margin-top:12px;border-radius:var(--r-mala);padding:12px;font-size:13px;line-height:1.5;text-align:left;}
+  .stav-platby b.t{display:block;margin-bottom:2px;}
+  .stav-platby.ok{background:var(--dobre-tint);color:#12603c;}
+  .stav-platby.caka{background:#FEF3E2;color:#8B4A12;}
+  .stav-platby.zle{background:#FDEBEA;color:#8F2B2B;}
+
+  /* spodná lišta */
+  .lista{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.97);
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-top:1px solid var(--border);
+    padding:11px 16px calc(13px + env(safe-area-inset-bottom));}
+  .lista-in{max-width:420px;margin:0 auto;display:flex;align-items:center;gap:12px;}
+  .suma small{display:block;font-size:11.5px;color:var(--ink-3);}
+  .suma b{font-size:22px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
+  .cta{flex:1;height:50px;background:var(--akcia);color:#fff;border:none;border-radius:var(--r-mala);
+    font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap;
+    display:flex;align-items:center;justify-content:center;gap:9px;}
+  .cta.plna{max-width:none}
+  .cta:disabled{background:#e2e6ea;color:#9aa6b4;cursor:not-allowed;}
+  .listapod{text-align:center;font-size:11.5px;color:var(--ink-3);margin-top:8px;}
+  .spat{background:none;border:0;font-size:13px;color:var(--ink-3);padding:10px 2px;margin-top:4px;
+    display:inline-flex;align-items:center;gap:6px;}
+
+  .dalej{text-align:center;font-size:12.5px;color:var(--ink-3);margin:16px 6px 0;line-height:1.5;}
+  .pata{text-align:center;font-size:11px;color:var(--ink-4);margin:22px 0 4px;line-height:1.6;}
+  .pata a{color:var(--ink-3);text-decoration:none;border-bottom:1px solid var(--border);}
+
+  .mer{max-width:420px;margin:18px auto 0;background:#0f172a;color:#cbd5e1;border-radius:8px;padding:12px 13px;
+    font-size:11.5px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  .mer h4{color:#fff;font-size:11px;margin-bottom:6px;letter-spacing:.06em;text-transform:uppercase;}
+  .mer .ev{border-top:1px solid rgba(255,255,255,.1);padding:5px 0;}
+  .mer .ev b{color:#7dd3fc;font-weight:600;}
+  .mer .ev i{color:#94a3b8;font-style:normal;}
+
+  /* výber variantu */
+  .sheet-bg{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center;}
+  .sheet{background:#fff;width:100%;max-width:420px;border-radius:var(--r-velka) var(--r-velka) 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));}
+  .sheet h3{font-size:17px;font-weight:700;}
+  .sheet p{font-size:12.5px;color:var(--ink-3);margin-top:3px;}
+  .sheet-v{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
+  .sheet-v button{display:flex;align-items:center;gap:10px;text-align:left;background:#fff;
+    border:1px solid var(--border);border-radius:var(--r-mala);padding:13px;font-size:14.5px;font-weight:600;}
+  .sheet-v button .c{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums;}
+  .sheet-v button.on{border-color:var(--znacka);background:var(--znacka-tint);box-shadow:inset 0 0 0 1px var(--znacka);}
+  .sheet-z{width:100%;margin-top:14px;background:var(--akcia);color:#fff;border:none;border-radius:var(--r-mala);
+    height:48px;font-size:15.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;}
+</style>
+</head>
+<body hidden>
+<div class="telefon">
+
+  <div class="hlava">
+    <span class="logo-servis"><img id="logoServisu" alt="" alt="Hornet Autosklo"></span>
+    <span class="hlava-sub">Poistenie skla vášho auta<b id="menoServisu"></b></span>
+  </div>
+
+  <div class="obal">
+
+    <!-- ============ 1. VSTUP ============ -->
+    <section id="krok1">
+      <h1>Cena do minúty</h1>
+      <p class="pod">Zadajte dva údaje, zvyšok si nájdeme sami.</p>
+
+      <div class="karta">
+        <label for="auto">Vozidlo — EČV alebo VIN</label>
+        <input class="inp velke" id="auto" placeholder="napr. BA123XY" autocomplete="off" spellcheck="false" maxlength="17">
+        <div class="napoveda" id="autoNap">Nemáte EČV po ruke? Zadajte VIN z technického preukazu.</div>
+        <div class="hlada" id="autoHlada" hidden><span class="spin"></span>Hľadáme vozidlo…</div>
+        <div class="najdene" id="autoNajdene" hidden>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          <span><b id="autoNazov"></b><span id="autoDetail"></span><span class="kod" id="autoKod"></span></span>
+          <button class="zmen" type="button" id="autoZmen">Zmeniť</button>
+        </div>
+        <div class="chyba" id="autoChyba" hidden></div>
+      </div>
+
+      <div class="karta">
+        <label for="osoba">Držiteľ — rodné číslo alebo IČO</label>
+        <input class="inp velke" id="osoba" placeholder="napr. 860314/7234" inputmode="numeric" autocomplete="off" maxlength="12">
+        <div class="napoveda" id="osobaNap">Firmu nájdeme v registri, nič ďalšie nedopisujete.</div>
+        <div class="hlada" id="osobaHlada" hidden><span class="spin"></span>Hľadáme v registri…</div>
+
+        <div id="fo" hidden>
+          <div class="najdene" id="rcNajdene">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            <span><b>Fyzická osoba</b><span id="rcDetail"></span><span class="kod" id="rcKod"></span></span>
+            <button class="zmen" type="button" data-zmen-osoba>Zmeniť</button>
+          </div>
+          <div class="dvojica">
+            <div>
+              <label for="psc">PSČ</label>
+              <input class="inp velke" id="psc" placeholder="949 01" inputmode="numeric" maxlength="6" autocomplete="off">
+            </div>
+            <div id="obecBox" hidden>
+              <label for="obec">Obec</label>
+              <select class="inp" id="obec"></select>
+            </div>
+          </div>
+          <div class="najdene" id="foNajdene" hidden>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            <span><b id="foNazov"></b><span id="foDetail"></span></span>
+          </div>
+          <div class="chyba" id="pscChyba" hidden></div>
+        </div>
+
+        <div class="najdene" id="firmaNajdene" hidden>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          <span><b id="firmaNazov"></b><span id="firmaDetail"></span><span class="kod" id="firmaKod"></span></span>
+          <button class="zmen" type="button" data-zmen-osoba>Zmeniť</button>
+        </div>
+        <div class="chyba" id="osobaChyba" hidden></div>
+      </div>
+    </section>
+
+    <!-- ============ 2. CENA ============ -->
+    <section id="krok2" hidden>
+      <div class="najdene" style="margin-top:0">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        <span><b id="recAuto"></b><span id="recKlient"></span></span>
+        <button class="zmen" type="button" id="spatNaVstup">Zmeniť</button>
+      </div>
+
+      <div class="hero">
+        <div class="hero-top">
+          <div class="hero-t">Poistenie skla</div>
+          <div class="hero-cena"><b id="heroCena">153,48 €</b><span id="heroObdobie">ročne</span></div>
+        </div>
+        <div class="hero-body">
+          <div class="p"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            <div>Kryje všetky sklá a okná na vozidle<small>čelné, bočné, zadné, panoráma, strešné</small></div></div>
+          <div class="p"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            <div>Originálne diely vrátane senzorov a kalibrácie<small>bez limitov a v plnej cene</small></div></div>
+          <div class="p"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            <div>Spoluúčasť pri výmene iba 10 %<small>pri oprave bez spoluúčasti</small></div></div>
+        </div>
+        <div class="lehoty" id="lehoty" role="group" aria-label="Lehota platby">
+          <button class="l" data-f="4"><b>Štvrťročne</b><span data-lc="4"></span></button>
+          <button class="l" data-f="2"><b>Polročne</b><span data-lc="2"></span></button>
+          <button class="l on" data-f="1"><b>Ročne</b><span data-lc="1"></span></button>
+        </div>
+      </div>
+
+      <button class="blok" id="blokBtn" type="button" aria-expanded="false">
+        <span class="blok-t">Ostatné pripoistenia k vozidlu</span>
+        <span class="blok-c" id="blokC">8 možností</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div id="blokObsah" hidden>
+        <div class="blok-ceny" id="obdobiePripoistenia">ceny ročne</div>
+        <div class="dlazdice" id="dlazdice"></div>
+        <div class="su" id="su" hidden>
+          <div class="su-h">Spoluúčasť pri škode</div>
+          <div class="su-volby" id="suVolby" role="group" aria-label="Spoluúčasť"></div>
+          <div class="su-plati" id="suPlati"></div>
+          <div class="su-pozn" id="suPozn" hidden></div>
+        </div>
+      </div>
+
+      <p class="dalej">Uzavretie zaberie asi dve minúty. Poistenie začne platiť po úhrade a fotoobhliadke vozidla.</p>
+    </section>
+
+    <!-- ============ 3. UZAVRETIE ============ -->
+    <section id="krok3" hidden>
+      <h1>Uzavretie</h1>
+      <p class="pod">Ešte dva kontakty a zmluva je hotová.</p>
+
+      <div class="rek" id="rekap"></div>
+
+      <div class="karta">
+        <label for="mail">E-mail</label>
+        <input class="inp" id="mail" type="email" inputmode="email" placeholder="meno@email.sk" autocomplete="email">
+        <div class="napoveda">Pošleme naň zmluvu a zelenú kartu.</div>
+
+        <div style="margin-top:14px"></div>
+        <label for="tel">Telefón</label>
+        <input class="inp" id="tel" type="tel" inputmode="tel" placeholder="+421 9xx xxx xxx" autocomplete="tel">
+
+        <div id="adresaBox">
+          <div style="margin-top:14px"></div>
+          <label for="ulica">Ulica a číslo</label>
+          <input class="inp" id="ulica" placeholder="Štepná 14" autocomplete="street-address">
+          <div class="napoveda" id="adresaObec"></div>
+        </div>
+      </div>
+
+      <div class="karta">
+        <label class="chk"><input type="checkbox" id="suhlas1">
+          <span>Prevzal som a súhlasím s <a href="#" onclick="return false">poistnými podmienkami</a> a informačným dokumentom.</span></label>
+        <label class="chk"><input type="checkbox" id="suhlas2">
+          <span>Chcem dostávať ponuky aj v budúcnosti. <i style="color:var(--ink-4);font-style:normal">(nepovinné)</i></span></label>
+      </div>
+
+      <button class="spat" type="button" id="spatNaCenu">← Späť na cenu</button>
+    </section>
+
+    <!-- ============ 4. HOTOVO ============ -->
+    <section id="krok4" hidden>
+      <div class="hotovo">
+        <h1><span class="ok"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>Uzatvorené</h1>
+        <p id="hotovoText"></p>
+      </div>
+
+      <div class="platba">
+        <div class="suma-riadok">
+          <span class="suma-popis">Na úhradu</span>
+          <span class="suma-velka" id="platbaSuma"></span>
+        </div>
+        <button class="qr-klik" type="button" id="qrKlik">
+          <div class="qr" id="qr"></div>
+          <div class="qr-pod">Zaplaťte naskenovaním, alebo si QR uložte</div>
+        </button>
+        <div class="prevod">
+          <div class="r"><span>IBAN</span><b>SK31 1100 0000 0026 1234 5678</b></div>
+          <div class="r"><span>Variabilný</span><b id="platbaVs"></b></div>
+          <div class="r"><span>Splatnosť</span><b id="platbaSplatnost"></b></div>
+        </div>
+        <button class="platba-cta" id="platitKartou" type="button">Zaplatiť kartou</button>
+        <div class="stav-platby" id="stavPlatby" hidden></div>
+      </div>
+
+      <div class="rek" id="rekap2"></div>
+
+      <div class="dalsie" id="dalsieBox">
+        <h3>Ešte treba</h3>
+
+        <div class="ulohy2">
+          <button type="button" data-uloha="foto">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5h3.2l1.6-2.2h8.4l1.6 2.2H21v10H3z"/><circle cx="12" cy="13" r="3.2"/></svg>
+            <span data-popis>Fotoobhliadka</span>
+          </button>
+          <button type="button" data-uloha="tp">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.2"/><path d="M7 9.5h4M7 13h7"/></svg>
+            <span data-popis>Doložiť TP</span>
+          </button>
+        </div>
+
+        <p class="potom">Zmluva príde e-mailom do pár minút. Pri škode voláte priamo poisťovňu, číslo máte v zmluve.</p>
+      </div>
+
+      
+
+    
+  </div>
+</div>
+
+<div class="lupa" id="lupa" hidden>
+  <img id="lupaObr" alt="QR kód na úhradu">
+  <a class="ul" id="ulozQr" download="qr-uhrada-2026004182.png">Uložiť obrázok</a>
+  <button class="zavri" type="button" id="lupaZavri">Zavrieť</button>
+</div>
+
+<div class="sheet-bg" id="sheetBg" hidden>
+  <div class="sheet" role="dialog" aria-modal="true">
+    <h3 id="sheetT"></h3>
+    <p id="sheetP">Vyberte rozsah. Cena sa prepočíta.</p>
+    <div class="sheet-v" id="sheetV"></div>
+    <button class="sheet-z" type="button" id="sheetZ">Hotovo</button>
+  </div>
+</div>
+
+<div class="lista" id="lista">
+  <div class="lista-in">
+    <span class="suma" id="sumaBox" hidden><small id="sumaPopis">Spolu ročne</small><b id="sumaCena">0,00 €</b></span>
+    <button class="cta plna" id="cta" type="button" disabled>Zobraziť cenu
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+  </div>
+  <div class="listapod" id="listapod">Zadajte vozidlo a držiteľa</div>
+</div>
+
+<script>
+/* ==================================================================
+   Náhľad celého toku: vstup → cena → uzavretie → hotovo.
+   Registre aj ceny sú predstierané. V ostrej verzii ide EČV a VIN na
+   register vozidiel, IČO na register organizácií, PSČ na číselník obcí
+   a ceny na /rate-matrix, ktorá vráti naraz všetky varianty — prepnutie
+   lehoty aj spoluúčasti je potom výber z matice, nie nový výpočet.
+   Ceny rizík sa v prehliadači nesmú sčítavať, kombinácia je nelineárna.
+================================================================== */
+
+const $ = id => document.getElementById(id);
+
+/* ---------- merania ---------- */
+const PREVADZKA = new URLSearchParams(location.search).get('p') || '';
+const RELACIA = Math.random().toString(36).slice(2, 10);
+const ZACIATOK = Date.now();
+
+/* Stránka patrí prevádzke z QR: podľa jej kódu sa ofarbí, pomenuje a hlavne sa
+   podľa neho pripíše provízia. Kód sa prekladá na konto až na serveri, aby sa
+   nedal prepísať v prehliadači.
+   Neznámy alebo vypnutý kód = 404 a stránka sa neotvorí. Je to jediný spôsob,
+   ako ukončiť spoluprácu aj pre letáky, ktoré sú už vytlačené. */
+async function nacitajPrevadzku() {
+  if (!PREVADZKA) return null;
+  try {
+    const r = await fetch('/capi/cakaren/prevadzka/' + encodeURIComponent(PREVADZKA));
+    if (!r.ok) return null;
+    return await r.json();
+  } catch (_) { return null; }
+}
+
+function nastavPrevadzku(p) {
+  const k = document.documentElement.style;
+  if (p.farba)       k.setProperty('--znacka', p.farba);
+  if (p.farba_akcie) k.setProperty('--akcia', p.farba_akcie);
+  if (p.zaoblenie)   { k.setProperty('--r-karta', p.zaoblenie); k.setProperty('--r-velka', p.zaoblenie); }
+  if (p.pismo) {
+    k.setProperty('--pismo', '"' + p.pismo + '"');
+    const o = document.createElement('link');
+    o.rel = 'stylesheet';
+    o.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(p.pismo).replace(/%20/g, '+') + ':wght@400;600;700&display=swap';
+    document.head.appendChild(o);
+  }
+  const logo = document.getElementById('logoServisu');
+  if (logo && p.logo) { logo.src = p.logo; logo.alt = p.nazov || ''; }
+  const meno = document.getElementById('menoServisu');
+  if (meno) meno.textContent = p.nazov || '';
+}
+
+function strankaNedostupna() {
+  document.body.innerHTML = '<div class="telefon"><div class="obal" style="padding-top:64px;text-align:center">'
+    + '<h1 style="text-transform:none">Stránka nie je dostupná</h1>'
+    + '<p class="pod">Tento odkaz už neplatí. Poistenie vám rád vybaví technik na prevádzke.</p>'
+    + '</div></div>';
+}
+function mer(nazov, data) {
+  const u = { udalost:nazov, prevadzka:PREVADZKA, relacia:RELACIA,
+              sekunda:Math.round((Date.now()-ZACIATOK)/1000), ...data };
+  /* Meranie nesmie nikdy zdržať ani zhodiť obchod, preto sendBeacon a tichý pád.
+     Kód relácie je len v pamäti stránky — nič sa neukladá do zariadenia, takže
+     netreba lištu so súhlasom. Neposielame EČV, rodné číslo, meno ani kontakt. */
+  try { navigator.sendBeacon('/capi/merania', new Blob([JSON.stringify(u)], { type:'application/json' })); }
+  catch (_) {}
+}
+
+/* ---------- registre (skutočné volania cez proxy) ---------- */
+/* Registre chodia cez /capi — proxy na našej doméne, ktorá k volaniu doleje
+   kľúč odberateľa. V stránke žiadny kľúč nie je, jej zdroják je verejný. */
+async function api(cesta, nastavenia) {
+  const o = nastavenia || {};
+  o.headers = { ...(o.headers || {}), 'X-Prevadzka': PREVADZKA };
+  const r = await fetch('/capi/' + cesta, o);
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+/* Sklonené „2,0 diesel · 110 kW" skladáme z toho, čo vráti register. */
+function popisAuta(v) {
+  const objem = v.objem ? (v.objem / 1000).toFixed(1).replace('.', ',') : null;
+  return [v.reg ? String(v.reg).slice(0, 4) : null,
+          [objem, v.palivo].filter(Boolean).join(' '),
+          v.vykon ? v.vykon + ' kW' : null].filter(Boolean).join(' · ');
+}
+
+/* ---------- produkt ---------- */
+const IKONY = {
+  zivel:'<path d="M7 16.5a3.8 3.8 0 1 1 1-7.5 5 5 0 0 1 9.4-.4A3.3 3.3 0 0 1 17 16.5H7Z"/><path d="m9 19.4-.8 1.6m4.3-1.6-.8 1.6m4.3-1.6-.8 1.6"/>',
+  zver:'<path d="M12 21a4.6 4.6 0 0 0 4.6-4.6c0-2.4-2-3.9-4.6-3.9s-4.6 1.5-4.6 3.9A4.6 4.6 0 0 0 12 21Z"/><path d="M8.2 11.2 6.4 7.4 3.4 6.2m4.8 5-1-6.6m8.6 6.6 1.8-3.8 3-1.2m-4.8 5 1-6.6"/>',
+  kradez:'<rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+  havaria:'<path d="M3.5 18h17M5.5 18v-3l2-5h9l2 5v3"/><circle cx="8" cy="18" r="1.5"/><circle cx="16" cy="18" r="1.5"/><path d="m9.5 3 1.6 2.6L14 4"/>',
+  vandalizmus:'<rect x="3.6" y="4.4" width="16.8" height="15.2" rx="2.4"/><path d="m12 4.4-2.2 6.3 4.2 1.4-2.6 7.5"/>',
+  asistencia:'<path d="M20 6.4a4.6 4.6 0 0 1-6 6l-7.3 7.3a2.05 2.05 0 0 1-2.9-2.9L11.1 9.5a4.6 4.6 0 0 1 6-6l-2.9 2.9 2.9 2.9L20 6.4Z"/>',
+  uraz:'<circle cx="12" cy="6.8" r="3"/><path d="M5.5 21v-1.8a6.5 6.5 0 0 1 13 0V21"/>',
+  batozina:'<rect x="3.5" y="7.5" width="17" height="12" rx="2.4"/><path d="M9 7.5V5.6A1.6 1.6 0 0 1 10.6 4h2.8A1.6 1.6 0 0 1 15 5.6v1.9"/>'
+};
+const PRIPOISTENIA = [
+  { k:'zivel',       n:'Živel',           rocne:29.04, skupina:true,  zvolene:false },
+  { k:'zver',        n:'Stret so zverou', rocne:38.40, skupina:true,  zvolene:false },
+  { k:'kradez',      n:'Krádež',          rocne:52.80, skupina:true,  zvolene:false },
+  { k:'havaria',     n:'Dopravná nehoda', rocne:96.00, skupina:true,  zvolene:false },
+  { k:'vandalizmus', n:'Vandalizmus',     rocne:21.60, skupina:true,  zvolene:false },
+  { k:'asistencia',  n:'Asistencia',      skupina:false, zvolene:false, variant:'AS2_L', varianty:[
+      { k:'AS2_S', n:'Základná', rocne:9.60 }, { k:'AS2_M', n:'Rozšírená', rocne:13.20 },
+      { k:'AS2_L', n:'Komfort', rocne:18.00 }, { k:'AS2_XL', n:'Maximálna', rocne:24.00 }] },
+  { k:'uraz',        n:'Úraz vodiča',     skupina:false, zvolene:false, variant:'UR2_2', varianty:[
+      { k:'UR2_2', n:'Úraz vodiča', rocne:12.00 }, { k:'UR2_1', n:'Smrť oboch rodičov', rocne:7.20 }] },
+  { k:'batozina',    n:'Batožina',        skupina:false, zvolene:false, variant:'ZA2_750', varianty:[
+      { k:'ZA2_750', n:'750 €', rocne:9.60 }, { k:'ZA2_1500', n:'1 500 €', rocne:15.60 }] }
+];
+const SKLO_ROCNE = 153.48;
+const BEZ_ZAKAZUJU = ['havaria','vandalizmus'];
+const SPOLUUCASTI = [
+  { k:'bez', b:'Bez',   s:'spoluúčasti', koef:1.45 },
+  { k:'150', b:'150 €', s:'pri škode',   koef:1.18 },
+  { k:'300', b:'300 €', s:'pri škode',   koef:1.00 },
+  { k:'600', b:'600 €', s:'pri škode',   koef:0.82 }
+];
+const LEHOTY = {
+  1:{ nazov:'ročne', splatok:1, prirazka:0 },
+  2:{ nazov:'polročne', splatok:2, prirazka:0.08 },
+  4:{ nazov:'štvrťročne', splatok:4, prirazka:0.06 }
+};
+
+let lehota = 1, spoluucast = '300', otvorene = null, krok = 1;
+const stav = { auto:null, klient:null };
+
+const eur = v => v.toLocaleString('sk-SK', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
+const zaObdobie = r => r * (1 + LEHOTY[lehota].prirazka) / LEHOTY[lehota].splatok;
+const koef = () => SPOLUUCASTI.find(x => x.k === spoluucast).koef;
+const variant = p => p.varianty && p.varianty.find(v => v.k === p.variant);
+const rocnaCena = p => p.skupina ? p.rocne * koef() : (variant(p) ? variant(p).rocne : p.rocne);
+const vybrane = () => PRIPOISTENIA.filter(p => p.zvolene);
+const vybraneVSkupine = () => PRIPOISTENIA.filter(p => p.skupina && p.zvolene);
+const spoluRocne = () => SKLO_ROCNE + vybrane().reduce((s,p) => s + rocnaCena(p), 0);
+const fajka = () => '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+const skry = ids => ids.forEach(i => $(i).hidden = true);
+
+/* ================= KROK 1 ================= */
+let autoTimer;
+$('auto').addEventListener('input', e => {
+  const v = e.target.value.toUpperCase().replace(/\s/g,'');
+  e.target.value = v;
+  clearTimeout(autoTimer);
+  stav.auto = null; skry(['autoNajdene','autoChyba']); zhodnotVstup();
+  if (v.length < 6) { $('autoHlada').hidden = true; return; }
+  $('autoHlada').hidden = false;
+  autoTimer = setTimeout(() => hladajAuto(v), 700);
+});
+async function hladajAuto(v) {
+  const jeVin = v.length === 17;
+  let n = null;
+  try {
+    const d = await api('bcrm/vehicle?' + (jeVin ? 'vin=' : 'ecv=') + encodeURIComponent(v));
+    if (d.found) n = {
+      nazov: [d.znacka, d.model].filter(Boolean).join(' '),
+      detail: popisAuta(d),
+      ecv: d.ecv || (jeVin ? '' : v),
+      vin: d.vin || (jeVin ? v : ''),
+      surove: d,
+    };
+  } catch (_) { /* nenájdené aj výpadok riešime rovnako — klient s tým spraví to isté */ }
+  $('autoHlada').hidden = true;
+  if (!n) {
+    $('autoChyba').innerHTML = '<b>Toto vozidlo sme nenašli.</b>Skontrolujte znaky, alebo zadajte VIN z technického preukazu. Pomôže vám aj technik na prevádzke.';
+    $('autoChyba').hidden = false;
+    mer('auto_nenajdene', { dlzka:v.length });
+    return;
+  }
+  stav.auto = n;
+  $('autoNazov').textContent = n.nazov;
+  $('autoDetail').textContent = n.detail;
+  $('autoKod').textContent = [n.ecv, n.vin].filter(Boolean).join('  –  ');
+  $('autoNajdene').hidden = false;
+  $('auto').hidden = true; $('autoNap').hidden = true;
+  mer('kontext_auto', { model:n.nazov, detail:n.detail, podla: jeVin ? 'vin' : 'ecv' });
+  zhodnotVstup();
+}
+$('autoZmen').addEventListener('click', () => {
+  stav.auto = null; skry(['autoNajdene']);
+  $('auto').hidden = false; $('autoNap').hidden = false;
+  $('auto').value = ''; $('auto').focus(); zhodnotVstup(); mer('auto_zmena');
+});
+
+let osobaTimer;
+$('osoba').addEventListener('input', e => {
+  const v = e.target.value.replace(/[^0-9/]/g,'');
+  e.target.value = v;
+  const cifry = v.replace(/\D/g,'');
+  clearTimeout(osobaTimer);
+  stav.klient = null; skry(['firmaNajdene','osobaChyba','foNajdene']); zhodnotVstup();
+
+  if (cifry.length === 8) {
+    $('fo').hidden = true; $('osobaHlada').hidden = false;
+    osobaTimer = setTimeout(() => hladajFirmu(cifry), 800);
+  } else if (cifry.length === 9 || cifry.length === 10) {
+    $('osobaHlada').hidden = true;
+    $('fo').hidden = false;
+    $('osoba').hidden = true; $('osobaNap').hidden = true;
+    stav.klient = { typ:'FO', rok:rokNarodenia(cifry) };
+    $('rcDetail').textContent = 'ročník ' + stav.klient.rok;
+    $('rcKod').textContent = 'Rodné číslo ' + cifry.slice(0,6) + '/' + '•'.repeat(cifry.length - 6);
+    mer('kontext_klient', { typ:'FO', rok_narodenia:stav.klient.rok });
+    preverPsc();
+  } else {
+    $('osobaHlada').hidden = true; $('fo').hidden = true;
+  }
+});
+function rokNarodenia(c) {
+  const r = +c.slice(0,2);
+  return c.length === 10 ? (r < 54 ? 2000 + r : 1900 + r) : 1900 + r;
+}
+async function hladajFirmu(ico) {
+  let f = null;
+  try {
+    const d = await api('bcrm/ico/' + encodeURIComponent(ico));
+    if (d.found) {
+      const szco = (d.party && d.party.typ) === 'szco';
+      f = {
+        nazov: d.nazov || '',
+        typ: szco ? 'SZČO' : 'PO',
+        sidlo: [[d.ulica, d.cislo].filter(Boolean).join(' '), d.obec].filter(Boolean).join(', '),
+        obec: d.obec || '',
+        psc: d.psc || '',
+        meno: d.meno || '', priezvisko: d.priezvisko || '',
+        /* Register vie meno odvodiť z obchodného názvu a vtedy naň upozorňuje —
+           nevypĺňame ho potichu, nech si to človek pozrie. */
+        poznamka: d.poznamka || '',
+        pozastavena_do: d.pozastavena_do || '', zanik: d.zanik || '',
+        licencia: d.licencia || '',
+      };
+    }
+  } catch (_) {}
+  $('osobaHlada').hidden = true;
+  if (!f) {
+    $('osobaChyba').innerHTML = '<b>Toto IČO sme v registri nenašli.</b>Skontrolujte číslo. Ak ste fyzická osoba, zadajte rodné číslo.';
+    $('osobaChyba').hidden = false; mer('ico_nenajdene'); return;
+  }
+  if (f.zanik || f.pozastavena_do) {
+    $('osobaChyba').innerHTML = f.zanik
+      ? '<b>Tento subjekt je v registri zaniknutý.</b>Poistenie naň neuzavrieme. Obráťte sa na technika.'
+      : '<b>Táto živnosť je pozastavená.</b>Poistenie naň takto neuzavrieme. Obráťte sa na technika.';
+    $('osobaChyba').hidden = false;
+    mer('ico_nepouzitelne', { dovod: f.zanik ? 'zanik' : 'pozastavena' });
+    return;
+  }
+  stav.klient = { typ:f.typ, nazov:f.nazov, sidlo:f.sidlo, obec:f.obec, psc:f.psc,
+                  meno:f.meno, priezvisko:f.priezvisko, ico, poznamka:f.poznamka };
+  $('firmaNazov').textContent = f.nazov;
+  $('firmaDetail').textContent = [f.typ, f.sidlo, 'z registra'].filter(Boolean).join(' · ');
+  $('firmaKod').textContent = 'IČO ' + ico;
+  $('firmaNajdene').hidden = false;
+  $('osoba').hidden = true; $('osobaNap').hidden = true;
+  mer('kontext_klient', { typ:f.typ, obec:f.obec });
+  zhodnotVstup();
+}
+$('psc').addEventListener('input', e => { e.target.value = e.target.value.replace(/[^0-9 ]/g,''); preverPsc(); });
+async function preverPsc() {
+  const psc = $('psc').value.replace(/\D/g,'');
+  skry(['pscChyba','foNajdene']); $('obecBox').hidden = true;
+  if (psc.length !== 5) { zhodnotVstup(); return; }
+  let obce = null;
+  try { obce = (await api('ciselnik/obec?psc=' + psc)).obce; } catch (_) {}
+  if (!obce || !obce.length) {
+    $('pscChyba').innerHTML = '<b>Toto PSČ nepoznáme.</b>Skontrolujte číslo.';
+    $('pscChyba').hidden = false; zhodnotVstup(); return;
+  }
+  if (obce.length > 1) {
+    $('obec').innerHTML = obce.map(o => `<option>${o}</option>`).join('');
+    $('obecBox').hidden = false;
+    mer('obec_na_vyber', { psc, pocet:obce.length });
+  }
+  stav.klient = { ...(stav.klient || {typ:'FO'}), psc, obec:obce[0] };
+  $('foNazov').textContent = obce.length > 1 ? 'Vyberte obec' : obce[0];
+  $('foDetail').textContent = obce.length > 1 ? psc + ' · viac obcí' : psc + ' · z číselníka';
+  $('foNajdene').hidden = obce.length > 1;
+  mer('kontext_klient', { psc, obec:obce[0] });
+  zhodnotVstup();
+}
+$('obec').addEventListener('change', e => { stav.klient.obec = e.target.value; mer('obec_vybrana', { obec:e.target.value }); });
+document.querySelectorAll('[data-zmen-osoba]').forEach(b => b.addEventListener('click', () => {
+  stav.klient = null;
+  $('fo').hidden = true; skry(['firmaNajdene','osobaChyba']);
+  $('osoba').hidden = false; $('osobaNap').hidden = false;
+  $('osoba').value = ''; $('psc').value = ''; $('osoba').focus();
+  mer('klient_zmena'); zhodnotVstup();
+}));
+function zhodnotVstup() {
+  if (krok !== 1) return;
+  const k = stav.klient;
+  const klientOk = k && (k.typ !== 'FO' || (k.psc && k.obec));
+  const ok = !!stav.auto && !!klientOk;
+  $('cta').disabled = !ok;
+  $('listapod').textContent = ok ? 'Cena bude platiť pre toto vozidlo a túto adresu'
+    : (!stav.auto ? 'Zadajte EČV alebo VIN vozidla' : 'Doplňte rodné číslo alebo IČO');
+}
+
+/* ================= KROK 2 ================= */
+function dlazdica(p) {
+  return `<button class="d${p.zvolene?' on':''}" data-k="${p.k}">
+    <div class="d-check">${p.zvolene ? fajka() : ''}</div>
+    <div class="d-ikona"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${IKONY[p.k]}</svg></div>
+    <div class="d-n">${p.n}</div>
+    ${p.varianty ? `<div class="d-var" data-v="${p.k}"></div>` : ''}
+    <div class="d-spodok"><span class="d-c" data-c="${p.k}"></span>
+      ${p.varianty ? `<span class="d-zmen" data-zmen="${p.k}">Zmeniť</span>` : ''}</div>
+  </button>`;
+}
+$('dlazdice').innerHTML = PRIPOISTENIA.map(dlazdica).join('');
+$('suVolby').innerHTML = SPOLUUCASTI.map(o => `<button type="button" data-su="${o.k}"><b>${o.b}</b><span>${o.s}</span></button>`).join('');
+
+function prepocitaj(pozn) {
+  const L = LEHOTY[lehota];
+  $('heroCena').textContent = eur(zaObdobie(SKLO_ROCNE));
+  $('heroObdobie').textContent = L.nazov;
+  $('obdobiePripoistenia').textContent = 'ceny ' + L.nazov;
+
+  document.querySelectorAll('[data-lc]').forEach(el => {
+    const f = +el.dataset.lc, L2 = LEHOTY[f];
+    el.textContent = eur(SKLO_ROCNE * (1 + L2.prirazka) / L2.splatok);
+  });
+
+  PRIPOISTENIA.forEach(p => {
+    document.querySelector(`[data-c="${p.k}"]`).textContent = '+ ' + eur(zaObdobie(rocnaCena(p)));
+    const v = document.querySelector(`[data-v="${p.k}"]`);
+    if (v) v.textContent = variant(p).n;
+  });
+
+  const pocet = vybrane().length;
+  $('blokC').innerHTML = pocet ? `<b>vybrané ${pocet}</b>` : '8 možností';
+
+  const g = vybraneVSkupine();
+  $('su').hidden = g.length === 0;
+  if (g.length) {
+    const bezSaNeda = g.some(p => BEZ_ZAKAZUJU.includes(p.k));
+    document.querySelectorAll('#suVolby button').forEach(b => {
+      b.classList.toggle('on', b.dataset.su === spoluucast);
+      b.disabled = b.dataset.su === 'bez' && bezSaNeda;
+    });
+    $('suPlati').textContent = 'Platí spoločne pre: ' + g.map(p => p.n.toLowerCase()).join(', ') + '.';
+    $('suPozn').textContent = pozn || (bezSaNeda ? 'Bez spoluúčasti sa dá poistiť len živel, zver a krádež.' : '');
+    $('suPozn').hidden = !$('suPozn').textContent;
+  }
+  obnovListu();
+}
+document.querySelectorAll('.l').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.l').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  const predtym = LEHOTY[lehota].nazov;
+  lehota = +b.dataset.f;
+  mer('lehota_zmenena', { z:predtym, na:LEHOTY[lehota].nazov });
+  prepocitaj();
+}));
+$('dlazdice').addEventListener('click', e => {
+  const zmen = e.target.closest('[data-zmen]');
+  if (zmen) { otvorVarianty(zmen.dataset.zmen); return; }
+  const d = e.target.closest('.d');
+  if (!d) return;
+  const p = PRIPOISTENIA.find(x => x.k === d.dataset.k);
+  p.zvolene = !p.zvolene;
+  d.classList.toggle('on', p.zvolene);
+  d.querySelector('.d-check').innerHTML = p.zvolene ? fajka() : '';
+  let pozn = '';
+  if (p.zvolene && spoluucast === 'bez' && BEZ_ZAKAZUJU.includes(p.k)) {
+    spoluucast = '300';
+    pozn = p.n + ' sa bez spoluúčasti poistiť nedá, nastavili sme 300 € pre všetky.';
+    mer('spoluucast_vynutena', { dovod:p.k });
+  }
+  mer(p.zvolene ? 'pripoistenie_pridane' : 'pripoistenie_odobrate', { kod:p.k });
+  prepocitaj(pozn);
+});
+$('suVolby').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b || b.disabled) return;
+  const predtym = spoluucast;
+  spoluucast = b.dataset.su;
+  mer('spoluucast_zmenena', { z:predtym, na:spoluucast });
+  prepocitaj();
+});
+$('blokBtn').addEventListener('click', () => {
+  const o = $('blokObsah');
+  o.hidden = !o.hidden;
+  $('blokBtn').classList.toggle('otvoreny', !o.hidden);
+  $('blokBtn').setAttribute('aria-expanded', String(!o.hidden));
+  mer(o.hidden ? 'pripoistenia_zbalene' : 'pripoistenia_rozbalene');
+});
+function otvorVarianty(kod) {
+  otvorene = PRIPOISTENIA.find(p => p.k === kod);
+  $('sheetT').textContent = otvorene.n;
+  vykresliVarianty();
+  $('sheetBg').hidden = false;
+  mer('varianty_otvorene', { kod });
+}
+function vykresliVarianty() {
+  $('sheetV').innerHTML = otvorene.varianty.map(v =>
+    `<button type="button" data-var="${v.k}" class="${v.k === otvorene.variant ? 'on' : ''}">${v.n}<span class="c">${eur(zaObdobie(v.rocne))}</span></button>`).join('');
+}
+$('sheetV').addEventListener('click', e => {
+  const b = e.target.closest('[data-var]');
+  if (!b) return;
+  otvorene.variant = b.dataset.var;
+  if (!otvorene.zvolene) {
+    otvorene.zvolene = true;
+    const d = document.querySelector(`.d[data-k="${otvorene.k}"]`);
+    d.classList.add('on');
+    d.querySelector('.d-check').innerHTML = fajka();
+  }
+  mer('variant_zmeneny', { kod:otvorene.k, variant:b.dataset.var });
+  vykresliVarianty(); prepocitaj();
+});
+$('sheetZ').addEventListener('click', () => { $('sheetBg').hidden = true; });
+$('sheetBg').addEventListener('click', e => { if (e.target === $('sheetBg')) $('sheetBg').hidden = true; });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { $('sheetBg').hidden = true; $('lupa').hidden = true; } });
+
+/* ================= KROK 3 ================= */
+function vykresliRekap(kam, sSumou = true) {
+  const k = stav.klient;
+  const kto = k.typ === 'FO' ? 'Fyzická osoba · ' + (k.obec || '') : k.nazov + ' · ' + k.typ;
+  const polozky = [['Vozidlo', stav.auto.nazov + ' · ' + stav.auto.ecv],
+                   ['Držiteľ', kto],
+                   ['Poistenie', 'Sklá' + (vybrane().length ? ' + ' + vybrane().length + ' pripoistenia' : '')],
+                   ['Platba', LEHOTY[lehota].nazov]];
+  $(kam).innerHTML = polozky.map(([a,b]) => `<div class="r"><span>${a}</span><b>${b}</b></div>`).join('')
+    + (sSumou ? `<div class="r"><span>Teraz na úhradu</span><b class="suma">${eur(zaObdobie(spoluRocne()))}</b></div>` : '');
+}
+function zhodnotUzavretie() {
+  if (krok !== 3) return;
+  const mailOk = /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test($('mail').value.trim());
+  const telOk = $('tel').value.replace(/\D/g,'').length >= 9;
+  const adresaTreba = stav.klient.typ === 'FO';
+  const adresaOk = !adresaTreba || $('ulica').value.trim().length > 2;
+  const ok = mailOk && telOk && adresaOk && $('suhlas1').checked;
+  $('cta').disabled = !ok;
+  $('listapod').textContent = ok ? 'Zmluvu potom zaplatíte kartou alebo prevodom'
+    : (!mailOk ? 'Doplňte e-mail' : !telOk ? 'Doplňte telefón'
+      : !adresaOk ? 'Doplňte ulicu a číslo' : 'Potvrďte poistné podmienky');
+}
+['mail','tel','ulica'].forEach(id => $(id).addEventListener('input', zhodnotUzavretie));
+$('suhlas1').addEventListener('change', e => { mer('suhlas_podmienky', { hodnota:e.target.checked }); zhodnotUzavretie(); });
+$('suhlas2').addEventListener('change', e => mer('suhlas_marketing', { hodnota:e.target.checked }));
+$('spatNaCenu').addEventListener('click', () => { chod(2); mer('spat_na_cenu'); });
+$('spatNaVstup').addEventListener('click', () => { chod(1); mer('spat_na_vstup'); });
+
+/* ---- výsledok platby ----------------------------------------------
+   Brána vracia tri odpovede a všetky tri musí obrazovka vedieť. Najdôle-
+   žitejšia je neoverená: peniaze mohli odísť, takže sa nesmie ponúkať
+   zaplatiť znova. To by bola druhá platba za tú istú zmluvu.
+------------------------------------------------------------------- */
+let vysledok = null;   /* null = ešte nezaplatené */
+
+/* QR je v náhľade iba ozdoba. V ostrej verzii sem príde Pay by square
+   s IBAN-om, sumou a variabilným symbolom. */
+const QR_N = 25;
+let qrMatica = null;
+function zostavQr() {
+  const n = QR_N;
+  let r = 7;
+  const nahodne = () => (r = (r * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const m = Array.from({length:n}, () => new Array(n).fill(0));
+  const oko = (ox, oy) => {
+    for (let y = 0; y < 7; y++) for (let x = 0; x < 7; x++) {
+      const okraj = x === 0 || y === 0 || x === 6 || y === 6;
+      const stred = x > 1 && x < 5 && y > 1 && y < 5;
+      m[oy+y][ox+x] = (okraj || stred) ? 1 : 0;
+    }
+  };
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const vOku = (x < 8 && y < 8) || (x > n-9 && y < 8) || (x < 8 && y > n-9);
+    if (!vOku) m[y][x] = nahodne() > 0.55 ? 1 : 0;
+  }
+  oko(0,0); oko(n-7,0); oko(0,n-7);
+  return m;
+}
+function nakresliQr() {
+  qrMatica = zostavQr();
+  const n = QR_N, k = 6;
+  let d = '';
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++)
+    if (qrMatica[y][x]) d += `M${x*k} ${y*k}h${k}v${k}h${-k}z`;
+  $('qr').innerHTML = `<svg viewBox="0 0 ${n*k} ${n*k}" width="100%" height="100%"><path d="${d}" fill="#0f172a"/></svg>`;
+}
+function qrPng(velkost = 640) {
+  const n = QR_N, okraj = 32, k = (velkost - 2*okraj) / n;
+  const c = document.createElement('canvas');
+  c.width = c.height = velkost;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, velkost, velkost);
+  ctx.fillStyle = '#0f172a';
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++)
+    if (qrMatica[y][x]) ctx.fillRect(okraj + x*k, okraj + y*k, Math.ceil(k), Math.ceil(k));
+  return c.toDataURL('image/png');
+}
+
+const STAVY = {
+  ok: ['ok', 'Zaplatené', 'Úhradu sme prijali. Ostáva fotoobhliadka a poistenie je v platnosti.'],
+  neoverena: ['caka', 'Overujeme platbu', 'Banka nám zatiaľ nepotvrdila výsledok. <b>Neplaťte znova</b>, peniaze mohli odísť. Ozveme sa e-mailom do pár minút.'],
+  zlyhala: ['zle', 'Platba neprešla', 'Banka platbu odmietla a nič sme vám neúčtovali. Zmluva platí, skúste úhradu znova alebo prevodom podľa údajov vyššie.']
+};
+function vykresliVysledok() {
+  const box = $('stavPlatby');
+  if (!vysledok) { box.hidden = true; $('platitKartou').disabled = false; $('platitKartou').textContent = 'Zaplatiť kartou'; return; }
+  const [trieda, nadpis, text] = STAVY[vysledok];
+  box.className = 'stav-platby ' + trieda;
+  box.innerHTML = `<b class="t">${nadpis}</b>${text}`;
+  box.hidden = false;
+  /* po neoverenej platbe sa druhý pokus neponúka — peniaze mohli odísť */
+  $('platitKartou').disabled = vysledok !== 'zlyhala';
+  $('platitKartou').textContent = vysledok === 'zlyhala' ? 'Skúsiť platbu znova' : 'Zaplatiť kartou';
+}
+$('platitKartou').addEventListener('click', () => {
+  mer('platba_zacata', { suma: zaObdobie(spoluRocne()).toFixed(2), sposob:'karta' });
+  $('platitKartou').disabled = true;
+  $('platitKartou').textContent = 'Spracúvame platbu…';
+  setTimeout(() => {
+    /* v ostrej verzii sem príde odpoveď brány; v náhľade je to úspech */
+    vysledok = 'ok';
+    mer('platba_uspesna');
+    vykresliVysledok();
+  }, 1400);
+});
+/* úlohy po uzavretí — v ostrej verzii otvoria fotenie a nahratie dokladu */
+const POPIS = { foto:'Fotoobhliadka', tp:'Doložiť TP' };
+document.querySelectorAll('[data-uloha]').forEach(b => b.addEventListener('click', () => {
+  const kod = b.dataset.uloha;
+  const hotove = b.classList.toggle('hotova');
+  b.querySelector('[data-popis]').textContent = hotove ? 'Hotové' : POPIS[kod];
+  mer(kod === 'foto' ? (hotove ? 'fotoobhliadka_odoslana' : 'fotoobhliadka_zrusena')
+                     : (hotove ? 'tp_dolozeny' : 'tp_zruseny'));
+}));
+
+/* QR sa dá otvoriť a uložiť ako obrázok — pre toho, kto platí z iného
+   zariadenia alebo si to chce poslať ďalej. */
+$('qrKlik').addEventListener('click', () => {
+  const png = qrPng();
+  $('lupaObr').src = png;
+  $('ulozQr').href = png;
+  $('lupa').hidden = false;
+  mer('qr_otvoreny');
+});
+$('ulozQr').addEventListener('click', () => mer('qr_ulozeny'));
+$('lupaZavri').addEventListener('click', () => { $('lupa').hidden = true; });
+$('lupa').addEventListener('click', e => { if (e.target === $('lupa')) $('lupa').hidden = true; });
+
+
+/* ================= prepínanie krokov ================= */
+function obnovListu() {
+  if (krok === 2) {
+    $('sumaBox').hidden = false;
+    $('sumaPopis').textContent = 'Spolu ' + LEHOTY[lehota].nazov;
+    $('sumaCena').textContent = eur(zaObdobie(spoluRocne()));
+  } else if (krok === 3) {
+    $('sumaBox').hidden = true;
+  }
+}
+function chod(n) {
+  krok = n;
+  [1,2,3,4].forEach(i => $('krok'+i).hidden = i !== n);
+  $('lista').hidden = n === 4;
+  window.scrollTo(0,0);
+
+  if (n === 1) {
+    $('sumaBox').hidden = true;
+    $('cta').firstChild.textContent = 'Zobraziť cenu ';
+    zhodnotVstup();
+  }
+  if (n === 2) {
+    $('recAuto').textContent = stav.auto.nazov + ' · ' + stav.auto.ecv;
+    $('recKlient').textContent = stav.klient.typ === 'FO'
+      ? 'Fyzická osoba · ' + stav.klient.psc + ' ' + stav.klient.obec
+      : stav.klient.nazov + ' · ' + stav.klient.typ;
+    $('cta').firstChild.textContent = 'Pokračovať ';
+    $('cta').disabled = false;
+    $('listapod').textContent = 'Ceny sú konečné, vrátane všetkých poplatkov';
+    prepocitaj();
+  }
+  if (n === 3) {
+    vykresliRekap('rekap');
+    $('adresaBox').hidden = stav.klient.typ !== 'FO';
+    $('adresaObec').textContent = stav.klient.typ === 'FO'
+      ? stav.klient.psc + ' ' + stav.klient.obec + ' — doplnené z PSČ' : '';
+    $('cta').firstChild.textContent = 'Uzatvoriť zmluvu ';
+    zhodnotUzavretie();
+    mer('udaje_zacate');
+  }
+  if (n === 4) {
+    vykresliRekap('rekap2', false);
+    $('hotovoText').innerHTML = 'Zmluvu sme poslali na <b>' +
+      $('mail').value.trim().replace(/[<>&"]/g,'') +
+      '</b>. Poistenie začne platiť po nafotení a úhrade.';
+    $('platbaSuma').textContent = eur(zaObdobie(spoluRocne()));
+    $('platbaVs').textContent = '2026004182';
+    const d = new Date(Date.now() + 7*864e5);
+    $('platbaSplatnost').textContent = d.toLocaleDateString('sk-SK', {day:'numeric', month:'numeric', year:'numeric'});
+    nakresliQr();
+    vykresliVysledok();
+  }
+}
+$('cta').addEventListener('click', () => {
+  if (krok === 1) { mer('zobrazit_cenu', { auto:stav.auto.nazov, typ:stav.klient.typ }); chod(2); return; }
+  if (krok === 2) {
+    mer('pokracovat', { lehota:LEHOTY[lehota].nazov,
+      spoluucast: vybraneVSkupine().length ? spoluucast : '-',
+      pripoistenia: vybrane().length ? vybrane().map(p => p.k).join('+') : 'ziadne',
+      suma: spoluRocne().toFixed(2) });
+    chod(3); return;
+  }
+  if (krok === 3) {
+    mer('udaje_vyplnene');
+    $('cta').disabled = true;
+    $('listapod').textContent = 'Uzatvárame zmluvu…';
+    setTimeout(() => {
+      mer('zmluva_vydana', { cislo:'SK-2026-004182' });
+      chod(4);
+    }, 1200);
+  }
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') mer('odchod', { krok });
+});
+
+prepocitaj();
+chod(1);
+
+/* Kým nevieme, čia je stránka, nemá zmysel ju ukazovať — ofarbenie ani meno
+   prevádzky sa nemá domyslieť. */
+nacitajPrevadzku().then(p => {
+  if (!p) { strankaNedostupna(); return; }
+  nastavPrevadzku(p);
+  document.body.hidden = false;
+  mer('otvorenie', { zdroj: 'qr' });
+});
+</script>
+</body>
+</html>
