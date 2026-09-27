@@ -7945,6 +7945,10 @@ function attachListeners() {
       }
       state.vehicleStatus = 'found';
       state.vehicleInfoText = `${data.znacka} ${data.model} (${data.datumReg?.slice(0,4)}) · ${data.vykon} kW · ${data.objem} cm³`;
+      // Pred prekreslením uložiť, čo technik medzitým napísal do polí klienta —
+      // Krok 1 sa kreslí zo stavu, takže inak sa nesynchronizované polia (PSČ,
+      // obec) vrátia na pôvodnú hodnotu a vyzerá to ako vymazanie.
+      savePoistnikFields();
       overlay.remove();
       render();
     });
@@ -8001,6 +8005,10 @@ function attachListeners() {
       state.vehicle.zmluvnyServis = false;
       state.vehicleStatus = 'not-found';
       state.vehicleInfoText = 'Vozidlo sa nenašlo v databáze. Vyplňte údaje ručne.';
+      // Pred prekreslením uložiť, čo technik medzitým napísal do polí klienta —
+      // Krok 1 sa kreslí zo stavu, takže inak sa nesynchronizované polia (PSČ,
+      // obec) vrátia na pôvodnú hodnotu a vyzerá to ako vymazanie.
+      savePoistnikFields();
       overlay.remove();
       render();
     });
@@ -8011,6 +8019,10 @@ function attachListeners() {
       state.vehicle.zmluvnyServis = false;
       state.vehicleStatus = 'not-found';
       state.vehicleInfoText = 'Vozidlo sa nenašlo v databáze. Vyplňte údaje ručne.';
+      // Pred prekreslením uložiť, čo technik medzitým napísal do polí klienta —
+      // Krok 1 sa kreslí zo stavu, takže inak sa nesynchronizované polia (PSČ,
+      // obec) vrátia na pôvodnú hodnotu a vyzerá to ako vymazanie.
+      savePoistnikFields();
       overlay.remove();
       render();
     });
