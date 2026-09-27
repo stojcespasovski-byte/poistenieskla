@@ -24,6 +24,7 @@ const POVOLENE = [
   /^bcrm\/payment\/(pay|qr|dakujeme)$/,
   /^bcrm\/docs\/zaznam$/,
   /^docs\/[A-Za-z0-9._-]+$/,
+  /^merania$/,
 ];
 
 function telo(req) {
