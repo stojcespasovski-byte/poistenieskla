@@ -7699,6 +7699,10 @@ function attachListeners() {
     state.view = 'form'; state.step = 1; render();
   });
   document.getElementById('btnGoZmluvy')?.addEventListener('click', () => {
+    /* Zahodiť načítaný zoznam, nech sa pri otvorení dotiahne z CRM nanovo.
+       Bez toho sa držal z prvého načítania a zmluva uzavretá medzitým sa v ňom
+       neobjavila, kým technik neobnovil stránku. */
+    state.zmluvyStav = null;
     state.view = 'dashboard'; state.dashTab = 0; render();
   });
 
@@ -8936,6 +8940,12 @@ const MOCK_ZMLUVY = [
 ];
 
 function openZmluvy() {
+  /* Ten istý dôvod ako pri obrazovke Zmluvy: bez zahodenia by panel ukazoval
+     zoznam z prvého načítania, teda bez zmlúv uzavretých medzitým. */
+  state.zmluvyStav = null;
+  const prekresli = () => { if (typeof refreshZmluvyPanel === 'function') refreshZmluvyPanel(); };
+  prekresli();                       // hneď „Načítavam…"
+  nacitatZmluvy().then(prekresli);   // a po dotiahnutí skutočné dáta
   document.getElementById('zmluvyOverlay')?.classList.add('open');
   document.getElementById('zmluvyPanel')?.classList.add('open');
 }
