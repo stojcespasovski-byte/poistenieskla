@@ -7123,7 +7123,10 @@ function renderSuccess(zmluvaId) {
 
         <div class="success-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
         <div class="success-title">Návrh poistnej zmluvy <span style="color:var(--teal-dark);">${zmluvaId}</span> bol úspešne odoslaný.</div>
-        <div class="success-subtitle">Všetky doklady nájdete v e-maile: ${state.poistnik.email || '–'}</div>
+        <!-- Nesľubujeme doručenie: e-mail posiela backend až po tejto odpovedi a portál
+             o jeho výsledku zatiaľ nevie. Keď bude endpoint na stav odoslania, doplní sa
+             sem „Doklady sme poslali…" alebo výzva poslať ich ručne. -->
+        <div class="success-subtitle">Doklady posielame klientovi na: ${state.poistnik.email || '–'}</div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;">
           <div class="box">
