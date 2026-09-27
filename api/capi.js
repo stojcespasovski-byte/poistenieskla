@@ -43,8 +43,10 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const useky = [].concat(req.query.cesta || []);
-  const cesta = useky.join('/');
+  /* Cestu dostávame v parametri, nie ako súbor s viacúrovňovým názvom:
+     Vercel taký súbor obslúžil len pri jednej úrovni a hlbšie cesty
+     (napr. cakaren/prevadzka/KÓD) končili na 404. */
+  const cesta = String(req.query.cesta || '').replace(/^\/+/, '');
   if (cesta.includes('..') || !POVOLENE.some(v => v.test(cesta))) {
     res.status(403).json({ chyba: 'Táto cesta nie je pre klientsku stránku povolená.' });
     return;

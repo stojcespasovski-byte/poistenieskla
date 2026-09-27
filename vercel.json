@@ -1,19 +1,41 @@
 {
   "rewrites": [
-    { "source": "/app", "destination": "/app.html" },
-    { "source": "/capi/:path*", "destination": "/api/capi/:path*" },
-    { "source": "/dokumenty/:path*", "destination": "https://alexapi.sk/docs/:path*" },
-    { "source": "/api/((?!capi/).*)", "destination": "https://alexapi.sk/$1" },
-    { "source": "/", "destination": "/login.html" }
+    {
+      "source": "/app",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/capi/:path*",
+      "destination": "/api/capi?cesta=:path*"
+    },
+    {
+      "source": "/dokumenty/:path*",
+      "destination": "https://alexapi.sk/docs/:path*"
+    },
+    {
+      "source": "/api/((?!capi/).*)",
+      "destination": "https://alexapi.sk/$1"
+    },
+    {
+      "source": "/",
+      "destination": "/login.html"
+    }
   ],
   "redirects": [
-    { "source": "/poistenieskla.html", "destination": "/app", "permanent": true }
+    {
+      "source": "/poistenieskla.html",
+      "destination": "/app",
+      "permanent": true
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        }
       ]
     }
   ]
