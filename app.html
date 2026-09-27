@@ -6120,6 +6120,7 @@ function renderStep1() {
               <input type="text" id="pIco" placeholder="12345678" value="${p.ico}" maxlength="8">
               <div id="orsrStatus" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--ink-3);white-space:nowrap;pointer-events:none;"></div>
             </div>
+            <div id="icoPoznamka" style="font-size:11px;line-height:1.45;margin-top:4px;"></div>
           </div>
           <div class="fld" id="orsrResult">
             <label>${p.typ === 'szco' ? 'Názov živnosti' : 'Názov spoločnosti'}</label>
@@ -8206,6 +8207,24 @@ function attachListeners() {
     ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
   }
 
+  /* Živnostník z RPO: meno a priezvisko prídu rozdelené aj ako celý obchodný názov
+     („Ján Novák – JANKO"). Do mena dáme rozdelené hodnoty, do názvu živnosti celý
+     názov z registra — tak to sedí s tým, čo od nás čaká zmluva. */
+  function vyplnZivnostnika(d) {
+    const p = state.poistnik;
+    if ((d.party?.typ || '') === 'szco' || d.meno || d.priezvisko) {
+      p.meno       = d.meno       || p.meno;
+      p.priezvisko = d.priezvisko || p.priezvisko;
+      p.titulPred  = d.titul_pred || p.titulPred;
+      p.titulZa    = d.titul_za   || p.titulZa;
+      [['pMeno', p.meno], ['pPriezvisko', p.priezvisko],
+       ['pTitulPred', p.titulPred], ['pTitulZa', p.titulZa]].forEach(([id, val]) => {
+        const el = document.getElementById(id);
+        if (el && val) el.value = val;
+      });
+    }
+  }
+
   let _orsrTimer = null;
   document.getElementById('pIco')?.addEventListener('input', function() {
     const ico = this.value.replace(/\D/g, '');
@@ -8226,12 +8245,25 @@ function attachListeners() {
     if (statusEl) statusEl.textContent = '⏳ Hľadám...';
     clearTimeout(_orsrTimer);
     _orsrTimer = setTimeout(async () => {
+      const poznEl = document.getElementById('icoPoznamka');
+      const pisPoznamku = (html) => { if (poznEl) poznEl.innerHTML = html || ''; };
+      pisPoznamku('');
       try {
         const res  = await fetch(`${API_BASE}/bcrm/company?ico=${ico}&stat=SK`, { headers: authHeaders() });
-        const data = await res.json();
+        let data = await res.json();
+        /* Obchodný register pozná len firmy. Živnostník tam nie je, preto druhý pokus
+           cez /bcrm/ico — ten skúsi ORSR a potom register právnických osôb (RPO).
+           Firmu necháme prejsť prvou cestou, lebo len tá nesie „zapísaný v"
+           a konateľov, ktoré RPO nemá. */
         if (!data.found) {
-          if (statusEl) statusEl.textContent = '✗ ' + (data.error || 'IČO nenájdené');
-          return;
+          const res2 = await fetch(`${API_BASE}/bcrm/ico/${encodeURIComponent(ico)}`, { headers: authHeaders() });
+          const d2 = res2.ok ? await res2.json() : {};
+          if (!d2.found) {
+            if (statusEl) statusEl.textContent = '✗ ' + (d2.error || data.error || 'IČO nenájdené');
+            return;
+          }
+          data = { ...d2, mesto: d2.obec, zapisany_v: '' };   // zjednotenie názvu poľa obce
+          vyplnZivnostnika(d2);
         }
         state.poistnik.nazov = data.nazov || '';
         state.poistnik.ulica = data.ulica || '';
@@ -8248,6 +8280,17 @@ function attachListeners() {
           if (el) el.value = val || '';
         });
         saveState();
+        /* Výstrahy z registra ukazujeme vždy — pozastavená alebo zaniknutá živnosť sa
+           nesmie potichu poistiť, a keď register meno nevedel prečítať, musí ho
+           skontrolovať človek. Uvedenie licencie RPO je jej podmienka, nie kozmetika. */
+        {
+          const v = [];
+          if (data.zanik) v.push(`<span style="color:#dc2626;font-weight:600;">Subjekt zanikol ${data.zanik} — overte, či ho možno poistiť.</span>`);
+          if (data.pozastavena_do) v.push(`<span style="color:#d97706;font-weight:600;">Živnosť je pozastavená do ${data.pozastavena_do}.</span>`);
+          if (data.poznamka) v.push(`<span style="color:#d97706;font-weight:600;">${data.poznamka}</span>`);
+          if (data.licencia) v.push(`<span style="color:var(--ink-4);">Zdroj údajov: ${data.licencia}</span>`);
+          pisPoznamku(v.join('<br>'));
+        }
         // konatelia z ORSR → oprávnená osoba (len PO a len ak polia nie sú vyplnené)
         const kon = (data.konatelia || []).filter(Boolean);
         if (kon.length && state.poistnik.typ === 'po' && !state.poistnik.meno && !state.poistnik.priezvisko) {
