@@ -36,19 +36,20 @@ function telo(req) {
 }
 
 module.exports = async (req, res) => {
-  const kluc = process.env.ALEX_API_KEY;
-  if (!kluc) {
-    // Radšej zrozumiteľná chyba než tiché volanie bez kľúča, ktoré skončí na 401
-    res.status(503).json({ chyba: 'Stránka nie je nastavená — chýba kľúč na serveri.' });
-    return;
-  }
-
   /* Cestu dostávame v parametri, nie ako súbor s viacúrovňovým názvom:
      Vercel taký súbor obslúžil len pri jednej úrovni a hlbšie cesty
      (napr. cakaren/prevadzka/KÓD) končili na 404. */
   const cesta = String(req.query.cesta || '').replace(/^\/+/, '');
   if (cesta.includes('..') || !POVOLENE.some(v => v.test(cesta))) {
     res.status(403).json({ chyba: 'Táto cesta nie je pre klientsku stránku povolená.' });
+    return;
+  }
+
+  /* Kľúč kontrolujeme až za zoznamom ciest: zamietnutá cesta má byť zamietnutá
+     vždy rovnako a nemá prezrádzať, ako je server nastavený. */
+  const kluc = process.env.ALEX_API_KEY;
+  if (!kluc) {
+    res.status(503).json({ chyba: 'Stránka nie je nastavená — chýba kľúč na serveri.' });
     return;
   }
 
