@@ -3,7 +3,7 @@
     { "source": "/app", "destination": "/app.html" },
     { "source": "/capi/:path*", "destination": "/api/capi/:path*" },
     { "source": "/dokumenty/:path*", "destination": "https://alexapi.sk/docs/:path*" },
-    { "source": "/api/:path*", "destination": "https://alexapi.sk/:path*" },
+    { "source": "/api/((?!capi/).*)", "destination": "https://alexapi.sk/$1" },
     { "source": "/", "destination": "/login.html" }
   ],
   "redirects": [
