@@ -364,6 +364,14 @@
 
       <div class="rek" id="rekap"></div>
 
+      <div class="karta" id="menoBox">
+        <label for="meno">Meno</label>
+        <input class="inp" id="meno" placeholder="Ján" autocomplete="given-name">
+        <div style="margin-top:14px"></div>
+        <label for="priezvisko">Priezvisko</label>
+        <input class="inp" id="priezvisko" placeholder="Novák" autocomplete="family-name">
+        <div class="napoveda">Poisťovňa ich potrebuje na zmluvu.</div>
+      </div>
       <div class="karta">
         <label for="mail">E-mail</label>
         <input class="inp" id="mail" type="email" inputmode="email" placeholder="meno@email.sk" autocomplete="email">
@@ -998,17 +1006,20 @@ function vykresliRekap(kam, sSumou = true) {
 }
 function zhodnotUzavretie() {
   if (krok !== 3) return;
+  /* Firma má meno aj sídlo z registra, fyzická osoba ich musí zadať —
+     bez mena a priezviska Pillow zmluvu nevystaví. */
+  const jeFO = stav.klient.typ === 'FO';
+  const menoOk = !jeFO || ($('meno').value.trim().length > 1 && $('priezvisko').value.trim().length > 1);
   const mailOk = /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test($('mail').value.trim());
   const telOk = $('tel').value.replace(/\D/g,'').length >= 9;
-  const adresaTreba = stav.klient.typ === 'FO';
-  const adresaOk = !adresaTreba || $('ulica').value.trim().length > 2;
-  const ok = mailOk && telOk && adresaOk && $('suhlas1').checked;
+  const adresaOk = !jeFO || $('ulica').value.trim().length > 2;
+  const ok = menoOk && mailOk && telOk && adresaOk && $('suhlas1').checked;
   $('cta').disabled = !ok;
   $('listapod').textContent = ok ? 'Zmluvu potom zaplatíte kartou alebo prevodom'
-    : (!mailOk ? 'Doplňte e-mail' : !telOk ? 'Doplňte telefón'
+    : (!menoOk ? 'Doplňte meno a priezvisko' : !mailOk ? 'Doplňte e-mail' : !telOk ? 'Doplňte telefón'
       : !adresaOk ? 'Doplňte ulicu a číslo' : 'Potvrďte poistné podmienky');
 }
-['mail','tel','ulica'].forEach(id => $(id).addEventListener('input', zhodnotUzavretie));
+['meno','priezvisko','mail','tel','ulica'].forEach(id => $(id).addEventListener('input', zhodnotUzavretie));
 $('suhlas1').addEventListener('change', e => { mer('suhlas_podmienky', { hodnota:e.target.checked }); zhodnotUzavretie(); });
 $('suhlas2').addEventListener('change', e => mer('suhlas_marketing', { hodnota:e.target.checked }));
 $('spatNaCenu').addEventListener('click', () => { chod(2); mer('spat_na_cenu'); });
@@ -1148,7 +1159,10 @@ function chod(n) {
   }
   if (n === 3) {
     vykresliRekap('rekap');
-    $('adresaBox').hidden = stav.klient.typ !== 'FO';
+    /* Firma má meno aj sídlo z registra — nepýtame ich znova. */
+    const jeFO = stav.klient.typ === 'FO';
+    $('menoBox').hidden = !jeFO;
+    $('adresaBox').hidden = !jeFO;
     $('adresaObec').textContent = stav.klient.typ === 'FO'
       ? stav.klient.psc + ' ' + stav.klient.obec + ' — doplnené z PSČ' : '';
     $('cta').firstChild.textContent = 'Uzatvoriť zmluvu ';
