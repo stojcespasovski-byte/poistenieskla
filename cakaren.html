@@ -492,7 +492,7 @@
       </div>
       <div class="sheet-pod" style="margin-top:14px">
         <button type="button" class="cta" id="rucnePotvrd" style="width:100%">Pokračovať</button>
-        <button type="button" class="spat" id="rucneZavri" style="margin-top:8px">Zavrieť — nechám to na technika</button>
+        <button type="button" class="spat" id="rucneZavri" style="margin-top:8px">Zavrieť</button>
       </div>
     </div>
   </div>
@@ -560,7 +560,7 @@ function nastavPrevadzku(p) {
 function strankaNedostupna() {
   document.body.innerHTML = '<div class="telefon"><div class="obal" style="padding-top:64px;text-align:center">'
     + '<h1 style="text-transform:none">Stránka nie je dostupná</h1>'
-    + '<p class="pod">Tento odkaz už neplatí. Poistenie vám rád vybaví technik na prevádzke.</p>'
+    + '<p class="pod">Tento odkaz už neplatí. Ozvite sa nám prosím priamo na prevádzke.</p>'
     + '</div></div>';
 }
 function mer(nazov, data) {
@@ -891,8 +891,8 @@ async function hladajFirmu(ico) {
   }
   if (f.zanik || f.pozastavena_do) {
     $('osobaChyba').innerHTML = f.zanik
-      ? '<b>Tento subjekt je v registri zaniknutý.</b>Poistenie naň neuzavrieme. Obráťte sa na technika.'
-      : '<b>Táto živnosť je pozastavená.</b>Poistenie naň takto neuzavrieme. Obráťte sa na technika.';
+      ? '<b>Tento subjekt je v registri zaniknutý.</b>Poistenie naň takto uzavrieť nevieme.'
+      : '<b>Táto živnosť je pozastavená.</b>Poistenie naň takto uzavrieť nevieme.';
     $('osobaChyba').hidden = false;
     mer('ico_nepouzitelne', { dovod: f.zanik ? 'zanik' : 'pozastavena' });
     return;
@@ -1326,7 +1326,7 @@ $('cta').addEventListener('click', () => {
     nacitajCeny().then(() => { prepocitaj(); chod(2); })
       .catch(err => {
         $('cta').disabled = false;
-        $('listapod').textContent = 'Cenu sa nepodarilo získať. Skúste to znova alebo sa obráťte na technika.';
+        $('listapod').textContent = 'Cenu sa teraz nepodarilo získať. Skúste to prosím znova.';
         mer('cena_zlyhala', { dovod: String(err.message || err).slice(0, 60) });
       });
     return;
