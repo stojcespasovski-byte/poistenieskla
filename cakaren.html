@@ -231,6 +231,14 @@
   .mer .ev i{color:#94a3b8;font-style:normal;}
 
   /* výber variantu */
+  .dopln{display:block;margin-top:10px;background:none;border:none;padding:0;
+    font-size:13px;font-weight:700;color:var(--znacka);text-decoration:underline;}
+  .rucne{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
+  .rucne label{display:block;font-size:11px;font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;color:var(--ink-3);margin-bottom:4px;}
+  .rucne .cele{grid-column:1 / -1;}
+  .rucne input, .rucne select{width:100%;height:44px;border:1.5px solid var(--border);
+    border-radius:var(--r-mala);padding:0 10px;font:inherit;background:#fff;}
   .sheet-bg{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center;}
   .sheet{background:#fff;width:100%;max-width:420px;border-radius:var(--r-velka) var(--r-velka) 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));}
   .sheet h3{font-size:17px;font-weight:700;}
@@ -463,6 +471,32 @@
     <button class="sheet-z" type="button" id="sheetZ">Hotovo</button>
   </div>
 </div>
+  <!-- Ručné doplnenie vozidla: register ho nenašiel (prepis, nové auto, cudzia
+       značka), no Pillow bez VIN a farby zmluvu nevystaví. Klient má technický
+       preukaz pri sebe, auto je práve v servise. -->
+  <div class="sheet-bg" id="rucneBg" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="rucneT">
+      <h3 id="rucneT">Údaje z technického preukazu</h3>
+      <p>Prepíšte ich z malého technického preukazu. Bez nich poisťovňa zmluvu nevystaví.</p>
+      <div class="rucne">
+        <div class="cele"><label for="rVin">VIN</label>
+          <input id="rVin" maxlength="17" autocapitalize="characters" placeholder="17 znakov"></div>
+        <div><label for="rZnacka">Značka</label><select id="rZnacka"></select></div>
+        <div><label for="rModel">Model</label><select id="rModel"></select></div>
+        <div><label for="rReg">Prvá evidencia</label><input id="rReg" type="date"></div>
+        <div><label for="rPalivo">Palivo</label><select id="rPalivo"></select></div>
+        <div><label for="rObjem">Objem (cm³)</label><input id="rObjem" type="number" inputmode="numeric" placeholder="1598"></div>
+        <div><label for="rVykon">Výkon (kW)</label><input id="rVykon" type="number" inputmode="numeric" placeholder="85"></div>
+        <div><label for="rHmotnost">Hmotnosť (kg)</label><input id="rHmotnost" type="number" inputmode="numeric" placeholder="1800"></div>
+        <div><label for="rFarba">Farba</label><select id="rFarba"></select></div>
+      </div>
+      <div class="sheet-pod" style="margin-top:14px">
+        <button type="button" class="cta" id="rucnePotvrd" style="width:100%">Pokračovať</button>
+        <button type="button" class="spat" id="rucneZavri" style="margin-top:8px">Zavrieť — nechám to na technika</button>
+      </div>
+    </div>
+  </div>
+
 
 <div class="lista" id="lista">
   <div class="lista-in">
@@ -679,7 +713,8 @@ async function hladajAuto(v) {
   } catch (_) { /* nenájdené aj výpadok riešime rovnako — klient s tým spraví to isté */ }
   $('autoHlada').hidden = true;
   if (!n) {
-    $('autoChyba').innerHTML = '<b>Toto vozidlo sme nenašli.</b>Skontrolujte znaky, alebo zadajte VIN z technického preukazu. Pomôže vám aj technik na prevádzke.';
+    $('autoChyba').innerHTML = '<b>Toto vozidlo sme nenašli.</b>Skontrolujte znaky, alebo zadajte VIN z technického preukazu.'
+      + '<button type="button" class="dopln" id="doplnAuto">Prepísať údaje z technického preukazu</button>';
     $('autoChyba').hidden = false;
     mer('auto_nenajdene', { dlzka:v.length });
     return;
@@ -720,6 +755,100 @@ $('osoba').addEventListener('input', e => {
     $('osobaHlada').hidden = true; $('fo').hidden = true;
   }
 });
+/* ─── ručné doplnenie vozidla ─────────────────────────────────────────────
+   Značky, modely, palivá aj farby berieme z číselníkov — klient vyberá z toho,
+   čo poisťovňa pozná. Voľný text by prešiel obrazovkou a spadol by až pri
+   uzatváraní, teda v najhoršej chvíli: keď už klient klikol na uzavrieť. */
+let ZNACKY = null, FARBY = null, PALIVA = null;
+
+async function pripravRucne() {
+  if (!ZNACKY) {
+    const [v, f, pl] = await Promise.all([
+      api('ciselnik/pillow/vozidla'), api('ciselnik/farby'), api('ciselnik/palivo'),
+    ]);
+    ZNACKY = v.znacky || [];
+    FARBY  = Array.isArray(f) ? f : (f.farby || []);
+    PALIVA = Array.isArray(pl) ? pl : (pl.palivo || pl.paliva || []);
+    const vypln = (id, polozky, prazdne) => {
+      $(id).innerHTML = `<option value="">${prazdne}</option>`
+        + polozky.map(o => `<option value="${o.kod}">${o.nazov}</option>`).join('');
+    };
+    vypln('rZnacka', ZNACKY, 'Vyberte značku');
+    vypln('rFarba', FARBY, 'Vyberte farbu');
+    /* „Hybrid (neviem aký)" v zozname ostáva, ale nie ako prvá voľba — kto drží
+       technický preukaz, vie povedať, či je benzínový alebo naftový. */
+    vypln('rPalivo', [...PALIVA].sort((a,b) => (a.kod === 'hybrid') - (b.kod === 'hybrid')), 'Vyberte palivo');
+    $('rModel').innerHTML = '<option value="">Najprv značku</option>';
+  }
+}
+
+async function nacitajModely(znacka) {
+  $('rModel').innerHTML = '<option value="">Načítavam…</option>';
+  try {
+    const d = await api('ciselnik/pillow/vozidla?znacka=' + encodeURIComponent(znacka));
+    $('rModel').innerHTML = '<option value="">Vyberte model</option>'
+      + (d.modely || []).map(m => `<option value="${m.kod}">${m.nazov}</option>`).join('');
+  } catch (_) { $('rModel').innerHTML = '<option value="">Modely sa nenačítali</option>'; }
+}
+
+function otvorRucne() {
+  mer('rucne_otvorene');
+  $('rucneBg').hidden = false;
+  const zadane = $('auto').value.replace(/\s/g, '').toUpperCase();
+  if (zadane.length === 17) $('rVin').value = zadane;
+  pripravRucne().catch(() => {
+    $('rucneT').textContent = 'Číselníky sa nenačítali';
+  });
+}
+
+function potvrdRucne() {
+  const chyba = [];
+  const vin = $('rVin').value.replace(/\s/g, '').toUpperCase();
+  if (vin.length !== 17) chyba.push('VIN má 17 znakov');
+  ['rZnacka','rModel','rReg','rPalivo','rFarba'].forEach(id => {
+    if (!$(id).value) chyba.push('doplňte všetky polia');
+  });
+  ['rObjem','rVykon','rHmotnost'].forEach(id => { if (!+$(id).value) chyba.push('doplňte všetky polia'); });
+  if (chyba.length) { $('rucneT').textContent = 'Ešte chýba: ' + [...new Set(chyba)].join(', '); return; }
+
+  const znackaNazov = $('rZnacka').selectedOptions[0].textContent;
+  const modelNazov  = $('rModel').selectedOptions[0].textContent;
+  /* Tvar je rovnaký ako z registra, aby ďalšie kroky nevedeli, odkiaľ údaje sú. */
+  stav.auto = {
+    nazov: znackaNazov + ' ' + modelNazov,
+    detail: [String($('rReg').value).slice(0,4), $('rObjem').value + ' cm³',
+             $('rVykon').value + ' kW'].join(' · '),
+    ecv: $('auto').value.replace(/\s/g,'').toUpperCase().length === 17 ? '' : $('auto').value.trim().toUpperCase(),
+    vin,
+    surove: {
+      druh: 'OA', znacka: znackaNazov, model: modelNazov,
+      pillow_brand_kod: $('rZnacka').value, pillow_model_kod: $('rModel').value,
+      vin, ecv: '', first_registration: $('rReg').value,
+      palivo: $('rPalivo').value, farba: $('rFarba').value,
+      objem: +$('rObjem').value, vykon: +$('rVykon').value, hmotnost: +$('rHmotnost').value,
+      x4: false, rucne: true,
+    },
+  };
+  $('rucneBg').hidden = true;
+  $('autoChyba').hidden = true;
+  $('autoNazov').textContent = stav.auto.nazov;
+  $('autoDetail').textContent = stav.auto.detail;
+  $('autoKod').textContent = [stav.auto.ecv, vin].filter(Boolean).join('  –  ');
+  $('autoNajdene').hidden = false;
+  $('auto').hidden = true; $('autoNap').hidden = true;
+  mer('rucne_doplnene');
+  zhodnotVstup();
+}
+
+document.addEventListener('click', e => {
+  if (e.target.id === 'doplnAuto') otvorRucne();
+  if (e.target.id === 'rucneZavri') { $('rucneBg').hidden = true; mer('rucne_zavrete'); }
+  if (e.target.id === 'rucnePotvrd') potvrdRucne();
+});
+document.addEventListener('change', e => {
+  if (e.target.id === 'rZnacka' && e.target.value) nacitajModely(e.target.value);
+});
+
 function potvrdRodneCislo(cifry) {
   $('fo').hidden = false;
   $('osoba').hidden = true; $('osobaNap').hidden = true;
