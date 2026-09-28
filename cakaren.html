@@ -614,6 +614,7 @@ const IKONY = {
    z matice, ktorú vráti /rate-matrix naraz pre všetky varianty a spoluúčasti.
    Prepnutie lehoty, spoluúčasti či variantu je teda výber z nej, nie nový výpočet. */
 const SKLO = 'SK2';
+const VARIANT_SKLA = 'SK2_STANDARD';   // sklá majú jediný variant
 const PRIPOISTENIA = [
   { k:'zivel',       n:'Živel',           riziko:'SZ2', skupina:true,  zvolene:false },
   { k:'zver',        n:'Stret so zverou', riziko:'ZV2', skupina:true,  zvolene:false },
@@ -1169,8 +1170,12 @@ let ZMLUVA = null;
 async function uzavriZmluvu() {
   const a = stav.auto.surove, k = stav.klient;
   const jeFO = k.typ === 'FO';
-  const vyber = [{ risk: SKLO }].concat(vybrane().map(p =>
-    p.variant ? { risk: p.riziko, variant: p.variant } : { risk: p.riziko }));
+  /* Pillow chce pri každej položke aj variant. Pri rizikách so spoluúčasťou
+     je variant jej kódom (HP2_300), sklá majú jediný variant a asistencia,
+     úraz či batožina ten, ktorý si klient vybral. */
+  const variantPre = p => p.variant || (p.skupina ? p.riziko + '_' + spoluucast : p.riziko + '_0');
+  const vyber = [{ risk: SKLO, variant: VARIANT_SKLA }]
+    .concat(vybrane().map(p => ({ risk: p.riziko, variant: variantPre(p) })));
 
   const telo = {
     start_date: ZACIATOK_POISTENIA,
