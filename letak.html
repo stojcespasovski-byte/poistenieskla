@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Leták do čakárne</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --znacka:#1A4E9B; --akcia:#E9722B;
+    --znacka-tint:color-mix(in srgb, var(--znacka) 8%, #fff);
+    --pismo:"Titillium Web";
+    --ink:#0f172a; --ink-2:#374151; --ink-3:#6b7280; --border:#e2e6ea;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:#eef2f3;font-family:var(--pismo),system-ui,sans-serif;color:var(--ink);}
+
+  /* A4 na výšku. Rozmery sú v milimetroch, aby tlač sedela aj bez mierky. */
+  .list{width:210mm;height:297mm;margin:16px auto;background:#fff;padding:18mm 16mm 14mm;
+        display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(15,23,42,.14);}
+
+  .hlava{display:flex;align-items:center;justify-content:space-between;gap:10mm;
+         border-bottom:2px solid var(--znacka);padding-bottom:5mm;}
+  .hlava img{max-height:16mm;max-width:60mm;object-fit:contain;}
+  .hlava .meno{font-size:12pt;color:var(--ink-3);text-align:right;line-height:1.3;}
+
+  h1{font-size:34pt;line-height:1.06;letter-spacing:-.02em;margin:11mm 0 0;}
+  h1 em{font-style:normal;color:var(--znacka);}
+  .pod{font-size:14pt;color:var(--ink-2);margin:5mm 0 0;max-width:150mm;}
+
+  .stred{display:flex;align-items:center;gap:12mm;margin-top:10mm;}
+  .qr{width:74mm;height:74mm;flex:none;border:1px solid var(--border);padding:3mm;background:#fff;}
+  .qr svg{width:100%;height:100%;display:block;}
+  .adresa{margin-top:3mm;font-size:11pt;color:var(--ink-3);text-align:center;width:74mm;}
+  .adresa b{color:var(--ink);}
+
+  ol{margin:0;padding:0;list-style:none;counter-reset:k;}
+  ol li{counter-increment:k;position:relative;padding-left:12mm;margin-bottom:7mm;font-size:13.5pt;line-height:1.35;}
+  ol li b{display:block;font-size:15pt;}
+  ol li::before{content:counter(k);position:absolute;left:0;top:0;width:8mm;height:8mm;border-radius:50%;
+                background:var(--znacka);color:#fff;font-size:11pt;font-weight:700;
+                display:flex;align-items:center;justify-content:center;}
+
+  .body{margin-top:auto;display:flex;gap:6mm;}
+  .bod{flex:1;background:var(--znacka-tint);border-radius:4px;padding:5mm;font-size:11.5pt;line-height:1.35;}
+  .bod b{display:block;font-size:13pt;margin-bottom:1mm;}
+
+  .pata{margin-top:7mm;padding-top:4mm;border-top:1px solid var(--border);
+        display:flex;justify-content:space-between;align-items:flex-end;gap:8mm;
+        font-size:9.5pt;color:var(--ink-3);line-height:1.4;}
+  .pata .web{font-size:12pt;font-weight:700;color:var(--znacka);}
+
+  .ovladanie{max-width:210mm;margin:0 auto;display:flex;gap:10px;align-items:center;
+             padding:0 16px 24px;font-size:14px;color:var(--ink-2);}
+  .ovladanie button{height:40px;padding:0 18px;border:none;border-radius:6px;background:var(--akcia);
+                    color:#fff;font:inherit;font-weight:600;cursor:pointer;}
+  .chyba{max-width:210mm;margin:40px auto;background:#fff;border-radius:8px;padding:28px;
+         font-size:15px;line-height:1.5;}
+
+  @page{size:A4 portrait;margin:0;}
+  @media print{
+    body{background:#fff;}
+    .list{margin:0;box-shadow:none;width:auto;height:auto;min-height:297mm;}
+    .ovladanie{display:none;}
+  }
+</style>
+</head>
+<body hidden>
+
+<div class="list" id="list">
+  <div class="hlava">
+    <img id="logoServisu" alt="">
+    <div class="meno">Poistenie skiel<br><b id="menoServisu"></b></div>
+  </div>
+
+  <h1>Kým čakáte,<br><em>poistite si sklá.</em></h1>
+  <p class="pod">Prasknuté čelné sklo stojí stovky eur. Poistenie skiel vybavíte
+     na vlastnom telefóne skôr, než vám auto vrátime.</p>
+
+  <div class="stred">
+    <div>
+      <div class="qr" id="qr"></div>
+      <div class="adresa">alebo napíšte do prehliadača<br><b id="adresa"></b></div>
+    </div>
+    <ol>
+      <li><b>Naskenujte kód</b>fotoaparátom telefónu</li>
+      <li><b>Zadajte EČV</b>auto aj cenu nájdeme sami</li>
+      <li><b>Zaplaťte kartou alebo QR kódom</b>zmluva vám príde e-mailom</li>
+    </ol>
+  </div>
+
+  <div class="body">
+    <div class="bod"><b>Bez papierov</b>Celé to zvládnete v telefóne, nič nepodpisujete.</div>
+    <div class="bod"><b>Cena hneď</b>Sadzbu počíta priamo poisťovňa, nie odhad.</div>
+    <div class="bod"><b>Aj ďalšie krytie</b>K sklám si viete pridať zver, živel či nehodu.</div>
+  </div>
+
+  <div class="pata">
+    <div>Poistenie skiel poskytuje poisťovňa Pillow. Zmluva začne platiť po nafotení
+        vozidla a úhrade poistného.<br>Kód prevádzky <span id="kodPrevadzky"></span> —
+        poistenie sa páruje s touto prevádzkou.</div>
+    <div class="web">poistenieautoskiel.sk</div>
+  </div>
+</div>
+
+<div class="ovladanie">
+  <button type="button" id="tlacit">Vytlačiť</button>
+  <span>A4, na výšku. V dialógu tlače vypnite hlavičky a päty prehliadača.</span>
+</div>
+
+<script src="cakaren/qr.min.js"></script>
+<script>
+const PREVADZKA = new URLSearchParams(location.search).get('p') || '';
+/* Adresa musí byť presne tá, ktorú otvorí čakáreň — QR aj napísaný text vedú
+   na to isté miesto, inak by sa provízia pripísala inej prevádzke. */
+const ADRESA = location.origin + '/c/' + PREVADZKA;
+
+function nedostupne(text) {
+  document.getElementById('list').remove();
+  document.querySelector('.ovladanie').remove();
+  const d = document.createElement('div');
+  d.className = 'chyba';
+  d.textContent = text;
+  document.body.appendChild(d);
+  document.body.hidden = false;
+}
+
+function nakresliQr() {
+  /* Úroveň H znesie aj zašpinený alebo prehnutý papier v dielni. */
+  const q = qrcode(0, 'H');
+  q.addData(ADRESA);
+  q.make();
+  document.getElementById('qr').innerHTML = q.createSvgTag({ scalable: true, margin: 1 });
+  document.getElementById('adresa').textContent = ADRESA.replace(/^https?:\/\//, '');
+  document.getElementById('kodPrevadzky').textContent = PREVADZKA;
+}
+
+/* Leták sa tlačí s logom a menom prevádzky — kým ich nemáme z registra, nemá
+   zmysel nič ukazovať. Neznámy kód by viedol na stránku, ktorá sa neotvorí. */
+(async () => {
+  if (!PREVADZKA) { nedostupne('Chýba kód prevádzky. Otvorte leták s adresou …/letak?p=KÓD.'); return; }
+  let p = null;
+  try {
+    const r = await fetch('/capi/cakaren/prevadzka/' + encodeURIComponent(PREVADZKA));
+    if (r.ok) p = await r.json();
+  } catch (_) {}
+  if (!p) { nedostupne('Prevádzku s kódom ' + PREVADZKA + ' register nepozná, leták by viedol na prázdnu stránku.'); return; }
+
+  const k = document.documentElement.style;
+  if (p.farba)       k.setProperty('--znacka', p.farba);
+  if (p.farba_akcie) k.setProperty('--akcia', p.farba_akcie);
+  if (p.pismo) {
+    k.setProperty('--pismo', '"' + p.pismo + '"');
+    const o = document.createElement('link');
+    o.rel = 'stylesheet';
+    o.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(p.pismo).replace(/%20/g, '+') + ':wght@400;600;700&display=swap';
+    document.head.appendChild(o);
+  }
+  const logo = document.getElementById('logoServisu');
+  if (p.logo) { logo.src = p.logo; logo.alt = p.nazov || ''; } else { logo.remove(); }
+  document.getElementById('menoServisu').textContent = p.nazov || '';
+
+  nakresliQr();
+  document.body.hidden = false;
+})();
+
+document.getElementById('tlacit').addEventListener('click', () => window.print());
+</script>
+</body>
+</html>

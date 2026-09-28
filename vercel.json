@@ -5,6 +5,14 @@
       "destination": "/app.html"
     },
     {
+      "source": "/letak",
+      "destination": "/letak.html"
+    },
+    {
+      "source": "/c/:kod",
+      "destination": "/cakaren.html?p=:kod"
+    },
+    {
       "source": "/capi/:path*",
       "destination": "/api/capi?cesta=:path*"
     },
