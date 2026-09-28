@@ -580,6 +580,11 @@ const PRIPOISTENIA = [
    súčtu oboch. Keď sú vybrané obe, berieme ju namiesto nich. */
 const SPOJENE = { dvojica:['HP2','SZ2'], riziko:'HP2SZ2' };
 
+/* Pravidlo Pillow: nulová spoluúčasť sa dá len vtedy, keď medzi vybranými
+   rizikami nie je havária ani vandalizmus. Neplatná kombinácia sa tak k
+   poisťovni vôbec nedostane. */
+const BEZ_ZAKAZUJU = ['havaria','vandalizmus'];
+
 /* Matica vracia len kódy variantov; názvy sú naše, aby klient nečítal AS2_XL.
    Neznámy kód sa zobrazí tak, ako prišiel — radšej kód než vymyslený názov. */
 const NAZVY_VARIANTOV = {
