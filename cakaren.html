@@ -1306,7 +1306,12 @@ $('platitKartou').addEventListener('click', async () => {
       body: JSON.stringify({
         vs: pl.variable_symbol || '', amount: suma, method: 'card', currency: 'EUR',
         /* Sem sa klient vráti z brány; podľa značky v adrese vieme, že ide o návrat. */
-        returnUrl: location.origin + location.pathname + location.search + '&platba=1',
+        /* Po presmerovaní na bránu sa stránka načíta odznova a pamäť je preč.
+           Čoho sa platba týkala si preto nesieme v návratovej adrese — do
+           zariadenia neukladáme nič, takže netreba ani lištu so súhlasom. */
+        returnUrl: location.origin + location.pathname + '?p=' + encodeURIComponent(PREVADZKA)
+          + '&zmluva=' + encodeURIComponent((ZMLUVA && ZMLUVA.reference_number) || '')
+          + '&suma=' + suma.toFixed(2),
         policyId: (ZMLUVA && ZMLUVA.reference_number) || null,
       }),
     });
@@ -1449,12 +1454,51 @@ document.addEventListener('visibilitychange', () => {
 
 chod(1);
 
+/* Návrat z platobnej brány. Stránka sa načíta odznova, takže z nej zostane len
+   výsledok platby — celý tok späť neskladáme, klient už zmluvu uzavretú má. */
+async function zobrazVysledokPlatby(cislo, suma) {
+  document.querySelectorAll('section').forEach(x => x.hidden = true);
+  $('lista').hidden = true;
+  const box = document.createElement('div');
+  box.className = 'obal';
+  document.querySelector('.telefon').appendChild(box);
+  box.innerHTML = '<h1>Platba</h1><p class="pod">Overujeme stav…</p>';
+
+  let stavPl = 'neoverena';
+  try {
+    const r = await fetch('/capi/bcrm/payment/state?zmluva=' + encodeURIComponent(cislo), {
+      headers: { 'X-Prevadzka': PREVADZKA },
+    });
+    if (r.ok) {
+      const d = await r.json();
+      const kod = String(d.state || d.status || d.result || '').toUpperCase();
+      /* Zaplatené hlásime len pri jednoznačnom potvrdení. „Neprešla" len vtedy,
+         keď to brána povie výslovne — inak ostáva neoverená a druhý pokus sa
+         NEPONÚKA: dvakrát zaplatená zmluva je horší problém než nejasnosť. */
+      if (d.paid === true || ['PAID','DONE','OK','SUCCESS','COMPLETED'].includes(kod)) stavPl = 'ok';
+      else if (['CANCELLED','CANCELED','EXPIRED','ERROR','FAILED','DECLINED','REJECTED','STORNO','TIMEOUT'].includes(kod)) stavPl = 'zlyhala';
+    }
+  } catch (_) { /* neoverená — a tá sa nesmie tváriť ako zlyhanie */ }
+
+  const [trieda, nadpis, text] = STAVY[stavPl];
+  box.innerHTML = '<h1>' + nadpis + '</h1>'
+    + '<div class="stav-platby ' + trieda + '" style="margin-top:12px">' + text + '</div>'
+    + '<div class="rek" style="margin-top:14px">'
+    + '<div class="r"><span>Zmluva</span><b>' + cislo.replace(/[<>&"]/g,'') + '</b></div>'
+    + (suma ? '<div class="r"><span>Suma</span><b>' + eur(+suma) + '</b></div>' : '')
+    + '</div>';
+  mer(stavPl === 'ok' ? 'platba_uspesna' : stavPl === 'zlyhala' ? 'platba_neuspesna' : 'platba_neoverena',
+      { zmluva: cislo });
+}
+
 /* Kým nevieme, čia je stránka, nemá zmysel ju ukazovať — ofarbenie ani meno
    prevádzky sa nemá domyslieť. */
 nacitajPrevadzku().then(p => {
   if (!p) { strankaNedostupna(); return; }
   nastavPrevadzku(p);
   document.body.hidden = false;
+  const q = new URLSearchParams(location.search);
+  if (q.get('zmluva')) { zobrazVysledokPlatby(q.get('zmluva'), q.get('suma')); return; }
   mer('otvorenie', { zdroj: 'qr' });
 });
 </script>
