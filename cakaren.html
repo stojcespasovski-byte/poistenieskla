@@ -239,6 +239,8 @@
   .rucne .cele{grid-column:1 / -1;}
   .rucne input, .rucne select{width:100%;height:44px;border:1.5px solid var(--border);
     border-radius:var(--r-mala);padding:0 10px;font:inherit;background:#fff;}
+  .qr-chyba{display:flex;align-items:center;justify-content:center;height:100%;
+    font-size:12px;color:var(--ink-4);text-align:center;padding:8px;}
   .sheet-bg{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center;}
   .sheet{background:#fff;width:100%;max-width:420px;border-radius:var(--r-velka) var(--r-velka) 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));}
   .sheet h3{font-size:17px;font-weight:700;}
@@ -1257,45 +1259,22 @@ let vysledok = null;   /* null = ešte nezaplatené */
 
 /* QR je v náhľade iba ozdoba. V ostrej verzii sem príde Pay by square
    s IBAN-om, sumou a variabilným symbolom. */
-const QR_N = 25;
-let qrMatica = null;
-function zostavQr() {
-  const n = QR_N;
-  let r = 7;
-  const nahodne = () => (r = (r * 1103515245 + 12345) % 2147483648) / 2147483648;
-  const m = Array.from({length:n}, () => new Array(n).fill(0));
-  const oko = (ox, oy) => {
-    for (let y = 0; y < 7; y++) for (let x = 0; x < 7; x++) {
-      const okraj = x === 0 || y === 0 || x === 6 || y === 6;
-      const stred = x > 1 && x < 5 && y > 1 && y < 5;
-      m[oy+y][ox+x] = (okraj || stred) ? 1 : 0;
-    }
-  };
-  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
-    const vOku = (x < 8 && y < 8) || (x > n-9 && y < 8) || (x < 8 && y > n-9);
-    if (!vOku) m[y][x] = nahodne() > 0.55 ? 1 : 0;
-  }
-  oko(0,0); oko(n-7,0); oko(0,n-7);
-  return m;
-}
+/* QR je Pay by square z backendu — obsahuje IBAN, sumu aj variabilný symbol
+   tej konkrétnej zmluvy. Kreslený QR z návrhu by vyzeral rovnako, ale nedal
+   by sa zaplatiť. */
+let qrUrl = '';
+
 function nakresliQr() {
-  qrMatica = zostavQr();
-  const n = QR_N, k = 6;
-  let d = '';
-  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++)
-    if (qrMatica[y][x]) d += `M${x*k} ${y*k}h${k}v${k}h${-k}z`;
-  $('qr').innerHTML = `<svg viewBox="0 0 ${n*k} ${n*k}" width="100%" height="100%"><path d="${d}" fill="#0f172a"/></svg>`;
-}
-function qrPng(velkost = 640) {
-  const n = QR_N, okraj = 32, k = (velkost - 2*okraj) / n;
-  const c = document.createElement('canvas');
-  c.width = c.height = velkost;
-  const ctx = c.getContext('2d');
-  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, velkost, velkost);
-  ctx.fillStyle = '#0f172a';
-  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++)
-    if (qrMatica[y][x]) ctx.fillRect(okraj + x*k, okraj + y*k, Math.ceil(k), Math.ceil(k));
-  return c.toDataURL('image/png');
+  const pl = (ZMLUVA && ZMLUVA.payment) || {};
+  const suma = pl.amount != null ? Number(pl.amount) : spoluZaObdobie();
+  const vs = pl.variable_symbol || '';
+  if (!vs) { $('qr').innerHTML = '<div class="qr-chyba">QR sa nepodarilo pripraviť</div>'; return; }
+  qrUrl = '/capi/bcrm/payment/qr?amount=' + suma.toFixed(2)
+        + '&vs=' + encodeURIComponent(vs)
+        + '&due=' + encodeURIComponent(pl.due_date || ZACIATOK_POISTENIA);
+  $('qr').innerHTML = '<img src="' + qrUrl + '" alt="QR kód na zaplatenie" '
+    + 'style="width:100%;height:100%;object-fit:contain" '
+    + 'onerror="this.parentNode.innerHTML=\'<div class=&quot;qr-chyba&quot;>QR sa nepodarilo načítať</div>\'">';
 }
 
 const STAVY = {
@@ -1314,17 +1293,37 @@ function vykresliVysledok() {
   $('platitKartou').disabled = vysledok !== 'zlyhala';
   $('platitKartou').textContent = vysledok === 'zlyhala' ? 'Skúsiť platbu znova' : 'Zaplatiť kartou';
 }
-$('platitKartou').addEventListener('click', () => {
-  mer('platba_zacata', { suma: spoluZaObdobie().toFixed(2), sposob:'karta' });
+$('platitKartou').addEventListener('click', async () => {
+  const pl = (ZMLUVA && ZMLUVA.payment) || {};
+  const suma = pl.amount != null ? Number(pl.amount) : spoluZaObdobie();
+  mer('platba_zacata', { suma: suma.toFixed(2), sposob:'karta' });
   $('platitKartou').disabled = true;
-  $('platitKartou').textContent = 'Spracúvame platbu…';
-  setTimeout(() => {
-    /* v ostrej verzii sem príde odpoveď brány; v náhľade je to úspech */
-    vysledok = 'ok';
-    mer('platba_uspesna');
+  $('platitKartou').textContent = 'Otvárame platbu…';
+  try {
+    const r = await fetch('/capi/bcrm/payment/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Prevadzka': PREVADZKA },
+      body: JSON.stringify({
+        vs: pl.variable_symbol || '', amount: suma, method: 'card', currency: 'EUR',
+        /* Sem sa klient vráti z brány; podľa značky v adrese vieme, že ide o návrat. */
+        returnUrl: location.origin + location.pathname + location.search + '&platba=1',
+        policyId: (ZMLUVA && ZMLUVA.reference_number) || null,
+      }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.payURL) throw new Error(d.detail || 'brána neodpovedala');
+    /* Číslo platby si držíme len v pamäti stránky — do zariadenia neukladáme nič. */
+    platbaId = d.objId || d.transactionId || '';
+    location.href = d.payURL;
+  } catch (err) {
+    $('platitKartou').disabled = false;
+    $('platitKartou').textContent = 'Zaplatiť kartou';
+    vysledok = 'zlyhala';
+    mer('platba_neuspesna', { dovod: String(err.message || err).slice(0, 60) });
     vykresliVysledok();
-  }, 1400);
+  }
 });
+let platbaId = '';
 /* úlohy po uzavretí — v ostrej verzii otvoria fotenie a nahratie dokladu */
 const POPIS = { foto:'Fotoobhliadka', tp:'Doložiť TP' };
 document.querySelectorAll('[data-uloha]').forEach(b => b.addEventListener('click', () => {
@@ -1338,9 +1337,10 @@ document.querySelectorAll('[data-uloha]').forEach(b => b.addEventListener('click
 /* QR sa dá otvoriť a uložiť ako obrázok — pre toho, kto platí z iného
    zariadenia alebo si to chce poslať ďalej. */
 $('qrKlik').addEventListener('click', () => {
-  const png = qrPng();
-  $('lupaObr').src = png;
-  $('ulozQr').href = png;
+  if (!qrUrl) return;
+  $('lupaObr').src = qrUrl;
+  $('ulozQr').href = qrUrl;
+  $('ulozQr').setAttribute('download', 'qr-platba.png');
   $('lupa').hidden = false;
   mer('qr_otvoreny');
 });
