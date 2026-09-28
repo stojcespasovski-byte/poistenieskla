@@ -1315,11 +1315,11 @@ $('platitKartou').addEventListener('click', async () => {
   $('platitKartou').disabled = true;
   $('platitKartou').textContent = 'Otvárame platbu…';
   try {
-    const r = await fetch('/capi/bcrm/payment/create', {
+    const r = await fetch('/capi/cakaren/platba', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Prevadzka': PREVADZKA },
       body: JSON.stringify({
-        vs: pl.variable_symbol || '', amount: suma, method: 'card', currency: 'EUR',
+        vs: pl.variable_symbol || '', amount: suma, method: 'card',
         /* Sem sa klient vráti z brány; podľa značky v adrese vieme, že ide o návrat. */
         /* Po presmerovaní na bránu sa stránka načíta odznova a pamäť je preč.
            Čoho sa platba týkala si preto nesieme v návratovej adrese — do
@@ -1327,13 +1327,13 @@ $('platitKartou').addEventListener('click', async () => {
         returnUrl: location.origin + location.pathname + '?p=' + encodeURIComponent(PREVADZKA)
           + '&zmluva=' + encodeURIComponent((ZMLUVA && ZMLUVA.reference_number) || '')
           + '&suma=' + suma.toFixed(2),
-        policyId: (ZMLUVA && ZMLUVA.reference_number) || null,
       }),
     });
     const d = await r.json().catch(() => ({}));
     if (!r.ok || !d.payURL) throw new Error(d.detail || 'brána neodpovedala');
-    /* Číslo platby si držíme len v pamäti stránky — do zariadenia neukladáme nič. */
-    platbaId = d.objId || d.transactionId || '';
+    /* Číslo platby si držíme len v pamäti stránky — do zariadenia neukladáme nič.
+       Po návrate z brány je pamäť preč, stav sa preto číta podľa čísla zmluvy. */
+    platbaId = d.objId || '';
     location.href = d.payURL;
   } catch (err) {
     $('platitKartou').disabled = false;
@@ -1471,7 +1471,7 @@ chod(1);
 
 /* Návrat z platobnej brány. Stránka sa načíta odznova, takže z nej zostane len
    výsledok platby — celý tok späť neskladáme, klient už zmluvu uzavretú má. */
-async function zobrazVysledokPlatby(cislo, suma) {
+async function zobrazVysledokPlatby(cislo, suma, platbaUid) {
   document.querySelectorAll('section').forEach(x => x.hidden = true);
   $('lista').hidden = true;
   const box = document.createElement('div');
@@ -1481,10 +1481,12 @@ async function zobrazVysledokPlatby(cislo, suma) {
 
   let stavPl = 'neoverena';
   try {
-    const r = await fetch('/capi/bcrm/payment/state?zmluva=' + encodeURIComponent(cislo), {
+    /* Stav vieme prečítať len k platbe, ktorú sme sami vytvorili — jej číslo
+       nesie návratová adresa z brány. Bez neho ostáva platba neoverená. */
+    const r = platbaUid && await fetch('/capi/cakaren/platba/stav?paymentUid=' + encodeURIComponent(platbaUid), {
       headers: { 'X-Prevadzka': PREVADZKA },
     });
-    if (r.ok) {
+    if (r && r.ok) {
       const d = await r.json();
       const kod = String(d.state || d.status || d.result || '').toUpperCase();
       /* Zaplatené hlásime len pri jednoznačnom potvrdení. „Neprešla" len vtedy,
@@ -1513,7 +1515,10 @@ nacitajPrevadzku().then(p => {
   nastavPrevadzku(p);
   document.body.hidden = false;
   const q = new URLSearchParams(location.search);
-  if (q.get('zmluva')) { zobrazVysledokPlatby(q.get('zmluva'), q.get('suma')); return; }
+  if (q.get('zmluva')) {
+    zobrazVysledokPlatby(q.get('zmluva'), q.get('suma'), q.get('pu') || q.get('paymentUid') || '');
+    return;
+  }
   mer('otvorenie', { zdroj: 'qr' });
 });
 </script>
