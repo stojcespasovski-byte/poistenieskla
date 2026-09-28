@@ -543,10 +543,10 @@
 const $ = id => document.getElementById(id);
 
 /* ---------- merania ---------- */
-/* Z QR na letáku chodí krátka adresa /c/KÓD, zo staršieho odkazu ?p=KÓD.
-   Tvar z letáka sa po vytlačení nedá zmeniť, takže stránka musí zniesť oba. */
+/* Adresa z letáka je meno prevádzky: /hornetpb. Staršie tvary /c/KÓD a ?p=KÓD
+   platia ďalej — vytlačený leták sa neprepíše. */
 const PREVADZKA = new URLSearchParams(location.search).get('p')
-  || (location.pathname.match(/^\/c\/([A-Za-z0-9-]{1,40})\/?$/) || [])[1] || '';
+  || (location.pathname.match(/^\/(?:c\/)?([A-Za-z0-9-]{1,40})\/?$/) || [])[1] || '';
 const RELACIA = Math.random().toString(36).slice(2, 10);
 const ZACIATOK = Date.now();
 

@@ -113,10 +113,12 @@
 
 <script src="/cakaren/qr.min.js"></script>
 <script>
-const PREVADZKA = new URLSearchParams(location.search).get('p') || '';
+const PREVADZKA = new URLSearchParams(location.search).get('p')
+  || (location.pathname.match(/^\/letak\/([A-Za-z0-9-]{1,40})\/?$/) || [])[1] || '';
 /* Adresa musí byť presne tá, ktorú otvorí čakáreň — QR aj napísaný text vedú
-   na to isté miesto, inak by sa provízia pripísala inej prevádzke. */
-const ADRESA = location.origin + '/c/' + PREVADZKA;
+   na to isté miesto, inak by sa provízia pripísala inej prevádzke. Do QR ide
+   meno prevádzky, aby sa dalo aj prepísať z papiera: poistenieautoskiel.sk/hornetpb */
+const ADRESA = location.origin + '/' + PREVADZKA;
 
 function nedostupne(text) {
   document.getElementById('list').remove();
