@@ -424,7 +424,7 @@
           <div class="qr-pod">Zaplaťte naskenovaním, alebo si QR uložte</div>
         </button>
         <div class="prevod">
-          <div class="r"><span>IBAN</span><b>SK31 1100 0000 0026 1234 5678</b></div>
+          <div class="r"><span>IBAN</span><b id="platbaIban"></b></div>
           <div class="r"><span>Variabilný</span><b id="platbaVs"></b></div>
           <div class="r"><span>Splatnosť</span><b id="platbaSplatnost"></b></div>
         </div>
@@ -540,6 +540,11 @@ async function nacitajPrevadzku() {
 }
 
 function nastavPrevadzku(p) {
+  /* Čo sa dá uzavrieť, hovorí register prevádzky, nie náš zoznam. Keď pribudne
+     provízia na pripoistenia, backend ich dopíše tam a stránka ich ponúkne sama.
+     Zároveň sa nemôže stať, že klient vyskladá krytie a odmietnutie sa dozvie
+     až po kliknutí na uzavrieť. */
+  if (Array.isArray(p.rizika) && p.rizika.length) PONUKA = p.rizika;
   const k = document.documentElement.style;
   if (p.farba)       k.setProperty('--znacka', p.farba);
   if (p.farba_akcie) k.setProperty('--akcia', p.farba_akcie);
@@ -635,6 +640,11 @@ const NAZVY_VARIANTOV = {
   ZA2_750:'750 €', ZA2_1500:'1 500 €'
 };
 
+/* Začiatok poistenia: zajtra. Pillow odmieta dátum v minulosti aj dnešok,
+   a to isté musí ísť do výpočtu aj do zmluvy, inak by sa cena nezhodovala. */
+const ZACIATOK_POISTENIA = (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().slice(0,10); })();
+
+let PONUKA = ['SK2'];         // krytia, ktoré smie prevádzka uzavrieť (z registra)
 let MATICA = null;            // celá matica z /rate-matrix
 let CALC_ID = null;           // číslo kalkulácie Pillow, ide ďalej do uzavretia
 let SPOLUUCASTI = [];         // skutočné možnosti z matice, nie náš zoznam
@@ -667,8 +677,9 @@ function cena(riziko, variantKod) {
 
 const variant = p => p.varianty && p.varianty.find(v => v.k === p.variant);
 const cenaPripoistenia = p => cena(p.riziko, p.variant);
-const vybrane = () => PRIPOISTENIA.filter(p => p.zvolene);
-const vybraneVSkupine = () => PRIPOISTENIA.filter(p => p.skupina && p.zvolene);
+const ponukane = () => PRIPOISTENIA.filter(p => PONUKA.includes(p.riziko));
+const vybrane = () => ponukane().filter(p => p.zvolene);
+const vybraneVSkupine = () => ponukane().filter(p => p.skupina && p.zvolene);
 
 /* Súčet za zvolenú lehotu. Ceny berieme z matice; keď sú vybrané havária aj
    živel, nahradíme ich spoločnou položkou, lebo jej cena je pre tú dvojicu
@@ -971,7 +982,7 @@ function dlazdica(p) {
       ${p.varianty ? `<span class="d-zmen" data-zmen="${p.k}">Zmeniť</span>` : ''}</div>
   </button>`;
 }
-$('dlazdice').innerHTML = PRIPOISTENIA.map(dlazdica).join('');
+$('dlazdice').innerHTML = ponukane().map(dlazdica).join('');
 function vykresliSpoluucasti() {
   $('suVolby').innerHTML = SPOLUUCASTI.map(o =>
     `<button type="button" data-su="${o.k}"><b>${o.b}</b><span>${o.s}</span></button>`).join('');
@@ -994,13 +1005,13 @@ function odvodMoznosti() {
   }
   vykresliSpoluucasti();
 
-  PRIPOISTENIA.filter(p => !p.skupina).forEach(p => {
+  ponukane().filter(p => !p.skupina).forEach(p => {
     const v = MATICA[p.riziko] || {};
     p.varianty = Object.keys(v).filter(k => k !== '_')
       .map(k => ({ k, n: NAZVY_VARIANTOV[k] || k }));
     if (p.varianty.length && !p.varianty.some(x => x.k === p.variant)) p.variant = p.varianty[0].k;
   });
-  $('dlazdice').innerHTML = PRIPOISTENIA.map(dlazdica).join('');
+  $('dlazdice').innerHTML = ponukane().map(dlazdica).join('');
 }
 
 /* Celá matica naraz — všetky varianty, spoluúčasti a lehoty. Ďalšie prepínanie
@@ -1013,7 +1024,7 @@ async function nacitajCeny() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       insurer: 'pillow', market: 'sk',
-      start_date: dnes.toISOString().slice(0, 10),
+      start_date: ZACIATOK_POISTENIA,
       vehicle: {
         druh: a.druh || 'OA', znacka: a.znacka || '', model: a.model || '',
         pillow_brand_kod: a.pillow_brand_kod, pillow_model_kod: a.pillow_model_kod,
@@ -1048,7 +1059,7 @@ function prepocitaj(pozn) {
     el.textContent = (typeof c === 'number') ? eur(c) : '—';
   });
 
-  PRIPOISTENIA.forEach(p => {
+  ponukane().forEach(p => {
     const c = cenaPripoistenia(p);
     document.querySelector(`[data-c="${p.k}"]`).textContent = (c === null) ? 'nedostupné' : '+ ' + eur(c);
     const v = document.querySelector(`[data-v="${p.k}"]`);
@@ -1056,7 +1067,13 @@ function prepocitaj(pozn) {
   });
 
   const pocet = vybrane().length;
-  $('blokC').innerHTML = pocet ? `<b>vybrané ${pocet}</b>` : '8 možností';
+  const mozne = ponukane().length;
+  /* Keď prevádzka nemá dojednané nič okrem skiel, blok sa vôbec neukáže —
+     ponúkať krytie, ktoré sa nedá uzavrieť, je horšie než neponúkať nič. */
+  $('blokBtn').hidden = mozne === 0;
+  if (mozne === 0) $('blokObsah').hidden = true;
+  $('blokC').innerHTML = pocet ? `<b>vybrané ${pocet}</b>`
+    : mozne + (mozne >= 5 ? ' možností' : mozne >= 2 ? ' možnosti' : ' možnosť');
 
   const g = vybraneVSkupine();
   $('su').hidden = g.length === 0;
@@ -1142,6 +1159,64 @@ $('sheetBg').addEventListener('click', e => { if (e.target === $('sheetBg')) $('
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { $('sheetBg').hidden = true; $('lupa').hidden = true; } });
 
 /* ================= KROK 3 ================= */
+let ZMLUVA = null;
+
+/* Uzavretie skladá backend (/cakaren/zmluva) — prehliadač neposiela poisťovni
+   žiadne XML a ani nevie, ako sa zmluva skladá. Poisťovňu, značku aj to, že ide
+   o ostrú zmluvu, si server prepíše sám, takže sa to odtiaľto nedá ovplyvniť. */
+async function uzavriZmluvu() {
+  const a = stav.auto.surove, k = stav.klient;
+  const jeFO = k.typ === 'FO';
+  const vyber = [{ risk: SKLO }].concat(vybrane().map(p =>
+    p.variant ? { risk: p.riziko, variant: p.variant } : { risk: p.riziko }));
+
+  const telo = {
+    start_date: ZACIATOK_POISTENIA,
+    frequency: lehota,
+    calc_id: CALC_ID,
+    selection: vyber,
+    spoluucast: vybraneVSkupine().length ? spoluucast : null,
+    vehicle: {
+      druh: a.druh || 'OA', znacka: a.znacka || '', model: a.model || '',
+      pillow_brand_kod: a.pillow_brand_kod, pillow_model_kod: a.pillow_model_kod,
+      ecv: a.ecv || stav.auto.ecv || '', vin: a.vin || stav.auto.vin || '',
+      first_registration: a.first_registration || null,
+      palivo: a.palivo || '', objem: a.objem || 0, vykon: a.vykon || 0,
+      hmotnost: a.hmotnost || 0, x4: !!a.x4,
+      /* Z ručného doplnenia je to kód z číselníka, z registra text. Backend znesie
+         oboje, ale text pri neznámej zhode ticho dosadí čiernu — preto kód, kde ho máme. */
+      farba: a.farba || '',
+      tp: a.tp || '', ucel: 'bezna', garazovane: false, zmluvny_servis: false,
+    },
+    party: jeFO
+      ? { typ: 'fo', rc: k.rc || '', meno: $('meno').value.trim(),
+          priezvisko: $('priezvisko').value.trim(),
+          ulica: $('ulica').value.trim(), psc: k.psc || '', obec: k.obec || '',
+          email: $('mail').value.trim(), tel: $('tel').value.trim() }
+      : { typ: k.typ === 'SZČO' ? 'szco' : 'po', ico: k.ico || '',
+          obchodne_meno: k.nazov || '', meno: k.meno || '', priezvisko: k.priezvisko || '',
+          ulica: k.ulica || '', cislo: k.cislo || '', psc: k.psc || '', obec: k.obec || '',
+          email: $('mail').value.trim(), tel: $('tel').value.trim() },
+    doplnky: { suhlasy: [
+      { kod: 'podmienky', text: 'Prevzal som a súhlasím s poistnými podmienkami a informačným dokumentom.', suhlas: true },
+      { kod: 'marketing', text: 'Chcem dostávať ponuky aj v budúcnosti.', suhlas: $('suhlas2').checked },
+    ] },
+  };
+
+  const r = await fetch('/capi/cakaren/zmluva', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Prevadzka': PREVADZKA },
+    body: JSON.stringify(telo),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || !d.reference_number) {
+    /* Dôvod ukazujeme tak, ako prišiel — klient má vedieť, čo doplniť, a nie
+       hádať, prečo to nejde. */
+    throw new Error((d.chyby && d.chyby.join(' ')) || d.detail || 'Zmluvu sa nepodarilo uzavrieť. Skúste to prosím znova.');
+  }
+  return d;
+}
+
 function vykresliRekap(kam, sSumou = true) {
   const k = stav.klient;
   const kto = k.typ === 'FO' ? 'Fyzická osoba · ' + (k.obec || '') : k.nazov + ' · ' + k.typ;
@@ -1319,13 +1394,18 @@ function chod(n) {
   }
   if (n === 4) {
     vykresliRekap('rekap2', false);
+    const pl = (ZMLUVA && ZMLUVA.payment) || {};
     $('hotovoText').innerHTML = 'Zmluvu sme poslali na <b>' +
       $('mail').value.trim().replace(/[<>&"]/g,'') +
       '</b>. Poistenie začne platiť po nafotení a úhrade.';
-    $('platbaSuma').textContent = eur(spoluZaObdobie());
-    $('platbaVs').textContent = '2026004182';
-    const d = new Date(Date.now() + 7*864e5);
-    $('platbaSplatnost').textContent = d.toLocaleDateString('sk-SK', {day:'numeric', month:'numeric', year:'numeric'});
+    /* Sumu aj symboly berieme zo zmluvy, nie z obrazovky — klient musí zaplatiť
+       to, čo poisťovňa naozaj predpísala. */
+    $('platbaSuma').textContent = pl.amount != null ? eur(+pl.amount) : eur(spoluZaObdobie());
+    $('platbaVs').textContent = pl.variable_symbol || '';
+    if (pl.iban) $('platbaIban').textContent = pl.iban;
+    $('platbaSplatnost').textContent = pl.due_date
+      ? new Date(pl.due_date).toLocaleDateString('sk-SK', {day:'numeric', month:'numeric', year:'numeric'})
+      : '';
     nakresliQr();
     vykresliVysledok();
   }
@@ -1354,10 +1434,13 @@ $('cta').addEventListener('click', () => {
     mer('udaje_vyplnene');
     $('cta').disabled = true;
     $('listapod').textContent = 'Uzatvárame zmluvu…';
-    setTimeout(() => {
-      mer('zmluva_vydana', { cislo:'SK-2026-004182' });
-      chod(4);
-    }, 1200);
+    uzavriZmluvu()
+      .then(z => { ZMLUVA = z; mer('zmluva_vydana', { cislo: z.reference_number || '' }); chod(4); })
+      .catch(err => {
+        $('cta').disabled = false;
+        $('listapod').textContent = String(err.message || err);
+        mer('zmluva_zlyhala', { dovod: String(err.message || err).slice(0, 80) });
+      });
   }
 });
 document.addEventListener('visibilitychange', () => {
