@@ -698,8 +698,10 @@ $('auto').addEventListener('input', e => {
   $('autoHlada').hidden = false;
   autoTimer = setTimeout(() => hladajAuto(v), 700);
 });
+let dotazAuta = 0;   // odpoveď na starší dotaz nesmie prepísať novší výsledok
 async function hladajAuto(v) {
   const jeVin = v.length === 17;
+  const moj = ++dotazAuta;
   let n = null;
   try {
     const d = await api('bcrm/vehicle?' + (jeVin ? 'vin=' : 'ecv=') + encodeURIComponent(v));
@@ -711,6 +713,7 @@ async function hladajAuto(v) {
       surove: d,
     };
   } catch (_) { /* nenájdené aj výpadok riešime rovnako — klient s tým spraví to isté */ }
+  if (moj !== dotazAuta) return;          // medzitým klient dopísal ďalší znak
   $('autoHlada').hidden = true;
   if (!n) {
     $('autoChyba').innerHTML = '<b>Toto vozidlo sme nenašli.</b>Skontrolujte znaky, alebo zadajte VIN z technického preukazu.'
@@ -720,6 +723,7 @@ async function hladajAuto(v) {
     return;
   }
   stav.auto = n;
+  $('autoChyba').hidden = true;           // po úspechu nesmie visieť stará hláška
   $('autoNazov').textContent = n.nazov;
   $('autoDetail').textContent = n.detail;
   $('autoKod').textContent = [n.ecv, n.vin].filter(Boolean).join('  –  ');
@@ -863,7 +867,9 @@ function rokNarodenia(c) {
   const r = +c.slice(0,2);
   return c.length === 10 ? (r < 54 ? 2000 + r : 1900 + r) : 1900 + r;
 }
+let dotazFirmy = 0;
 async function hladajFirmu(ico) {
+  const moj = ++dotazFirmy;
   let f = null;
   try {
     const d = await api('bcrm/ico/' + encodeURIComponent(ico));
@@ -884,6 +890,7 @@ async function hladajFirmu(ico) {
       };
     }
   } catch (_) {}
+  if (moj !== dotazFirmy) return;
   $('osobaHlada').hidden = true;
   if (!f) {
     $('osobaChyba').innerHTML = '<b>Toto IČO sme v registri nenašli.</b>Skontrolujte číslo. Ak ste fyzická osoba, zadajte rodné číslo.';
@@ -899,6 +906,7 @@ async function hladajFirmu(ico) {
   }
   stav.klient = { typ:f.typ, nazov:f.nazov, sidlo:f.sidlo, obec:f.obec, psc:f.psc,
                   meno:f.meno, priezvisko:f.priezvisko, ico, poznamka:f.poznamka };
+  $('osobaChyba').hidden = true;
   $('firmaNazov').textContent = f.nazov;
   $('firmaDetail').textContent = [f.typ, f.sidlo, 'z registra'].filter(Boolean).join(' · ');
   $('firmaKod').textContent = 'IČO ' + ico;
