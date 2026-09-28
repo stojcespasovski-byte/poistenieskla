@@ -592,6 +592,8 @@ function strankaNedostupna() {
     + '<h1 style="text-transform:none">Stránka nie je dostupná</h1>'
     + '<p class="pod">Tento odkaz už neplatí. Ozvite sa nám prosím priamo na prevádzke.</p>'
     + '</div></div>';
+  /* Telo je do načítania prevádzky skryté — bez tohto by z chyby ostala biela strana. */
+  document.body.hidden = false;
 }
 function mer(nazov, data) {
   const u = { udalost:nazov, prevadzka:PREVADZKA, relacia:RELACIA,
