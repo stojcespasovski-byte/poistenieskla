@@ -561,28 +561,37 @@ const IKONY = {
   uraz:'<circle cx="12" cy="6.8" r="3"/><path d="M5.5 21v-1.8a6.5 6.5 0 0 1 13 0V21"/>',
   batozina:'<rect x="3.5" y="7.5" width="17" height="12" rx="2.4"/><path d="M9 7.5V5.6A1.6 1.6 0 0 1 10.6 4h2.8A1.6 1.6 0 0 1 15 5.6v1.9"/>'
 };
+/* Kódy rizík Pillow. Ceny sa nikde nepíšu ani nedopočítavajú — všetky prídu
+   z matice, ktorú vráti /rate-matrix naraz pre všetky varianty a spoluúčasti.
+   Prepnutie lehoty, spoluúčasti či variantu je teda výber z nej, nie nový výpočet. */
+const SKLO = 'SK2';
 const PRIPOISTENIA = [
-  { k:'zivel',       n:'Živel',           rocne:29.04, skupina:true,  zvolene:false },
-  { k:'zver',        n:'Stret so zverou', rocne:38.40, skupina:true,  zvolene:false },
-  { k:'kradez',      n:'Krádež',          rocne:52.80, skupina:true,  zvolene:false },
-  { k:'havaria',     n:'Dopravná nehoda', rocne:96.00, skupina:true,  zvolene:false },
-  { k:'vandalizmus', n:'Vandalizmus',     rocne:21.60, skupina:true,  zvolene:false },
-  { k:'asistencia',  n:'Asistencia',      skupina:false, zvolene:false, variant:'AS2_L', varianty:[
-      { k:'AS2_S', n:'Základná', rocne:9.60 }, { k:'AS2_M', n:'Rozšírená', rocne:13.20 },
-      { k:'AS2_L', n:'Komfort', rocne:18.00 }, { k:'AS2_XL', n:'Maximálna', rocne:24.00 }] },
-  { k:'uraz',        n:'Úraz vodiča',     skupina:false, zvolene:false, variant:'UR2_2', varianty:[
-      { k:'UR2_2', n:'Úraz vodiča', rocne:12.00 }, { k:'UR2_1', n:'Smrť oboch rodičov', rocne:7.20 }] },
-  { k:'batozina',    n:'Batožina',        skupina:false, zvolene:false, variant:'ZA2_750', varianty:[
-      { k:'ZA2_750', n:'750 €', rocne:9.60 }, { k:'ZA2_1500', n:'1 500 €', rocne:15.60 }] }
+  { k:'zivel',       n:'Živel',           riziko:'SZ2', skupina:true,  zvolene:false },
+  { k:'zver',        n:'Stret so zverou', riziko:'ZV2', skupina:true,  zvolene:false },
+  { k:'kradez',      n:'Krádež',          riziko:'OV2', skupina:true,  zvolene:false },
+  { k:'havaria',     n:'Dopravná nehoda', riziko:'HP2', skupina:true,  zvolene:false },
+  { k:'vandalizmus', n:'Vandalizmus',     riziko:'VA2', skupina:true,  zvolene:false },
+  { k:'asistencia',  n:'Asistencia',      riziko:'AS2', skupina:false, zvolene:false },
+  { k:'uraz',        n:'Úraz vodiča',     riziko:'UR2', skupina:false, zvolene:false },
+  { k:'batozina',    n:'Batožina',        riziko:'ZA2', skupina:false, zvolene:false }
 ];
-const SKLO_ROCNE = 153.48;
-const BEZ_ZAKAZUJU = ['havaria','vandalizmus'];
-const SPOLUUCASTI = [
-  { k:'bez', b:'Bez',   s:'spoluúčasti', koef:1.45 },
-  { k:'150', b:'150 €', s:'pri škode',   koef:1.18 },
-  { k:'300', b:'300 €', s:'pri škode',   koef:1.00 },
-  { k:'600', b:'600 €', s:'pri škode',   koef:0.82 }
-];
+
+/* Havária a živel majú v Pillow aj spoločnú položku a jej cena sa nemusí rovnať
+   súčtu oboch. Keď sú vybrané obe, berieme ju namiesto nich. */
+const SPOJENE = { dvojica:['HP2','SZ2'], riziko:'HP2SZ2' };
+
+/* Matica vracia len kódy variantov; názvy sú naše, aby klient nečítal AS2_XL.
+   Neznámy kód sa zobrazí tak, ako prišiel — radšej kód než vymyslený názov. */
+const NAZVY_VARIANTOV = {
+  AS2_S:'Základná', AS2_M:'Rozšírená', AS2_L:'Komfort', AS2_XL:'Maximálna',
+  UR2_1:'Smrť oboch rodičov', UR2_2:'Úraz vodiča',
+  ZA2_750:'750 €', ZA2_1500:'1 500 €'
+};
+
+let MATICA = null;            // celá matica z /rate-matrix
+let CALC_ID = null;           // číslo kalkulácie Pillow, ide ďalej do uzavretia
+let SPOLUUCASTI = [];         // skutočné možnosti z matice, nie náš zoznam
+
 const LEHOTY = {
   1:{ nazov:'ročne', splatok:1, prirazka:0 },
   2:{ nazov:'polročne', splatok:2, prirazka:0.08 },
@@ -593,13 +602,41 @@ let lehota = 1, spoluucast = '300', otvorene = null, krok = 1;
 const stav = { auto:null, klient:null };
 
 const eur = v => v.toLocaleString('sk-SK', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
-const zaObdobie = r => r * (1 + LEHOTY[lehota].prirazka) / LEHOTY[lehota].splatok;
-const koef = () => SPOLUUCASTI.find(x => x.k === spoluucast).koef;
+/* Kľúč lehoty v matici. Splátku nikdy nedopočítavame delením ročnej ceny —
+   poisťovňa má k lehotám vlastné prirážky a vyšlo by iné číslo než na zmluve. */
+const KLUC_LEHOTY = { 1:'annual', 2:'semiannual', 4:'quarterly', 12:'monthly' };
+
+/* Cena rizika za zvolenú lehotu priamo z matice. null = túto kombináciu
+   poisťovňa nedáva; vtedy sa dlaždica nedá vybrať, nič sa nedohaduje. */
+function cena(riziko, variantKod) {
+  const r = MATICA && MATICA[riziko];
+  if (!r) return null;
+  const v = r[variantKod || '_'] || r['_'];
+  if (!v) return null;
+  const sp = v[spoluucast] || v[Object.keys(v)[0]];
+  const c = sp && sp[KLUC_LEHOTY[lehota]];
+  return (typeof c === 'number') ? c : null;
+}
+
 const variant = p => p.varianty && p.varianty.find(v => v.k === p.variant);
-const rocnaCena = p => p.skupina ? p.rocne * koef() : (variant(p) ? variant(p).rocne : p.rocne);
+const cenaPripoistenia = p => cena(p.riziko, p.variant);
 const vybrane = () => PRIPOISTENIA.filter(p => p.zvolene);
 const vybraneVSkupine = () => PRIPOISTENIA.filter(p => p.skupina && p.zvolene);
-const spoluRocne = () => SKLO_ROCNE + vybrane().reduce((s,p) => s + rocnaCena(p), 0);
+
+/* Súčet za zvolenú lehotu. Ceny berieme z matice; keď sú vybrané havária aj
+   živel, nahradíme ich spoločnou položkou, lebo jej cena je pre tú dvojicu
+   záväzná a nemusí sa rovnať súčtu. */
+function spoluZaObdobie() {
+  const rizika = vybrane().map(p => p.riziko);
+  const obe = SPOJENE.dvojica.every(r => rizika.includes(r));
+  let suma = cena(SKLO) || 0;
+  if (obe) suma += cena(SPOJENE.riziko) || 0;
+  vybrane().forEach(p => {
+    if (obe && SPOJENE.dvojica.includes(p.riziko)) return;
+    suma += cenaPripoistenia(p) || 0;
+  });
+  return suma;
+}
 const fajka = () => '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
 const skry = ids => ids.forEach(i => $(i).hidden = true);
 
@@ -664,7 +701,7 @@ $('osoba').addEventListener('input', e => {
     $('osobaHlada').hidden = true;
     $('fo').hidden = false;
     $('osoba').hidden = true; $('osobaNap').hidden = true;
-    stav.klient = { typ:'FO', rok:rokNarodenia(cifry) };
+    stav.klient = { typ:'FO', rok:rokNarodenia(cifry), rc:cifry };
     $('rcDetail').textContent = 'ročník ' + stav.klient.rok;
     $('rcKod').textContent = 'Rodné číslo ' + cifry.slice(0,6) + '/' + '•'.repeat(cifry.length - 6);
     mer('kontext_klient', { typ:'FO', rok_narodenia:stav.klient.rok });
@@ -774,21 +811,85 @@ function dlazdica(p) {
   </button>`;
 }
 $('dlazdice').innerHTML = PRIPOISTENIA.map(dlazdica).join('');
-$('suVolby').innerHTML = SPOLUUCASTI.map(o => `<button type="button" data-su="${o.k}"><b>${o.b}</b><span>${o.s}</span></button>`).join('');
+function vykresliSpoluucasti() {
+  $('suVolby').innerHTML = SPOLUUCASTI.map(o =>
+    `<button type="button" data-su="${o.k}"><b>${o.b}</b><span>${o.s}</span></button>`).join('');
+}
+
+/* Z matice zistíme, čo poisťovňa pre toto vozidlo naozaj ponúka — spoluúčasti
+   aj varianty. Nič si nedopĺňame: keby sme ponúkli možnosť, ktorú Pillow nemá,
+   klient by si vybral cenu, ktorá na zmluve nebude. */
+function odvodMoznosti() {
+  const skupinove = PRIPOISTENIA.filter(p => p.skupina).map(p => p.riziko);
+  const zdroj = skupinove.map(r => MATICA[r] && MATICA[r]['_']).find(Boolean) || {};
+  const POPIS = { '0':['Bez','spoluúčasti'], bez:['Bez','spoluúčasti'] };
+  SPOLUUCASTI = Object.keys(zdroj)
+    .sort((a,b) => (parseFloat(a) || 0) - (parseFloat(b) || 0))
+    .map(k => ({ k, b: (POPIS[k] || [k.includes('%') ? k : k + ' €'])[0],
+                 s: (POPIS[k] || [null,'pri škode'])[1] }));
+  if (!SPOLUUCASTI.some(o => o.k === spoluucast)) {
+    const tri = SPOLUUCASTI.find(o => o.k === '300');
+    spoluucast = (tri || SPOLUUCASTI[0] || {}).k;
+  }
+  vykresliSpoluucasti();
+
+  PRIPOISTENIA.filter(p => !p.skupina).forEach(p => {
+    const v = MATICA[p.riziko] || {};
+    p.varianty = Object.keys(v).filter(k => k !== '_')
+      .map(k => ({ k, n: NAZVY_VARIANTOV[k] || k }));
+    if (p.varianty.length && !p.varianty.some(x => x.k === p.variant)) p.variant = p.varianty[0].k;
+  });
+  $('dlazdice').innerHTML = PRIPOISTENIA.map(dlazdica).join('');
+}
+
+/* Celá matica naraz — všetky varianty, spoluúčasti a lehoty. Ďalšie prepínanie
+   na obrazovke je už len výber z nej. */
+async function nacitajCeny() {
+  const a = stav.auto.surove, k = stav.klient || {};
+  const dnes = new Date(); dnes.setDate(dnes.getDate() + 1);
+  const odpoved = await api('rate-matrix', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      insurer: 'pillow', market: 'sk',
+      start_date: dnes.toISOString().slice(0, 10),
+      vehicle: {
+        druh: a.druh || 'OA', znacka: a.znacka || '', model: a.model || '',
+        pillow_brand_kod: a.pillow_brand_kod, pillow_model_kod: a.pillow_model_kod,
+        ecv: a.ecv || '', vin: a.vin || '', first_registration: a.first_registration || null,
+        palivo: a.palivo || '', objem: a.objem || 0, vykon: a.vykon || 0,
+        hmotnost: a.hmotnost || 0, x4: !!a.x4, ucel: 'bezna',
+        garazovane: false, zmluvny_servis: false,
+      },
+      party: k.ico
+        ? { typ: k.typ === 'SZČO' ? 'szco' : 'po', ico: k.ico, psc: k.psc || '', obec: k.obec || '' }
+        : { typ: 'fo', rc: k.rc || '', psc: k.psc || '', obec: k.obec || '' },
+    }),
+  });
+  MATICA = odpoved.matrix || {};
+  CALC_ID = odpoved.calculationId || null;
+  if (!MATICA[SKLO]) throw new Error('Poisťovňa pre toto vozidlo cenu skla nedala.');
+  odvodMoznosti();
+}
 
 function prepocitaj(pozn) {
   const L = LEHOTY[lehota];
-  $('heroCena').textContent = eur(zaObdobie(SKLO_ROCNE));
+  $('heroCena').textContent = eur(cena(SKLO) || 0);
   $('heroObdobie').textContent = L.nazov;
   $('obdobiePripoistenia').textContent = 'ceny ' + L.nazov;
 
   document.querySelectorAll('[data-lc]').forEach(el => {
-    const f = +el.dataset.lc, L2 = LEHOTY[f];
-    el.textContent = eur(SKLO_ROCNE * (1 + L2.prirazka) / L2.splatok);
+    /* Každá lehota ukazuje svoju splátku priamo z matice — nie prepočet
+       z ročnej ceny, ktorý by nesedel s tým, čo príde na zmluve. */
+    const sk = MATICA && MATICA[SKLO] && MATICA[SKLO]['_'];
+    const sp = sk && (sk[spoluucast] || sk[Object.keys(sk)[0]]);
+    const c = sp && sp[KLUC_LEHOTY[+el.dataset.lc]];
+    el.textContent = (typeof c === 'number') ? eur(c) : '—';
   });
 
   PRIPOISTENIA.forEach(p => {
-    document.querySelector(`[data-c="${p.k}"]`).textContent = '+ ' + eur(zaObdobie(rocnaCena(p)));
+    const c = cenaPripoistenia(p);
+    document.querySelector(`[data-c="${p.k}"]`).textContent = (c === null) ? 'nedostupné' : '+ ' + eur(c);
     const v = document.querySelector(`[data-v="${p.k}"]`);
     if (v) v.textContent = variant(p).n;
   });
@@ -802,7 +903,7 @@ function prepocitaj(pozn) {
     const bezSaNeda = g.some(p => BEZ_ZAKAZUJU.includes(p.k));
     document.querySelectorAll('#suVolby button').forEach(b => {
       b.classList.toggle('on', b.dataset.su === spoluucast);
-      b.disabled = b.dataset.su === 'bez' && bezSaNeda;
+      b.disabled = (b.dataset.su === 'bez' || b.dataset.su === '0') && bezSaNeda;
     });
     $('suPlati').textContent = 'Platí spoločne pre: ' + g.map(p => p.n.toLowerCase()).join(', ') + '.';
     $('suPozn').textContent = pozn || (bezSaNeda ? 'Bez spoluúčasti sa dá poistiť len živel, zver a krádež.' : '');
@@ -828,9 +929,9 @@ $('dlazdice').addEventListener('click', e => {
   d.classList.toggle('on', p.zvolene);
   d.querySelector('.d-check').innerHTML = p.zvolene ? fajka() : '';
   let pozn = '';
-  if (p.zvolene && spoluucast === 'bez' && BEZ_ZAKAZUJU.includes(p.k)) {
-    spoluucast = '300';
-    pozn = p.n + ' sa bez spoluúčasti poistiť nedá, nastavili sme 300 € pre všetky.';
+  if (p.zvolene && (spoluucast === 'bez' || spoluucast === '0') && BEZ_ZAKAZUJU.includes(p.k)) {
+    spoluucast = SPOLUUCASTI.some(o => o.k === '300') ? '300' : (SPOLUUCASTI[1] || SPOLUUCASTI[0] || {}).k;
+    pozn = p.n + ' sa bez spoluúčasti poistiť nedá, nastavili sme ' + spoluucast + ' € pre všetky.';
     mer('spoluucast_vynutena', { dovod:p.k });
   }
   mer(p.zvolene ? 'pripoistenie_pridane' : 'pripoistenie_odobrate', { kod:p.k });
@@ -860,7 +961,7 @@ function otvorVarianty(kod) {
 }
 function vykresliVarianty() {
   $('sheetV').innerHTML = otvorene.varianty.map(v =>
-    `<button type="button" data-var="${v.k}" class="${v.k === otvorene.variant ? 'on' : ''}">${v.n}<span class="c">${eur(zaObdobie(v.rocne))}</span></button>`).join('');
+    `<button type="button" data-var="${v.k}" class="${v.k === otvorene.variant ? 'on' : ''}">${v.n}<span class="c">${eur(cena(otvorene.riziko, v.k) || 0)}</span></button>`).join('');
 }
 $('sheetV').addEventListener('click', e => {
   const b = e.target.closest('[data-var]');
@@ -888,7 +989,7 @@ function vykresliRekap(kam, sSumou = true) {
                    ['Poistenie', 'Sklá' + (vybrane().length ? ' + ' + vybrane().length + ' pripoistenia' : '')],
                    ['Platba', LEHOTY[lehota].nazov]];
   $(kam).innerHTML = polozky.map(([a,b]) => `<div class="r"><span>${a}</span><b>${b}</b></div>`).join('')
-    + (sSumou ? `<div class="r"><span>Teraz na úhradu</span><b class="suma">${eur(zaObdobie(spoluRocne()))}</b></div>` : '');
+    + (sSumou ? `<div class="r"><span>Teraz na úhradu</span><b class="suma">${eur(spoluZaObdobie())}</b></div>` : '');
 }
 function zhodnotUzavretie() {
   if (krok !== 3) return;
@@ -975,7 +1076,7 @@ function vykresliVysledok() {
   $('platitKartou').textContent = vysledok === 'zlyhala' ? 'Skúsiť platbu znova' : 'Zaplatiť kartou';
 }
 $('platitKartou').addEventListener('click', () => {
-  mer('platba_zacata', { suma: zaObdobie(spoluRocne()).toFixed(2), sposob:'karta' });
+  mer('platba_zacata', { suma: spoluZaObdobie().toFixed(2), sposob:'karta' });
   $('platitKartou').disabled = true;
   $('platitKartou').textContent = 'Spracúvame platbu…';
   setTimeout(() => {
@@ -1014,7 +1115,7 @@ function obnovListu() {
   if (krok === 2) {
     $('sumaBox').hidden = false;
     $('sumaPopis').textContent = 'Spolu ' + LEHOTY[lehota].nazov;
-    $('sumaCena').textContent = eur(zaObdobie(spoluRocne()));
+    $('sumaCena').textContent = eur(spoluZaObdobie());
   } else if (krok === 3) {
     $('sumaBox').hidden = true;
   }
@@ -1054,7 +1155,7 @@ function chod(n) {
     $('hotovoText').innerHTML = 'Zmluvu sme poslali na <b>' +
       $('mail').value.trim().replace(/[<>&"]/g,'') +
       '</b>. Poistenie začne platiť po nafotení a úhrade.';
-    $('platbaSuma').textContent = eur(zaObdobie(spoluRocne()));
+    $('platbaSuma').textContent = eur(spoluZaObdobie());
     $('platbaVs').textContent = '2026004182';
     const d = new Date(Date.now() + 7*864e5);
     $('platbaSplatnost').textContent = d.toLocaleDateString('sk-SK', {day:'numeric', month:'numeric', year:'numeric'});
@@ -1063,12 +1164,23 @@ function chod(n) {
   }
 }
 $('cta').addEventListener('click', () => {
-  if (krok === 1) { mer('zobrazit_cenu', { auto:stav.auto.nazov, typ:stav.klient.typ }); chod(2); return; }
+  if (krok === 1) {
+    mer('zobrazit_cenu', { auto:stav.auto.nazov, typ:stav.klient.typ });
+    $('cta').disabled = true;
+    $('listapod').textContent = 'Počítame cenu…';
+    nacitajCeny().then(() => { prepocitaj(); chod(2); })
+      .catch(err => {
+        $('cta').disabled = false;
+        $('listapod').textContent = 'Cenu sa nepodarilo získať. Skúste to znova alebo sa obráťte na technika.';
+        mer('cena_zlyhala', { dovod: String(err.message || err).slice(0, 60) });
+      });
+    return;
+  }
   if (krok === 2) {
     mer('pokracovat', { lehota:LEHOTY[lehota].nazov,
       spoluucast: vybraneVSkupine().length ? spoluucast : '-',
       pripoistenia: vybrane().length ? vybrane().map(p => p.k).join('+') : 'ziadne',
-      suma: spoluRocne().toFixed(2) });
+      suma: spoluZaObdobie().toFixed(2) });
     chod(3); return;
   }
   if (krok === 3) {
@@ -1085,7 +1197,6 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') mer('odchod', { krok });
 });
 
-prepocitaj();
 chod(1);
 
 /* Kým nevieme, čia je stránka, nemá zmysel ju ukazovať — ofarbenie ani meno
