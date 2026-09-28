@@ -1198,7 +1198,9 @@ async function uzavriZmluvu() {
     party: jeFO
       ? { typ: 'fo', rc: k.rc || '', meno: $('meno').value.trim(),
           priezvisko: $('priezvisko').value.trim(),
-          ulica: $('ulica').value.trim(), psc: k.psc || '', obec: k.obec || '',
+          ulica: rozdelAdresu($('ulica').value).ulica,
+          cislo: rozdelAdresu($('ulica').value).cislo,
+          psc: k.psc || '', obec: k.obec || '',
           email: $('mail').value.trim(), tel: $('tel').value.trim() }
       : { typ: k.typ === 'SZČO' ? 'szco' : 'po', ico: k.ico || '',
           obchodne_meno: k.nazov || '', meno: k.meno || '', priezvisko: k.priezvisko || '',
@@ -1234,6 +1236,13 @@ function vykresliRekap(kam, sSumou = true) {
   $(kam).innerHTML = polozky.map(([a,b]) => `<div class="r"><span>${a}</span><b>${b}</b></div>`).join('')
     + (sSumou ? `<div class="r"><span>Teraz na úhradu</span><b class="suma">${eur(spoluZaObdobie())}</b></div>` : '');
 }
+/* Poisťovňa chce ulicu a číslo domu zvlášť (číslo je povinné), na mobile sa ale
+   pýtame jedno pole. Číslo je posledný úsek, ktorý začína číslicou. */
+function rozdelAdresu(text) {
+  const t = (text || '').trim().replace(/\s+/g, ' ');
+  const m = t.match(/^(.*?)[\s,]+([0-9][0-9A-Za-z\/\-]*)$/);
+  return m && m[1].trim() ? { ulica: m[1].trim(), cislo: m[2].slice(0, 10) } : { ulica: t, cislo: '' };
+}
 function zhodnotUzavretie() {
   if (krok !== 3) return;
   /* Firma má meno aj sídlo z registra, fyzická osoba ich musí zadať —
@@ -1242,7 +1251,8 @@ function zhodnotUzavretie() {
   const menoOk = !jeFO || ($('meno').value.trim().length > 1 && $('priezvisko').value.trim().length > 1);
   const mailOk = /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test($('mail').value.trim());
   const telOk = $('tel').value.replace(/\D/g,'').length >= 9;
-  const adresaOk = !jeFO || $('ulica').value.trim().length > 2;
+  const a = rozdelAdresu($('ulica').value);
+  const adresaOk = !jeFO || (a.ulica.length > 1 && a.cislo !== '');
   const ok = menoOk && mailOk && telOk && adresaOk && $('suhlas1').checked;
   $('cta').disabled = !ok;
   $('listapod').textContent = ok ? 'Zmluvu potom zaplatíte kartou alebo prevodom'
