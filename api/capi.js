@@ -19,6 +19,8 @@ const POVOLENE = [
   /^rate-matrix$/,
   /^bcrm\/vehicle$/,
   /^bcrm\/ico\/\d{6,10}$/,
+  /* Obchodný register: len odtiaľ chodia konatelia, teda kto smie za firmu podpísať. */
+  /^bcrm\/company$/,
   /^ciselnik\/[A-Za-z0-9/_-]+$/,
   /^pillow\/.+/,
   /^bcrm\/payment\/(pay|qr|dakujeme)$/,

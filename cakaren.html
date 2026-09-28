@@ -44,6 +44,13 @@
   .inp:focus{outline:0;border-color:var(--znacka);box-shadow:0 0 0 3px color-mix(in srgb, var(--znacka) 18%, transparent);}
   .inp.zle{border-color:var(--zle)}
   .napoveda{font-size:11.5px;color:var(--ink-4);margin-top:6px;}
+  /* výber konateľa — len keď ich má firma v registri viac */
+  #konatelia{margin-bottom:12px;}
+  #konatelia .napoveda{margin:0 0 7px;}
+  .konatel{display:block;width:100%;text-align:left;margin-bottom:7px;padding:11px 13px;
+           border:1px solid var(--border);border-radius:var(--r-mala);background:#fff;
+           font:inherit;font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer;}
+  .konatel.zvoleny{border-color:var(--znacka);background:var(--znacka-tint);}
   .dvojica{display:grid;grid-template-columns:1fr 1.3fr;gap:10px;margin-top:12px;}
   select.inp{font-size:15px;font-weight:600;}
 
@@ -375,6 +382,7 @@
       <div class="rek" id="rekap"></div>
 
       <div class="karta" id="menoBox">
+        <div id="konatelia" hidden></div>
         <label for="meno">Meno</label>
         <input class="inp" id="meno" placeholder="Ján" autocomplete="given-name">
         <div style="margin-top:14px"></div>
@@ -916,6 +924,15 @@ async function hladajFirmu(ico) {
       };
     }
   } catch (_) {}
+  /* Konateľov nesie len obchodný register — RPO, z ktorého chodí zvyšok údajov,
+     ich nepozná. Pri firme si ich doťahujeme, aby klient nemusel hádať, ako sa
+     píše meno toho, kto zmluvu podpisuje. */
+  if (f && f.typ === 'PO') {
+    try {
+      const c = await api('bcrm/company?ico=' + encodeURIComponent(ico) + '&stat=SK');
+      f.konatelia = (c.konatelia || []).filter(Boolean);
+    } catch (_) { f.konatelia = []; }
+  }
   if (moj !== dotazFirmy) return;
   $('osobaHlada').hidden = true;
   if (!f) {
@@ -932,7 +949,8 @@ async function hladajFirmu(ico) {
   }
   stav.klient = { typ:f.typ, nazov:f.nazov, sidlo:f.sidlo, ulica:f.ulica, cislo:f.cislo,
                   obec:f.obec, psc:f.psc,
-                  meno:f.meno, priezvisko:f.priezvisko, ico, poznamka:f.poznamka };
+                  meno:f.meno, priezvisko:f.priezvisko, konatelia:f.konatelia || [],
+                  ico, poznamka:f.poznamka };
   $('osobaChyba').hidden = true;
   $('firmaNazov').textContent = f.nazov;
   $('firmaDetail').textContent = [f.typ, f.sidlo, 'z registra'].filter(Boolean).join(' · ');
@@ -1261,6 +1279,44 @@ function trebaMeno() {
   const k = stav.klient || {};
   return !(k.meno && k.priezvisko);
 }
+/* Konateľ chodí z registra ako jeden riadok aj s titulmi a rolou:
+   „Ing. Ján Novák - konateľ". Do zmluvy ide meno a priezvisko, nič iné. */
+function rozdelKonatela(cely) {
+  const bezRole = String(cely).split(/\s[-–]\s/)[0];
+  const t = bezRole.split(/\s+/).filter(x => x && !/\.$/.test(x) && !/^(PhD|CSc|DrSc|MBA|LLM)$/i.test(x.replace(/,$/, '')));
+  if (!t.length) return { meno: '', priezvisko: '' };
+  return { meno: t.slice(0, -1).join(' '), priezvisko: t[t.length - 1] };
+}
+function dosadKonatela(cely) {
+  const { meno, priezvisko } = rozdelKonatela(cely);
+  $('meno').value = meno;
+  $('priezvisko').value = priezvisko;
+  zhodnotUzavretie();
+}
+/* Jedného konateľa dosadíme rovno, pri viacerých sa pýtame — register nevie,
+   kto z nich zmluvu naozaj podpisuje. Pole ostáva prepísateľné: podpísať môže
+   aj splnomocnený zamestnanec. */
+function ponukniKonatelov() {
+  const k = (stav.klient && stav.klient.konatelia) || [];
+  const box = $('konatelia');
+  box.innerHTML = '';
+  box.hidden = k.length < 2;
+  if (!k.length) return;
+  if (k.length === 1) { if (!$('meno').value.trim()) dosadKonatela(k[0]); return; }
+  box.insertAdjacentHTML('beforeend', '<div class="napoveda">Z obchodného registra — kto podpisuje?</div>');
+  k.forEach(cely => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'konatel';
+    b.textContent = cely;
+    b.addEventListener('click', () => {
+      box.querySelectorAll('.konatel').forEach(x => x.classList.remove('zvoleny'));
+      b.classList.add('zvoleny');
+      dosadKonatela(cely);
+    });
+    box.appendChild(b);
+  });
+}
 function zhodnotUzavretie() {
   if (krok !== 3) return;
   const jeFO = stav.klient.typ === 'FO';
@@ -1442,6 +1498,7 @@ function chod(n) {
     $('menoPopis').textContent = jeFO
       ? 'Poisťovňa ich potrebuje na zmluvu.'
       : 'Meno osoby, ktorá zmluvu za firmu podpisuje.';
+    if (!jeFO) ponukniKonatelov();
     $('adresaBox').hidden = !jeFO;
     $('adresaObec').textContent = stav.klient.typ === 'FO'
       ? stav.klient.psc + ' ' + stav.klient.obec + ' — doplnené z PSČ' : '';
