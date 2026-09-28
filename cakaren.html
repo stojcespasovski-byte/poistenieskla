@@ -437,6 +437,7 @@
       <div class="rek" id="rekap2"></div>
 
       <div class="dalsie" id="dalsieBox">
+        <div id="ulohyBox">
         <h3>Ešte treba</h3>
 
         <div class="ulohy2">
@@ -448,6 +449,7 @@
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.2"/><path d="M7 9.5h4M7 13h7"/></svg>
             <span data-popis>Doložiť TP</span>
           </button>
+        </div>
         </div>
 
         <p class="potom">Zmluva príde e-mailom do pár minút. Pri škode voláte priamo poisťovňu, číslo máte v zmluve.</p>
@@ -1367,14 +1369,22 @@ $('platitKartou').addEventListener('click', async () => {
   }
 });
 let platbaId = '';
-/* úlohy po uzavretí — v ostrej verzii otvoria fotenie a nahratie dokladu */
-const POPIS = { foto:'Fotoobhliadka', tp:'Doložiť TP' };
+/* Úlohy po uzavretí otvoria našu obrazovku na fotenie a doklady. Odkazy sú
+   podpísané a viazané na tú jednu zmluvu, klient sa nikam neprihlasuje.
+   Hotové za klienta neoznačujeme — o tom, či fotky prišli, rozhoduje obhliadka,
+   nie kliknutie na tomto telefóne. */
+function odkazUlohy(kod) {
+  const z = ZMLUVA || {};
+  /* Keď fotenie vedieme my, doklady sú sekciou tej istej obrazovky —
+     klient tak nemá dve tlačidlá na to isté. */
+  return kod === 'foto' ? (z.inspection_url || '') : (z.document_upload_url || z.inspection_url || '');
+}
 document.querySelectorAll('[data-uloha]').forEach(b => b.addEventListener('click', () => {
   const kod = b.dataset.uloha;
-  const hotove = b.classList.toggle('hotova');
-  b.querySelector('[data-popis]').textContent = hotove ? 'Hotové' : POPIS[kod];
-  mer(kod === 'foto' ? (hotove ? 'fotoobhliadka_odoslana' : 'fotoobhliadka_zrusena')
-                     : (hotove ? 'tp_dolozeny' : 'tp_zruseny'));
+  const kam = odkazUlohy(kod);
+  if (!kam) return;
+  mer(kod === 'foto' ? 'fotoobhliadka_otvorena' : 'doklady_otvorene');
+  location.href = kam;
 }));
 
 /* QR sa dá otvoriť a uložiť ako obrázok — pre toho, kto platí z iného
@@ -1457,6 +1467,10 @@ function chod(n) {
       ? new Date(splat).toLocaleDateString('sk-SK', {day:'numeric', month:'numeric', year:'numeric'})
       : '';
     $('platbaSplatnost').closest('.r').hidden = !splat;
+    /* Tlačidlo ukazujeme len vtedy, keď preň máme kam ísť — keď poisťovňa
+       fotoobhliadku nežiada, odkaz nepríde a tlačidlo tam nemá čo robiť. */
+    document.querySelectorAll('[data-uloha]').forEach(b => { b.hidden = !odkazUlohy(b.dataset.uloha); });
+    $('ulohyBox').hidden = !document.querySelector('[data-uloha]:not([hidden])');
     nakresliQr();
     vykresliVysledok();
   }
