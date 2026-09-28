@@ -715,6 +715,10 @@ async function hladajAuto(v) {
   } catch (_) { /* nenájdené aj výpadok riešime rovnako — klient s tým spraví to isté */ }
   if (moj !== dotazAuta) return;          // medzitým klient dopísal ďalší znak
   $('autoHlada').hidden = true;
+  /* Hľadáme už od šiestich znakov, aby to bolo svižné, ale kým zápis nemôže byť
+     úplný (slovenská značka má sedem znakov, VIN sedemnásť), neúspech zamlčíme.
+     Inak hláška o nenájdenom vozidle preblikne ešte pred dopísaním posledného znaku. */
+  if (!n && v.length < 7) { zhodnotVstup(); return; }
   if (!n) {
     $('autoChyba').innerHTML = '<b>Toto vozidlo sme nenašli.</b>Skontrolujte znaky, alebo zadajte VIN z technického preukazu.'
       + '<button type="button" class="dopln" id="doplnAuto">Prepísať údaje z technického preukazu</button>';
