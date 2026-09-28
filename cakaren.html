@@ -1279,14 +1279,22 @@ let vysledok = null;   /* null = ešte nezaplatené */
    by sa zaplatiť. */
 let qrUrl = '';
 
+/* Poisťovňa splatnosť niekedy pošle, niekedy nie — vymyslený dátum by v QR aj na
+   obrazovke vyzeral ako predpísaný, tak radšej žiadny. */
+function splatnostZmluvy() {
+  const pl = (ZMLUVA && ZMLUVA.payment) || {};
+  return pl.due_date || pl.splatnost || '';
+}
+
 function nakresliQr() {
   const pl = (ZMLUVA && ZMLUVA.payment) || {};
   const suma = pl.amount != null ? Number(pl.amount) : spoluZaObdobie();
   const vs = pl.variable_symbol || '';
   if (!vs) { $('qr').innerHTML = '<div class="qr-chyba">QR sa nepodarilo pripraviť</div>'; return; }
+  const splat = splatnostZmluvy();
   qrUrl = '/capi/bcrm/payment/qr?amount=' + suma.toFixed(2)
         + '&vs=' + encodeURIComponent(vs)
-        + '&due=' + encodeURIComponent(pl.due_date || ZACIATOK_POISTENIA);
+        + (splat ? '&due=' + encodeURIComponent(splat) : '');
   $('qr').innerHTML = '<img src="' + qrUrl + '" alt="QR kód na zaplatenie" '
     + 'style="width:100%;height:100%;object-fit:contain" '
     + 'onerror="this.parentNode.innerHTML=\'<div class=&quot;qr-chyba&quot;>QR sa nepodarilo načítať</div>\'">';
@@ -1423,9 +1431,13 @@ function chod(n) {
     $('platbaSuma').textContent = pl.amount != null ? eur(+pl.amount) : eur(spoluZaObdobie());
     $('platbaVs').textContent = pl.variable_symbol || '';
     if (pl.iban) $('platbaIban').textContent = pl.iban;
-    $('platbaSplatnost').textContent = pl.due_date
-      ? new Date(pl.due_date).toLocaleDateString('sk-SK', {day:'numeric', month:'numeric', year:'numeric'})
+    /* Splatnosť ukazujeme len keď ju zmluva naozaj nesie — dátum, ktorý by sme si
+       domysleli, by klient bral ako záväzný. */
+    const splat = splatnostZmluvy();
+    $('platbaSplatnost').textContent = splat
+      ? new Date(splat).toLocaleDateString('sk-SK', {day:'numeric', month:'numeric', year:'numeric'})
       : '';
+    $('platbaSplatnost').closest('.r').hidden = !splat;
     nakresliQr();
     vykresliVysledok();
   }
