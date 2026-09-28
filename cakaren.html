@@ -380,7 +380,7 @@
         <div style="margin-top:14px"></div>
         <label for="priezvisko">Priezvisko</label>
         <input class="inp" id="priezvisko" placeholder="Novák" autocomplete="family-name">
-        <div class="napoveda">Poisťovňa ich potrebuje na zmluvu.</div>
+        <div class="napoveda" id="menoPopis">Poisťovňa ich potrebuje na zmluvu.</div>
       </div>
       <div class="karta">
         <label for="mail">E-mail</label>
@@ -897,6 +897,9 @@ async function hladajFirmu(ico) {
         nazov: d.nazov || '',
         typ: szco ? 'SZČO' : 'PO',
         sidlo: [[d.ulica, d.cislo].filter(Boolean).join(' '), d.obec].filter(Boolean).join(', '),
+        /* Poisťovňa chce ulicu a číslo domu zvlášť, tak si ich držíme tak, ako
+           prišli z registra, nie zlepené do jedného riadka. */
+        ulica: d.ulica || '', cislo: d.cislo || '',
         obec: d.obec || '',
         psc: d.psc || '',
         meno: d.meno || '', priezvisko: d.priezvisko || '',
@@ -922,7 +925,8 @@ async function hladajFirmu(ico) {
     mer('ico_nepouzitelne', { dovod: f.zanik ? 'zanik' : 'pozastavena' });
     return;
   }
-  stav.klient = { typ:f.typ, nazov:f.nazov, sidlo:f.sidlo, obec:f.obec, psc:f.psc,
+  stav.klient = { typ:f.typ, nazov:f.nazov, sidlo:f.sidlo, ulica:f.ulica, cislo:f.cislo,
+                  obec:f.obec, psc:f.psc,
                   meno:f.meno, priezvisko:f.priezvisko, ico, poznamka:f.poznamka };
   $('osobaChyba').hidden = true;
   $('firmaNazov').textContent = f.nazov;
@@ -1203,7 +1207,9 @@ async function uzavriZmluvu() {
           psc: k.psc || '', obec: k.obec || '',
           email: $('mail').value.trim(), tel: $('tel').value.trim() }
       : { typ: k.typ === 'SZČO' ? 'szco' : 'po', ico: k.ico || '',
-          obchodne_meno: k.nazov || '', meno: k.meno || '', priezvisko: k.priezvisko || '',
+          obchodne_meno: k.nazov || '',
+          meno: k.meno || $('meno').value.trim(),
+          priezvisko: k.priezvisko || $('priezvisko').value.trim(),
           ulica: k.ulica || '', cislo: k.cislo || '', psc: k.psc || '', obec: k.obec || '',
           email: $('mail').value.trim(), tel: $('tel').value.trim() },
     doplnky: { suhlasy: [
@@ -1243,12 +1249,17 @@ function rozdelAdresu(text) {
   const m = t.match(/^(.*?)[\s,]+([0-9][0-9A-Za-z\/\-]*)$/);
   return m && m[1].trim() ? { ulica: m[1].trim(), cislo: m[2].slice(0, 10) } : { ulica: t, cislo: '' };
 }
+/* Meno pýtame vtedy, keď ho nemáme odkiaľ vziať: fyzická osoba ho nikde
+   nezadávala, pri právnickej osobe register konateľa nevracia. Živnostníkovi
+   meno z registra príde, toho sa nepýtame druhýkrát. */
+function trebaMeno() {
+  const k = stav.klient || {};
+  return !(k.meno && k.priezvisko);
+}
 function zhodnotUzavretie() {
   if (krok !== 3) return;
-  /* Firma má meno aj sídlo z registra, fyzická osoba ich musí zadať —
-     bez mena a priezviska Pillow zmluvu nevystaví. */
   const jeFO = stav.klient.typ === 'FO';
-  const menoOk = !jeFO || ($('meno').value.trim().length > 1 && $('priezvisko').value.trim().length > 1);
+  const menoOk = !trebaMeno() || ($('meno').value.trim().length > 1 && $('priezvisko').value.trim().length > 1);
   const mailOk = /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test($('mail').value.trim());
   const telOk = $('tel').value.replace(/\D/g,'').length >= 9;
   const a = rozdelAdresu($('ulica').value);
@@ -1410,9 +1421,13 @@ function chod(n) {
   }
   if (n === 3) {
     vykresliRekap('rekap');
-    /* Firma má meno aj sídlo z registra — nepýtame ich znova. */
+    /* Sídlo má firma z registra, meno nie vždy: pri právnickej osobe register
+       konateľa nevracia a poisťovňa zmluvu bez mena podpisujúceho nevystaví. */
     const jeFO = stav.klient.typ === 'FO';
-    $('menoBox').hidden = !jeFO;
+    $('menoBox').hidden = !trebaMeno();
+    $('menoPopis').textContent = jeFO
+      ? 'Poisťovňa ich potrebuje na zmluvu.'
+      : 'Meno osoby, ktorá zmluvu za firmu podpisuje.';
     $('adresaBox').hidden = !jeFO;
     $('adresaObec').textContent = stav.klient.typ === 'FO'
       ? stav.klient.psc + ' ' + stav.klient.obec + ' — doplnené z PSČ' : '';
