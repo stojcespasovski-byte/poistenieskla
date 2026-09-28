@@ -711,18 +711,25 @@ $('osoba').addEventListener('input', e => {
     $('fo').hidden = true; $('osobaHlada').hidden = false;
     osobaTimer = setTimeout(() => hladajFirmu(cifry), 800);
   } else if (cifry.length === 9 || cifry.length === 10) {
+    /* Deväť číslic môže byť aj prvých deväť z desiatich, preto sa pri nich chvíľu
+       počká — inak sa pole schová klientovi pod rukami a poslednú číslicu nedopíše.
+       Desaťmiestne rodné číslo je úplné, to potvrdíme hneď. */
     $('osobaHlada').hidden = true;
-    $('fo').hidden = false;
-    $('osoba').hidden = true; $('osobaNap').hidden = true;
-    stav.klient = { typ:'FO', rok:rokNarodenia(cifry), rc:cifry };
-    $('rcDetail').textContent = 'ročník ' + stav.klient.rok;
-    $('rcKod').textContent = 'Rodné číslo ' + cifry.slice(0,6) + '/' + '•'.repeat(cifry.length - 6);
-    mer('kontext_klient', { typ:'FO', rok_narodenia:stav.klient.rok });
-    preverPsc();
+    osobaTimer = setTimeout(() => potvrdRodneCislo(cifry), cifry.length === 10 ? 0 : 1200);
   } else {
     $('osobaHlada').hidden = true; $('fo').hidden = true;
   }
 });
+function potvrdRodneCislo(cifry) {
+  $('fo').hidden = false;
+  $('osoba').hidden = true; $('osobaNap').hidden = true;
+  stav.klient = { typ:'FO', rok:rokNarodenia(cifry), rc:cifry };
+  $('rcDetail').textContent = 'ročník ' + stav.klient.rok;
+  $('rcKod').textContent = 'Rodné číslo ' + cifry.slice(0,6) + '/' + cifry.slice(6);
+  mer('kontext_klient', { typ:'FO', rok_narodenia:stav.klient.rok });
+  preverPsc();
+}
+
 function rokNarodenia(c) {
   const r = +c.slice(0,2);
   return c.length === 10 ? (r < 54 ? 2000 + r : 1900 + r) : 1900 + r;
