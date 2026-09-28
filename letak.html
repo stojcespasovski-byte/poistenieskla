@@ -95,7 +95,7 @@
   <div class="body">
     <div class="bod"><b>Bez papierov</b>Celé to zvládnete v telefóne, nič nepodpisujete.</div>
     <div class="bod"><b>Cena hneď</b>Sadzbu počíta priamo poisťovňa, nie odhad.</div>
-    <div class="bod"><b>Aj ďalšie krytie</b>K sklám si viete pridať zver, živel či nehodu.</div>
+    <div class="bod" id="bodPripoistenia"><b>Aj ďalšie krytie</b>K sklám si viete pridať zver, živel či nehodu.</div>
   </div>
 
   <div class="pata">
@@ -164,6 +164,11 @@ function nakresliQr() {
   const logo = document.getElementById('logoServisu');
   if (p.logo) { logo.src = p.logo; logo.alt = p.nazov || ''; } else { logo.remove(); }
   document.getElementById('menoServisu').textContent = p.nazov || '';
+
+  /* Pripoistenia sľubujeme len tam, kde ich prevádzka naozaj má — inak by leták
+     hovoril niečo iné než stránka, na ktorú vedie jeho QR. */
+  const rizika = Array.isArray(p.rizika) ? p.rizika : [];
+  if (rizika.filter(r => r !== 'SK2').length === 0) document.getElementById('bodPripoistenia').remove();
 
   nakresliQr();
   document.body.hidden = false;
