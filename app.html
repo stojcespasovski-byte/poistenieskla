@@ -1950,6 +1950,7 @@
   <div class="price-bar-total" id="priceBarTotal">0,00 €<span>/ mes.</span></div>
 </div>
 
+<script src="pravne.js"></script>
 <script>
 /* ════════════════════════════════════════════════════════
    CONFIG — zmeniť pre každú doménu
@@ -2084,13 +2085,13 @@ const DOC_BASE = 'https://poistenieautoskiel.sk/dokumenty/';
    z rokovania. Zmysel evidencie je, že texty sedia DOSLOVNE s tým, čo klient
    odklikol — pri dvoch kópiách by sa časom rozišli. */
 function suhlasyZoznam() {
-  return [
-    { l:'Súhlas s elektronickou komunikáciou', url:DOC_BASE+'suhlas_elektronicka_komunikacia.pdf' },
-    { l:'Súhlas so spracovaním osobných údajov', url:DOC_BASE+'suhlas_spracovanie_ou.pdf' },
-    { l:'Súhlas k vyjadreniu k ročnému nájazdu km', url:`${API_BASE}/bcrm/docs/najazd?km=${encodeURIComponent(state.vehicle.najazd || '')}` },
-    { l:'Súhlas k vyjadreniu k zmluve o poskytnutí finančnej služby', url:DOC_BASE+'vyjadrenie_k_zmluve.pdf' },
-    { l:'Súhlas s vyjadrením na účely finančného sprostredkovania', url:DOC_BASE+'vyjadrenie_na_ucely_fs.pdf' },
-  ];
+  /* Zoznam aj znenia sú v pravne.js — ten istý súbor číta klientska čakáreň,
+     aby sa texty na oboch stranách nerozišli. Odkaz na vyjadrenie k nájazdu
+     nesie počet kilometrov, ktorý klient zadal, preto sa skladá tu. */
+  return PRAVNE.SUHLASY.map(s => ({
+    l: s.l,
+    url: s.najazd ? `${API_BASE}/bcrm/docs/najazd?km=${encodeURIComponent(state.vehicle.najazd || '')}` : s.url,
+  }));
 }
 /* index 1 = marketingový súhlas → NEPOVINNÝ (ostatné 4 sú povinné pred uzavretím) */
 const MARKETING_IDX = 1;

@@ -140,6 +140,15 @@
   .chk{display:flex;gap:11px;align-items:flex-start;font-size:13.5px;color:var(--ink-2);line-height:1.45;
     margin-top:12px;text-transform:none;letter-spacing:0;font-weight:400;margin-bottom:0;}
   .chk:first-child{margin-top:0}
+  /* dokumenty na nahliadnutie pred uzavretím */
+  .label{display:block;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+         color:var(--ink-3);margin-bottom:8px;}
+  .dok{display:flex;align-items:center;gap:9px;padding:9px 0;font-size:13.5px;color:var(--znacka);
+       text-decoration:none;border-bottom:1px solid var(--border);}
+  .dok:last-child{border-bottom:0;padding-bottom:0}
+  .dok:first-child{padding-top:0}
+  .dok svg{flex:none;color:var(--ink-4);}
+  .chk a{color:var(--znacka);}
   .chk input{width:20px;height:20px;margin-top:1px;accent-color:var(--znacka);flex-shrink:0;}
   .chk a{color:var(--znacka);}
 
@@ -408,11 +417,11 @@
       </div>
 
       <div class="karta">
-        <label class="chk"><input type="checkbox" id="suhlas1">
-          <span>Prevzal som a súhlasím s <a href="#" onclick="return false">poistnými podmienkami</a> a informačným dokumentom.</span></label>
-        <label class="chk"><input type="checkbox" id="suhlas2">
-          <span>Chcem dostávať ponuky aj v budúcnosti. <i style="color:var(--ink-4);font-style:normal">(nepovinné)</i></span></label>
+        <div class="label">Dokumenty k nahliadnutiu</div>
+        <div id="dokumenty"></div>
       </div>
+
+      <div class="karta" id="suhlasyBox"></div>
 
       <button class="spat" type="button" id="spatNaCenu">← Späť na cenu</button>
     </section>
@@ -520,6 +529,7 @@
   <div class="listapod" id="listapod">Zadajte vozidlo a držiteľa</div>
 </div>
 
+<script src="pravne.js"></script>
 <script>
 /* ==================================================================
    Náhľad celého toku: vstup → cena → uzavretie → hotovo.
@@ -1235,10 +1245,9 @@ async function uzavriZmluvu() {
           priezvisko: k.priezvisko || $('priezvisko').value.trim(),
           ulica: k.ulica || '', cislo: k.cislo || '', psc: k.psc || '', obec: k.obec || '',
           email: $('mail').value.trim(), tel: $('tel').value.trim() },
-    doplnky: { suhlasy: [
-      { kod: 'podmienky', text: 'Prevzal som a súhlasím s poistnými podmienkami a informačným dokumentom.', suhlas: true },
-      { kod: 'marketing', text: 'Chcem dostávať ponuky aj v budúcnosti.', suhlas: $('suhlas2').checked },
-    ] },
+    /* Posielame presne tie znenia, ktoré mal klient na obrazovke — Záznam o
+       sprostredkovaní dokazuje, čo odklikol, nie že zmluva vznikla. */
+    doplnky: { suhlasy: suhlasyNaOdoslanie() },
   };
 
   const r = await fetch('/capi/cakaren/zmluva', {
@@ -1272,6 +1281,50 @@ function rozdelAdresu(text) {
   const m = t.match(/^(.*?)[\s,]+([0-9][0-9A-Za-z\/\-]*)$/);
   return m && m[1].trim() ? { ulica: m[1].trim(), cislo: m[2].slice(0, 10) } : { ulica: t, cislo: '' };
 }
+/* ---------- dokumenty a súhlasy ----------
+   Znenia aj odkazy sú v pravne.js, ten istý súbor číta interný portál —
+   klient odklikáva to isté, nech zmluvu uzatvára technik alebo on sám.
+   Vynechávame len vyjadrenie k ročnému nájazdu: v čakárni sa naň nepýtame,
+   takže klient nemá čo potvrdzovať. */
+const IKONA_DOK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+const SUHLASY_TU = PRAVNE.SUHLASY.filter(s => !s.najazd);
+
+function vykresliPravne() {
+  $('dokumenty').innerHTML = PRAVNE.DOKUMENTY.map(d =>
+    '<a class="dok" href="' + d.url + '" target="_blank" rel="noopener">' + IKONA_DOK + d.l + '</a>').join('');
+
+  /* Prvý riadok je prevzatie podmienok, ostatné idú zo spoločného zoznamu.
+     Nepovinný je jediný — ten, ktorý je tak označený. */
+  const riadky = SUHLASY_TU.map((s, i) =>
+    '<label class="chk"><input type="checkbox" class="suhlas" data-i="' + i + '">' +
+    '<span><a href="' + s.url + '" target="_blank" rel="noopener">' + s.l + '</a>' +
+    (s.marketing ? ' <i style="color:var(--ink-4);font-style:normal">(nepovinné)</i>' : '') +
+    '</span></label>').join('');
+  $('suhlasyBox').innerHTML =
+    '<label class="chk"><input type="checkbox" id="podmienky">' +
+    '<span>Prevzal som a súhlasím s poistnými podmienkami a informačným dokumentom.</span></label>' +
+    riadky +
+    '<label class="chk"><input type="checkbox" id="marketing">' +
+    '<span>Chcem dostávať ponuky aj v budúcnosti. <i style="color:var(--ink-4);font-style:normal">(nepovinné)</i></span></label>';
+
+  $('suhlasyBox').querySelectorAll('input').forEach(i => i.addEventListener('change', () => {
+    if (i.id === 'marketing') { mer('suhlas_marketing', { hodnota: i.checked }); return; }
+    zhodnotUzavretie();
+  }));
+}
+function suhlasyOk() {
+  if (!$('podmienky').checked) return false;
+  return [...$('suhlasyBox').querySelectorAll('.suhlas')]
+    .every((v, i) => SUHLASY_TU[i].marketing || v.checked);
+}
+function suhlasyNaOdoslanie() {
+  return [{ kod: 'podmienky', text: 'Prevzal som a súhlasím s poistnými podmienkami a informačným dokumentom.',
+            suhlas: $('podmienky').checked }]
+    .concat([...$('suhlasyBox').querySelectorAll('.suhlas')]
+      .map((v, i) => ({ kod: SUHLASY_TU[i].kod, text: SUHLASY_TU[i].l, suhlas: v.checked })))
+    .concat([{ kod: 'marketing', text: 'Chcem dostávať ponuky aj v budúcnosti.', suhlas: $('marketing').checked }]);
+}
+
 /* Meno pýtame vtedy, keď ho nemáme odkiaľ vziať: fyzická osoba ho nikde
    nezadávala, pri právnickej osobe register konateľa nevracia. Živnostníkovi
    meno z registra príde, toho sa nepýtame druhýkrát. */
@@ -1325,15 +1378,14 @@ function zhodnotUzavretie() {
   const telOk = $('tel').value.replace(/\D/g,'').length >= 9;
   const a = rozdelAdresu($('ulica').value);
   const adresaOk = !jeFO || (a.ulica.length > 1 && a.cislo !== '');
-  const ok = menoOk && mailOk && telOk && adresaOk && $('suhlas1').checked;
+  const ok = menoOk && mailOk && telOk && adresaOk && suhlasyOk();
   $('cta').disabled = !ok;
   $('listapod').textContent = ok ? 'Zmluvu potom zaplatíte kartou alebo prevodom'
     : (!menoOk ? 'Doplňte meno a priezvisko' : !mailOk ? 'Doplňte e-mail' : !telOk ? 'Doplňte telefón'
-      : !adresaOk ? 'Doplňte ulicu a číslo' : 'Potvrďte poistné podmienky');
+      : !adresaOk ? 'Doplňte ulicu a číslo' : 'Odklikajte povinné súhlasy');
 }
 ['meno','priezvisko','mail','tel','ulica'].forEach(id => $(id).addEventListener('input', zhodnotUzavretie));
-$('suhlas1').addEventListener('change', e => { mer('suhlas_podmienky', { hodnota:e.target.checked }); zhodnotUzavretie(); });
-$('suhlas2').addEventListener('change', e => mer('suhlas_marketing', { hodnota:e.target.checked }));
+vykresliPravne();
 $('spatNaCenu').addEventListener('click', () => { chod(2); mer('spat_na_cenu'); });
 $('spatNaVstup').addEventListener('click', () => { chod(1); mer('spat_na_vstup'); });
 
