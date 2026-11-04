@@ -321,10 +321,10 @@
         <div id="fo" hidden>
           <div class="najdene" id="rcNajdene">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-            <span><b>Fyzická osoba</b><span id="rcDetail"></span><span class="kod" id="rcKod"></span></span>
+            <span><b>Fyzická osoba</b><span id="rcDetail"></span><span class="kod" id="rcKod"></span><span class="kod" id="rcAdresa" hidden></span></span>
             <button class="zmen" type="button" data-zmen-osoba>Zmeniť</button>
           </div>
-          <div class="dvojica">
+          <div class="dvojica" id="adresaFo">
             <div>
               <label for="psc">PSČ</label>
               <input class="inp velke" id="psc" placeholder="949 01" inputmode="numeric" maxlength="6" autocomplete="off">
@@ -998,6 +998,7 @@ $('psc').addEventListener('input', e => { e.target.value = e.target.value.replac
 async function preverPsc() {
   const psc = $('psc').value.replace(/\D/g,'');
   skry(['pscChyba','foNajdene']); $('obecBox').hidden = true;
+  $('rcAdresa').hidden = true; $('adresaFo').hidden = false;
   if (psc.length !== 5) { zhodnotVstup(); return; }
   let obce = null;
   try { obce = (await api('ciselnik/obec?psc=' + psc)).obce; } catch (_) {}
@@ -1011,18 +1012,34 @@ async function preverPsc() {
     mer('obec_na_vyber', { psc, pocet:obce.length });
   }
   stav.klient = { ...(stav.klient || {typ:'FO'}), psc, obec:obce[0] };
-  $('foNazov').textContent = obce.length > 1 ? 'Vyberte obec' : obce[0];
-  $('foDetail').textContent = obce.length > 1 ? psc + ' · viac obcí' : psc + ' · z číselníka';
-  $('foNajdene').hidden = obce.length > 1;
+  if (obce.length === 1) zlozAdresu();
   mer('kontext_klient', { psc, obec:obce[0] });
   zhodnotVstup();
 }
-$('obec').addEventListener('change', e => { stav.klient.obec = e.target.value; mer('obec_vybrana', { obec:e.target.value }); });
+/* Keď adresu poznáme, poskladá sa do tej istej dlaždice ako rodné číslo — rovnako
+   ako pri firme. Polia zmiznú, takže pod klávesnicou neostane nič, čo klient
+   nevidí, a uvoľní sa miesto pre nájazd. */
+function zlozAdresu() {
+  const k = stav.klient || {};
+  $('rcAdresa').textContent = k.psc + ' ' + k.obec;
+  $('rcAdresa').hidden = false;
+  $('adresaFo').hidden = true;
+  $('foNajdene').hidden = true;
+  $('psc').blur();
+}
+$('obec').addEventListener('change', e => {
+  stav.klient.obec = e.target.value;
+  mer('obec_vybrana', { obec:e.target.value });
+  zlozAdresu();
+  zhodnotVstup();
+});
 document.querySelectorAll('[data-zmen-osoba]').forEach(b => b.addEventListener('click', () => {
   stav.klient = null;
   $('fo').hidden = true; skry(['firmaNajdene','osobaChyba']);
   $('osoba').hidden = false; $('osobaNap').hidden = false;
-  $('osoba').value = ''; $('psc').value = ''; $('osoba').focus();
+  $('osoba').value = ''; $('psc').value = '';
+  $('rcAdresa').hidden = true; $('adresaFo').hidden = false; $('obecBox').hidden = true;
+  $('osoba').focus();
   mer('klient_zmena'); zhodnotVstup();
 }));
 function zhodnotVstup() {
