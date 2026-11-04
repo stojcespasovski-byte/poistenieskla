@@ -1079,8 +1079,13 @@ function zlozAdresu() {
   $('foNajdene').hidden = true;
   $('psc').blur();
   /* Polia zmizli, takže stránka je zrazu kratšia než odskrolovaná poloha —
-     bez tohto by klient pozeral na prázdne miesto pod poslednou kartou. */
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+     bez tohto by klient pozeral na prázdne miesto pod poslednou kartou.
+     Na iPhone sa výška okna ustáli až po zatvorení klávesnice, preto to
+     zopakujeme — jediný pokus skončí v polovici. */
+  const hore = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+  hore();
+  setTimeout(hore, 250);
+  setTimeout(hore, 600);
 }
 $('obec').addEventListener('change', e => {
   stav.klient.obec = e.target.value;
