@@ -62,7 +62,9 @@
   .najdene svg{color:var(--znacka);flex:0 0 auto;margin-top:1px}
   .najdene b{display:block;font-size:17px;}
   .najdene span{display:block;font-size:15px;color:var(--ink-2);margin-top:2px;}
-  .najdene .kod{display:block;font-size:15px;color:var(--ink-2);letter-spacing:.04em;margin-top:4px;}
+  /* EČV s VIN sa majú zmestiť na jeden riadok — každý zalomený riadok je
+     riadok, o ktorý sa krok 1 posunie pod spodnú lištu. */
+  .najdene .kod{display:block;font-size:13.5px;color:var(--ink-2);margin-top:3px;}
   .najdene .zmen{margin-left:auto;font-size:14.5px;font-weight:600;color:var(--znacka);background:none;border:0;
     border-bottom:1px solid color-mix(in srgb, var(--znacka) 30%, #fff);padding:0 0 1px;align-self:center;}
   .hlada{margin-top:12px;display:flex;align-items:center;gap:9px;font-size:15.5px;color:var(--ink-3);}
@@ -959,7 +961,8 @@ function potvrdRodneCislo(cifry) {
   $('fo').hidden = false;
   $('osoba').hidden = true; $('osobaNap').hidden = true;
   stav.klient = { typ:'FO', rok:rokNarodenia(cifry), rc:cifry };
-  $('rcDetail').textContent = 'ročník ' + stav.klient.rok;
+  /* Ročník nevypisujeme — je v rodnom čísle pod tým a zaberal by riadok navyše. */
+  $('rcDetail').hidden = true;
   $('rcKod').textContent = 'Rodné číslo ' + cifry.slice(0,6) + '/' + cifry.slice(6);
   mer('kontext_klient', { typ:'FO', rok_narodenia:stav.klient.rok });
   preverPsc();
