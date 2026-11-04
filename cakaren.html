@@ -225,8 +225,10 @@
   .stav-platby.zle{background:#FDEBEA;color:#8F2B2B;}
 
   /* spodná lišta */
-  .lista{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.97);
-    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-top:1px solid var(--border);
+  /* Plná biela zámerne: priesvitná lišta s backdrop-filter na iPhone po rolovaní
+     prestáva prijímať ťuknutia, čiže tlačidlo „nereaguje". Vzhľad za to nestojí. */
+  .lista{position:fixed;left:0;right:0;bottom:0;background:#fff;z-index:10;
+    border-top:1px solid var(--border);
     padding:11px 16px calc(13px + env(safe-area-inset-bottom));}
   .lista-in{max-width:420px;margin:0 auto;display:flex;align-items:center;}
   .suma{margin-right:12px;}
