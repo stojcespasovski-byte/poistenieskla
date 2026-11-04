@@ -17,6 +17,8 @@ const CIEL = 'https://alexapi.sk';
 const POVOLENE = [
   /^cakaren\/prevadzka\/[A-Za-z0-9-]{1,40}$/,
   /^rate-matrix$/,
+  /* Pásma ročného nájazdu — jeden spoločný zdroj pre všetky weby, nie kópia tu. */
+  /^porovnavac\/schema$/,
   /^bcrm\/vehicle$/,
   /^bcrm\/ico\/\d{6,10}$/,
   /* Obchodný register: len odtiaľ chodia konatelia, teda kto smie za firmu podpísať. */
