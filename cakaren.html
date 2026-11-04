@@ -1409,12 +1409,26 @@ async function uzavriZmluvu() {
   return d;
 }
 
+/* Spoluúčasť a poistná suma pri sklách nie sú voľba klienta — sú dané produktom
+   a sľubujeme ich už na karte ceny. Pred podpisom ich zopakujeme, nech ich má
+   klient pred očami práve vtedy, keď zmluvu uzatvára. Ak si pribral pripoistenia,
+   tie majú vlastnú spoluúčasť — povieme obe, inak by riadok klamal. */
+function spoluucastText() {
+  const sklo = 'oprava 0 €, výmena 10 %';
+  if (!vybraneVSkupine().length) return sklo;
+  const ine = (spoluucast === 'bez' || spoluucast === '0') ? 'bez spoluúčasti'
+            : (String(spoluucast).includes('%') ? spoluucast : spoluucast + ' €');
+  return 'sklá ' + sklo + ' · ostatné ' + ine;
+}
+
 function vykresliRekap(kam, sSumou = true) {
   const k = stav.klient;
   const kto = k.typ === 'FO' ? 'Fyzická osoba · ' + (k.obec || '') : k.nazov + ' · ' + k.typ;
   const polozky = [['Vozidlo', stav.auto.nazov + ' · ' + stav.auto.ecv],
                    ['Držiteľ', kto],
                    ['Poistenie', 'Sklá' + (vybrane().length ? ' + ' + vybrane().length + ' pripoistenia' : '')],
+                   ['Spoluúčasť', spoluucastText()],
+                   ['Poistná suma', 'bez limitu'],
                    ['Platba', LEHOTY[lehota].nazov]];
   $(kam).innerHTML = polozky.map(([a,b]) => `<div class="r"><span>${a}</span><b>${b}</b></div>`).join('')
     + (sSumou ? `<div class="r"><span>Teraz na úhradu</span><b class="suma">${eur(spoluZaObdobie())}</b></div>` : '');
