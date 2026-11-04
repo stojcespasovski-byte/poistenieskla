@@ -70,6 +70,14 @@
   .hlada{margin-top:12px;display:flex;align-items:center;gap:9px;font-size:15.5px;color:var(--ink-3);}
   .spin{width:15px;height:15px;border:2px solid var(--border);border-top-color:var(--znacka);border-radius:50%;animation:t .7s linear infinite;}
   @keyframes t{to{transform:rotate(360deg)}}
+  /* čakanie na poisťovňu — zahmlená obrazovka, aby bolo vidieť, že sa niečo deje,
+     a aby sa medzitým nedalo ťukať do polí, ktoré už do výpočtu nevstúpia */
+  .cakanie{position:fixed;inset:0;z-index:40;background:rgba(255,255,255,.82);
+    -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
+  .cakanie .kruh{width:38px;height:38px;border:3px solid var(--border);border-top-color:var(--znacka);
+    border-radius:50%;animation:t .8s linear infinite;}
+  .cakanie b{font-size:16px;font-weight:600;color:var(--ink-2);}
   .chyba{margin-top:12px;font-size:15.5px;color:var(--zle);line-height:1.5;}
   .chyba b{display:block;font-weight:600}
 
@@ -541,6 +549,8 @@
     </div>
   </div>
 
+
+<div class="cakanie" id="cakanie" hidden><div class="kruh"></div><b id="cakanieText"></b></div>
 
 <div class="lista" id="lista">
   <div class="lista-in">
@@ -1536,6 +1546,7 @@ $('platitKartou').addEventListener('click', async () => {
   mer('platba_zacata', { suma: suma.toFixed(2), sposob:'karta' });
   $('platitKartou').disabled = true;
   $('platitKartou').textContent = 'Otvárame platbu…';
+  cakaj('Otvárame platbu…');
   try {
     const r = await fetch('/capi/cakaren/platba', {
       method: 'POST',
@@ -1559,6 +1570,7 @@ $('platitKartou').addEventListener('click', async () => {
     platbaId = d.paymentUid || '';
     location.href = d.payURL;
   } catch (err) {
+    docakane();
     $('platitKartou').disabled = false;
     $('platitKartou').textContent = 'Zaplatiť kartou';
     vysledok = 'zlyhala';
@@ -1676,13 +1688,18 @@ function chod(n) {
     vykresliVysledok();
   }
 }
+function cakaj(text) { $('cakanieText').textContent = text; $('cakanie').hidden = false; }
+function docakane() { $('cakanie').hidden = true; }
+
 $('cta').addEventListener('click', () => {
   if (krok === 1) {
     mer('zobrazit_cenu', { auto:stav.auto.nazov, typ:stav.klient.typ });
     $('cta').disabled = true;
     $('listapod').textContent = 'Počítame cenu…';
-    nacitajCeny().then(() => { prepocitaj(); chod(2); })
+    cakaj('Počítame cenu…');
+    nacitajCeny().then(() => { docakane(); prepocitaj(); chod(2); })
       .catch(err => {
+        docakane();
         $('cta').disabled = false;
         $('listapod').textContent = 'Cenu sa teraz nepodarilo získať. Skúste to prosím znova.';
         mer('cena_zlyhala', { dovod: String(err.message || err).slice(0, 60) });
@@ -1700,9 +1717,11 @@ $('cta').addEventListener('click', () => {
     mer('udaje_vyplnene');
     $('cta').disabled = true;
     $('listapod').textContent = 'Uzatvárame zmluvu…';
+    cakaj('Uzatvárame zmluvu…');
     uzavriZmluvu()
-      .then(z => { ZMLUVA = z; mer('zmluva_vydana', { cislo: z.reference_number || '' }); chod(4); })
+      .then(z => { docakane(); ZMLUVA = z; mer('zmluva_vydana', { cislo: z.reference_number || '' }); chod(4); })
       .catch(err => {
+        docakane();
         $('cta').disabled = false;
         $('listapod').textContent = String(err.message || err);
         mer('zmluva_zlyhala', { dovod: String(err.message || err).slice(0, 80) });
