@@ -1091,7 +1091,16 @@ function zlozAdresu() {
   };
   hore();
   requestAnimationFrame(hore);
-  [120, 300, 600, 900].forEach(ms => setTimeout(hore, ms));
+  [120, 300, 600, 900, 1400].forEach(ms => setTimeout(hore, ms));
+  /* Na iPhone sa pri zatváraní klávesnice posúva vizuálna časť okna a stránka
+     ostane „zaseknutá" aj keď je scrollY nula. Posun zopakujeme presne vtedy,
+     keď klávesnica naozaj zmizne. */
+  const vv = window.visualViewport;
+  if (vv) {
+    const poKlavesnici = () => hore();
+    vv.addEventListener('resize', poKlavesnici);
+    setTimeout(() => vv.removeEventListener('resize', poKlavesnici), 2500);
+  }
 }
 $('obec').addEventListener('change', e => {
   stav.klient.obec = e.target.value;
