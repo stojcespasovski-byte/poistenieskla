@@ -1103,8 +1103,11 @@ function zhodnotVstup() {
   const klientOk = k && (k.typ !== 'FO' || (k.psc && k.obec));
   const ok = !!stav.auto && !!klientOk;
   $('cta').disabled = !ok;
-  $('listapod').textContent = ok ? 'Cena bude platiť pre toto vozidlo a túto adresu'
+  /* Keď je všetko vyplnené, pod tlačidlom nič nepíšeme — riadok navyše by zakryl
+     vysvetlivku k nájazdu. Veta má zmysel len vtedy, keď niečo chýba. */
+  $('listapod').textContent = ok ? ''
     : (!stav.auto ? 'Zadajte EČV alebo VIN vozidla' : 'Doplňte rodné číslo alebo IČO');
+  $('listapod').hidden = ok;
 }
 
 /* ================= KROK 2 ================= */
@@ -1477,6 +1480,7 @@ function zhodnotUzavretie() {
   const adresaOk = !jeFO || (a.ulica.length > 1 && a.cislo !== '');
   const ok = menoOk && mailOk && telOk && adresaOk && suhlasyOk();
   $('cta').disabled = !ok;
+  $('listapod').hidden = false;
   $('listapod').textContent = ok ? 'Zmluvu potom zaplatíte kartou alebo prevodom'
     : (!menoOk ? 'Doplňte meno a priezvisko' : !mailOk ? 'Doplňte e-mail' : !telOk ? 'Doplňte telefón'
       : !adresaOk ? 'Doplňte ulicu a číslo' : 'Odklikajte povinné súhlasy');
@@ -1643,6 +1647,7 @@ function chod(n) {
     $('cta').firstChild.textContent = 'Pokračovať ';
     $('cta').disabled = false;
     $('listapod').textContent = 'Ceny sú konečné, vrátane všetkých poplatkov';
+    $('listapod').hidden = false;
     prepocitaj();
   }
   if (n === 3) {
@@ -1696,6 +1701,7 @@ $('cta').addEventListener('click', () => {
     mer('zobrazit_cenu', { auto:stav.auto.nazov, typ:stav.klient.typ });
     $('cta').disabled = true;
     $('listapod').textContent = 'Počítame cenu…';
+    $('listapod').hidden = false;
     cakaj('Počítame cenu…');
     nacitajCeny().then(() => { docakane(); prepocitaj(); chod(2); })
       .catch(err => {
@@ -1717,6 +1723,7 @@ $('cta').addEventListener('click', () => {
     mer('udaje_vyplnene');
     $('cta').disabled = true;
     $('listapod').textContent = 'Uzatvárame zmluvu…';
+    $('listapod').hidden = false;
     cakaj('Uzatvárame zmluvu…');
     uzavriZmluvu()
       .then(z => { docakane(); ZMLUVA = z; mer('zmluva_vydana', { cislo: z.reference_number || '' }); chod(4); })
