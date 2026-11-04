@@ -117,13 +117,16 @@
   .blok svg{color:var(--ink-3);transition:transform .15s;flex:0 0 auto;}
   .blok.otvoreny svg{transform:rotate(180deg)}
   /* Nájazd v cenovej karte. Otvára natívnu roletku telefónu: neviditeľný
-     <select> leží cez celú plochu riadka, takže ťuknúť sa dá kamkoľvek. */
-  .najazd-r{position:relative;margin-top:14px;padding-top:13px;border-top:1px solid rgba(255,255,255,.16);}
+     <select> leží cez celú plochu riadka, takže ťuknúť sa dá kamkoľvek.
+     Hodnota je orámovaná ako políčko so šípkou — samotné slovo „Zmeniť“ na
+     tmavej karte nikto nečítal ako niečo, čo sa dá stlačiť. */
+  .najazd-r{position:relative;margin-top:12px;padding-top:11px;border-top:1px solid rgba(255,255,255,.16);}
   .najazd-r .n-popis{display:block;font-size:14.5px;color:var(--znacka-svetla);line-height:1.3;}
-  .najazd-r .n-riadok{display:flex;align-items:baseline;gap:10px;margin-top:3px;}
-  .najazd-r b{font-size:17px;font-weight:700;}
-  .najazd-r .n-zmen{margin-left:auto;font-size:14.5px;font-weight:600;
-    border-bottom:1px solid rgba(255,255,255,.45);padding-bottom:1px;}
+  .najazd-r .n-riadok{display:flex;align-items:center;gap:10px;margin-top:7px;
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.42);
+    border-radius:10px;padding:9px 12px;}
+  .najazd-r b{font-size:16.5px;font-weight:700;}
+  .najazd-r .n-sip{margin-left:auto;display:block;flex:0 0 auto;}
   .najazd-r select{position:absolute;inset:0;width:100%;height:100%;opacity:0;
     border:0;background:none;font-size:16px;-webkit-appearance:none;appearance:none;}
   .blok-ceny{font-size:15px;color:var(--ink-3);margin:12px 2px 10px;}
@@ -384,12 +387,10 @@
 
     <!-- ============ 2. CENA ============ -->
     <section id="krok2" hidden>
-      <div class="najdene" style="margin-top:0">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-        <span><b id="recAuto"></b><span id="recKlient"></span></span>
-        <button class="zmen" type="button" id="spatNaVstup">Zmeniť</button>
-      </div>
-
+      <!-- Dlaždica s autom tu zámerne nie je. Klient ho práve zadal a vidí ho na
+           kroku 1; tu by len uberala miesto cenovej karte a jej „Zmeniť“ súperilo
+           so „Zmeniť“ pri nájazde, ktoré je to jediné, čo sa tu naozaj mení.
+           Späť na vstup vedie šípka v spodnej lište. -->
       <div class="hero">
         <div class="hero-top">
           <div class="hero-t">Poistenie skla</div>
@@ -414,7 +415,9 @@
              telefónu — rozbalený zoznam by zabral pol obrazovky. -->
         <div class="najazd-r" id="najazdBox" hidden>
           <span class="n-popis">Upraviť cenu podľa reálneho ročného nájazdu</span>
-          <span class="n-riadok"><b id="najazdHod"></b><span class="n-zmen">Zmeniť</span></span>
+          <span class="n-riadok"><b id="najazdHod"></b>
+            <svg class="n-sip" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </span>
           <select id="najazd" aria-label="Ročný nájazd"></select>
         </div>
       </div>
@@ -1624,7 +1627,6 @@ $('spatLista').addEventListener('click', () => {
   if (krok === 3) { chod(2); mer('spat_na_cenu'); }
   else if (krok === 2) { chod(1); mer('spat_na_vstup'); }
 });
-$('spatNaVstup').addEventListener('click', () => { chod(1); mer('spat_na_vstup'); });
 
 /* ---- výsledok platby ----------------------------------------------
    Brána vracia tri odpovede a všetky tri musí obrazovka vedieť. Najdôle-
@@ -1773,10 +1775,6 @@ function chod(n) {
     zhodnotVstup();
   }
   if (n === 2) {
-    $('recAuto').textContent = stav.auto.nazov + ' · ' + stav.auto.ecv;
-    $('recKlient').textContent = stav.klient.typ === 'FO'
-      ? 'Fyzická osoba · ' + stav.klient.psc + ' ' + stav.klient.obec
-      : stav.klient.nazov + ' · ' + stav.klient.typ;
     $('cta').firstChild.textContent = 'Pokračovať ';
     $('cta').disabled = false;
     $('listapod').textContent = 'Ceny sú konečné, vrátane všetkých poplatkov';
