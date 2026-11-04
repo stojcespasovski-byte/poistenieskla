@@ -1433,10 +1433,13 @@ function spoluucastText() {
    Kto je držiteľ, ukazuje karta nižšie, tam sa meno aj dopĺňa. */
 function vykresliRekap(kam, sSumou = true) {
   const polozky = [['Vozidlo', stav.auto.nazov + ' · ' + stav.auto.ecv],
-                   ['Poistenie', 'Sklá' + (vybrane().length ? ' + ' + vybrane().length + ' pripoistenia' : '')],
-                   ['Spoluúčasť', spoluucastText()],
-                   ['Poistná suma', 'bez limitu'],
-                   ['Platba', LEHOTY[lehota].nazov]];
+                   ['Poistené sklá', 'čelné, bočné, zadné, panoráma']];
+  /* Pripoistenia majú vlastný riadok, nie prívesok za sklami: pod nadpisom
+     „Poistené sklá" by vyzerali ako ďalší druh skla. */
+  if (vybrane().length) polozky.push(['Pripoistenia', vybrane().map(p => p.n).join(', ')]);
+  polozky.push(['Spoluúčasť', spoluucastText()],
+               ['Poistná suma', 'bez limitu'],
+               ['Platba', LEHOTY[lehota].nazov]);
   $(kam).innerHTML = polozky.map(([a,b]) => `<div class="r"><span>${a}</span><b>${b}</b></div>`).join('')
     + (sSumou ? `<div class="r"><span>Teraz na úhradu</span><b class="suma">${eur(spoluZaObdobie())}</b></div>` : '');
 }
