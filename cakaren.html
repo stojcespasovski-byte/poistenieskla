@@ -1070,6 +1070,10 @@ async function preverPsc() {
   if (obce.length > 1) {
     $('obec').innerHTML = obce.map(o => `<option>${o}</option>`).join('');
     $('obecBox').hidden = false;
+    /* Klávesnicu zatvárame, inak roletku s obcami prekryje a klient ju nevidí.
+       Keď sa chce v PSČ opraviť, ťuknutím do poľa si ju otvorí znova. */
+    $('psc').blur();
+    vratHore();
     mer('obec_na_vyber', { psc, pocet:obce.length });
   }
   stav.klient = { ...(stav.klient || {typ:'FO'}), psc, obec:obce[0] };
