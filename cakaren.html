@@ -21,7 +21,12 @@
   button{font:inherit;color:inherit;cursor:pointer}
   :focus-visible{outline:3px solid var(--znacka);outline-offset:2px}
   [hidden]{display:none !important}
-  .telefon{max-width:420px;margin:0 auto;min-height:100vh;padding-bottom:106px;}
+  /* Roluje vnútro stránky, nie okno. Keď sa obsah zmestí, prehliadač nemá kde
+     držať starú polohu — to je jediné, čo na iPhone spoľahlivo zabránilo tomu,
+     aby stránka po zmiznutí poľa ostala posunutá dole. */
+  html, body{height:100%;overflow:hidden;}
+  .telefon{max-width:420px;margin:0 auto;height:100%;overflow-y:auto;
+    -webkit-overflow-scrolling:touch;padding-bottom:106px;}
 
   /* hlavička */
   /* cvičná prevádzka — musí byť vidieť skôr než čokoľvek iné */
@@ -1106,9 +1111,9 @@ function kotvaHore() {
 }
 function vratHore() {
   const hore = () => {
+    const t = document.querySelector('.telefon');
+    if (t) t.scrollTop = 0;
     window.scrollTo(0, 0);
-    if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
-    document.body.scrollTop = 0;
   };
   hore();
   requestAnimationFrame(hore);
