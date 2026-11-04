@@ -348,6 +348,12 @@
         </div>
         <div class="chyba" id="osobaChyba" hidden></div>
       </div>
+
+      <div class="karta" id="najazdBox" hidden>
+        <label for="najazd">Ročný nájazd</label>
+        <select class="inp" id="najazd"></select>
+        <div class="napoveda">Predvolili sme najvyšší. Keď jazdíte menej, vyberte svoj — cena sa tým zmení.</div>
+      </div>
     </section>
 
     <!-- ============ 2. CENA ============ -->
@@ -646,6 +652,33 @@ function popisAuta(v) {
           v.vykon ? v.vykon + ' kW' : null].filter(Boolean).join(' · ');
 }
 
+/* ---------- ročný nájazd ----------
+   Pásma neurčuje web. Rovnaký zoznam čerpá porovnávač aj ostatné weby, preto ho
+   berieme zo spoločnej schémy na backende — kópia tu by sa pri zmene rozišla.
+   Keď schéma nepríde, roletku nezobrazíme a nájazd neposielame; backend si vtedy
+   dosadí svoju hodnotu, čo je lepšie než vymyslený zoznam. */
+let NAJAZD = null;
+
+async function nacitajNajazd(druh) {
+  try {
+    const d = await api('porovnavac/schema?vyber=pillow:pripoistenia&druh_vozidla='
+                        + encodeURIComponent(druh || 'OA'));
+    const pole = (d.polia || []).find(p => p.kluc === 'vehicle.najazd');
+    const moz = pole && pole.moznosti;
+    if (!moz || !Object.keys(moz).length) { $('najazdBox').hidden = true; NAJAZD = null; return; }
+    const zoznam = Object.entries(moz).sort((a, b) => Number(a[0]) - Number(b[0]));
+    NAJAZD = Number(zoznam[zoznam.length - 1][0]);   // predvoľba: najvyšší
+    $('najazd').innerHTML = zoznam
+      .map(([k, popis]) => '<option value="' + k + '"' + (Number(k) === NAJAZD ? ' selected' : '') + '>' + popis + '</option>')
+      .join('');
+    $('najazdBox').hidden = false;
+  } catch (_) { $('najazdBox').hidden = true; NAJAZD = null; }
+}
+$('najazd').addEventListener('change', e => {
+  NAJAZD = Number(e.target.value);
+  mer('najazd', { hodnota: NAJAZD });
+});
+
 /* ---------- produkt ---------- */
 const IKONY = {
   zivel:'<path d="M7 16.5a3.8 3.8 0 1 1 1-7.5 5 5 0 0 1 9.4-.4A3.3 3.3 0 0 1 17 16.5H7Z"/><path d="m9 19.4-.8 1.6m4.3-1.6-.8 1.6m4.3-1.6-.8 1.6"/>',
@@ -754,7 +787,9 @@ $('auto').addEventListener('input', e => {
   const v = e.target.value.toUpperCase().replace(/\s/g,'');
   e.target.value = v;
   clearTimeout(autoTimer);
-  stav.auto = null; skry(['autoNajdene','autoChyba']); zhodnotVstup();
+  stav.auto = null; skry(['autoNajdene','autoChyba']);
+  $('najazdBox').hidden = true; NAJAZD = null;
+  zhodnotVstup();
   if (v.length < 6) { $('autoHlada').hidden = true; return; }
   $('autoHlada').hidden = false;
   autoTimer = setTimeout(() => hladajAuto(v), 700);
@@ -795,6 +830,7 @@ async function hladajAuto(v) {
   $('autoNajdene').hidden = false;
   $('auto').hidden = true; $('autoNap').hidden = true;
   mer('kontext_auto', { model:n.nazov, detail:n.detail, podla: jeVin ? 'vin' : 'ecv' });
+  nacitajNajazd(n.surove && n.surove.druh);
   zhodnotVstup();
 }
 $('autoZmen').addEventListener('click', () => {
@@ -906,6 +942,7 @@ function potvrdRucne() {
   $('autoNajdene').hidden = false;
   $('auto').hidden = true; $('autoNap').hidden = true;
   mer('rucne_doplnene');
+  nacitajNajazd(stav.auto.surove.druh);
   zhodnotVstup();
 }
 
@@ -1112,7 +1149,7 @@ async function nacitajCeny() {
         ecv: a.ecv || '', vin: a.vin || '', first_registration: a.first_registration || null,
         palivo: a.palivo || '', objem: a.objem || 0, vykon: a.vykon || 0,
         hmotnost: a.hmotnost || 0, x4: !!a.x4, ucel: 'bezna',
-        garazovane: false, zmluvny_servis: false,
+        najazd: NAJAZD, garazovane: false, zmluvny_servis: false,
       },
       party: k.ico
         ? { typ: k.typ === 'SZČO' ? 'szco' : 'po', ico: k.ico, psc: k.psc || '', obec: k.obec || '' }
@@ -1271,7 +1308,8 @@ async function uzavriZmluvu() {
       /* Z ručného doplnenia je to kód z číselníka, z registra text. Backend znesie
          oboje, ale text pri neznámej zhode ticho dosadí čiernu — preto kód, kde ho máme. */
       farba: a.farba || '',
-      tp: a.tp || '', ucel: 'bezna', garazovane: false, zmluvny_servis: false,
+      tp: a.tp || '', ucel: 'bezna', najazd: NAJAZD,
+      garazovane: false, zmluvny_servis: false,
     },
     party: jeFO
       ? { typ: 'fo', rc: k.rc || '', meno: $('meno').value.trim(),
