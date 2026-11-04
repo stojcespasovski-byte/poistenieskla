@@ -233,6 +233,12 @@
     font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap;
     display:flex;align-items:center;justify-content:center;gap:9px;}
   .cta.plna{max-width:none}
+  /* Späť je ľavá, menšia časť hlavného tlačidla — biele, aby ťahalo oko ďalej,
+     nie späť. V obsahu stránky už potom druhý odkaz späť nie je. */
+  .spat-l{flex:none;width:52px;height:50px;background:#fff;color:var(--ink-2);
+    border:1px solid var(--border);border-radius:var(--r-mala);
+    display:flex;align-items:center;justify-content:center;}
+  .spat-l:active{background:var(--bg);}
   .cta:disabled{background:#e2e6ea;color:#9aa6b4;cursor:not-allowed;}
   .listapod{text-align:center;font-size:11.5px;color:var(--ink-3);margin-top:8px;}
   .spat{background:none;border:0;font-size:13px;color:var(--ink-3);padding:10px 2px;margin-top:4px;
@@ -428,7 +434,6 @@
 
       <div class="karta" id="suhlasyBox"></div>
 
-      <button class="spat" type="button" id="spatNaCenu">← Späť na cenu</button>
     </section>
 
     <!-- ============ 4. HOTOVO ============ -->
@@ -526,6 +531,9 @@
 
 <div class="lista" id="lista">
   <div class="lista-in">
+    <button class="spat-l" id="spatLista" type="button" hidden aria-label="Späť">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+    </button>
     <span class="suma" id="sumaBox" hidden><small id="sumaPopis">Spolu ročne</small><b id="sumaCena">0,00 €</b></span>
     <button class="cta plna" id="cta" type="button" disabled>Zobraziť cenu
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
@@ -1399,7 +1407,10 @@ function zhodnotUzavretie() {
 }
 ['meno','priezvisko','mail','tel','ulica'].forEach(id => $(id).addEventListener('input', zhodnotUzavretie));
 vykresliPravne();
-$('spatNaCenu').addEventListener('click', () => { chod(2); mer('spat_na_cenu'); });
+$('spatLista').addEventListener('click', () => {
+  if (krok === 3) { chod(2); mer('spat_na_cenu'); }
+  else if (krok === 2) { chod(1); mer('spat_na_vstup'); }
+});
 $('spatNaVstup').addEventListener('click', () => { chod(1); mer('spat_na_vstup'); });
 
 /* ---- výsledok platby ----------------------------------------------
@@ -1537,6 +1548,8 @@ function chod(n) {
   krok = n;
   [1,2,3,4].forEach(i => $('krok'+i).hidden = i !== n);
   $('lista').hidden = n === 4;
+  /* Späť je v spodnej lište pri hlavnom tlačidle — na prvom kroku niet kam. */
+  $('spatLista').hidden = n === 1 || n === 4;
   window.scrollTo(0,0);
 
   if (n === 1) {
