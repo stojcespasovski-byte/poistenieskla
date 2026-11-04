@@ -1074,7 +1074,11 @@ async function preverPsc() {
     $('pscChyba').hidden = false; zhodnotVstup(); return;
   }
   if (obce.length > 1) {
-    $('obec').innerHTML = obce.map(o => `<option>${o}</option>`).join('');
+    /* Prvá obec sa nesmie tváriť ako vybraná: klient by ju potvrdil ťuknutím na
+       tú istú položku, roletka by nič neohlásila a adresa by ostala rozbalená.
+       Nech si vyberie vedome — aj preto, že mlčky dosadená obec je tichá chyba. */
+    $('obec').innerHTML = '<option value="">— vyberte obec —</option>'
+      + obce.map(o => `<option>${o}</option>`).join('');
     $('obecBox').hidden = false;
     /* Klávesnicu zatvárame, inak roletku s obcami prekryje a klient ju nevidí.
        Keď sa chce v PSČ opraviť, ťuknutím do poľa si ju otvorí znova. */
@@ -1082,9 +1086,9 @@ async function preverPsc() {
     vratHore();
     mer('obec_na_vyber', { psc, pocet:obce.length });
   }
-  stav.klient = { ...(stav.klient || {typ:'FO'}), psc, obec:obce[0] };
+  stav.klient = { ...(stav.klient || {typ:'FO'}), psc, obec: obce.length === 1 ? obce[0] : '' };
   if (obce.length === 1) zlozAdresu();
-  mer('kontext_klient', { psc, obec:obce[0] });
+  mer('kontext_klient', { psc, obec: obce.length === 1 ? obce[0] : '' });
   zhodnotVstup();
 }
 /* Keď adresu poznáme, poskladá sa do tej istej dlaždice ako rodné číslo — rovnako
@@ -1121,6 +1125,7 @@ function vratHore() {
   }
 }
 $('obec').addEventListener('change', e => {
+  if (!e.target.value) return;
   stav.klient.obec = e.target.value;
   mer('obec_vybrana', { obec:e.target.value });
   zlozAdresu();
