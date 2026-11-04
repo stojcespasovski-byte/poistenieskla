@@ -161,6 +161,10 @@
   /* dokumenty na nahliadnutie pred uzavretím */
   .label{display:block;font-size:13.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
          color:var(--ink-3);margin-bottom:8px;}
+  /* čo o držiteľovi už vieme z registra — nie je to na prepisovanie */
+  .znamy{font-size:16px;line-height:1.45;color:var(--ink);font-weight:600;}
+  .znamy small{display:block;font-weight:400;font-size:14.5px;color:var(--ink-3);margin-top:2px;}
+  .znamy:not([hidden]) + #menoPolia{margin-top:14px;}
   .dok{display:flex;align-items:center;gap:9px;padding:9px 0;font-size:16px;color:var(--znacka);
        text-decoration:none;border-bottom:1px solid var(--border);}
   .dok:last-child{border-bottom:0;padding-bottom:0}
@@ -428,13 +432,17 @@
       <div class="rek" id="rekap"></div>
 
       <div class="karta" id="menoBox">
-        <div id="konatelia" hidden></div>
-        <label for="meno">Meno</label>
-        <input class="inp" id="meno" placeholder="Ján" autocomplete="given-name">
-        <div style="margin-top:14px"></div>
-        <label for="priezvisko">Priezvisko</label>
-        <input class="inp" id="priezvisko" placeholder="Novák" autocomplete="family-name">
-        <div class="napoveda" id="menoPopis">Poisťovňa ich potrebuje na zmluvu.</div>
+        <div class="label">Držiteľ vozidla</div>
+        <div class="znamy" id="drzitelZnamy" hidden></div>
+        <div id="menoPolia">
+          <div id="konatelia" hidden></div>
+          <label for="meno">Meno</label>
+          <input class="inp" id="meno" placeholder="Ján" autocomplete="given-name">
+          <div style="margin-top:14px"></div>
+          <label for="priezvisko">Priezvisko</label>
+          <input class="inp" id="priezvisko" placeholder="Novák" autocomplete="family-name">
+          <div class="napoveda" id="menoPopis">Poisťovňa ich potrebuje na zmluvu.</div>
+        </div>
       </div>
       <div class="karta">
         <label for="mail">E-mail</label>
@@ -1421,11 +1429,10 @@ function spoluucastText() {
   return 'sklá ' + sklo + ' · ostatné ' + ine;
 }
 
+/* Držiteľ tu zámerne nie je: „Fyzická osoba · Mojš" nikomu nič nepovie.
+   Kto je držiteľ, ukazuje karta nižšie, tam sa meno aj dopĺňa. */
 function vykresliRekap(kam, sSumou = true) {
-  const k = stav.klient;
-  const kto = k.typ === 'FO' ? 'Fyzická osoba · ' + (k.obec || '') : k.nazov + ' · ' + k.typ;
   const polozky = [['Vozidlo', stav.auto.nazov + ' · ' + stav.auto.ecv],
-                   ['Držiteľ', kto],
                    ['Poistenie', 'Sklá' + (vybrane().length ? ' + ' + vybrane().length + ' pripoistenia' : '')],
                    ['Spoluúčasť', spoluucastText()],
                    ['Poistná suma', 'bez limitu'],
@@ -1490,6 +1497,28 @@ function suhlasyNaOdoslanie() {
 function trebaMeno() {
   const k = stav.klient || {};
   return !(k.meno && k.priezvisko);
+}
+/* Čo o držiteľovi vieme z registra alebo z rodného čísla. Píšeme to tak, ako to
+   prišlo — nič neskracujeme ani nedopĺňame, klient to má na zmluve rovnako. */
+function vykresliDrzitela(jeFO) {
+  const k = stav.klient || {};
+  const box = $('drzitelZnamy');
+  const hlavne = jeFO ? '' : (k.nazov || '');
+  const pod = [];
+  if (jeFO) {
+    if (k.rc) pod.push('Rodné číslo ' + k.rc.slice(0, 6) + '/' + k.rc.slice(6));
+  } else {
+    if (k.ico) pod.push('IČO ' + k.ico);
+    if (k.sidlo) pod.push(k.sidlo);
+    if (!trebaMeno()) pod.push('podpisuje ' + k.meno + ' ' + k.priezvisko);
+  }
+  box.textContent = hlavne;
+  if (pod.length) {
+    const s = document.createElement('small');
+    s.textContent = pod.join(' · ');
+    box.appendChild(s);
+  }
+  box.hidden = !hlavne && !pod.length;
 }
 /* Konateľ chodí z registra ako jeden riadok aj s titulmi a rolou:
    „Ing. Ján Novák - konateľ". Do zmluvy ide meno a priezvisko, nič iné. */
@@ -1714,7 +1743,10 @@ function chod(n) {
     /* Sídlo má firma z registra, meno nie vždy: pri právnickej osobe register
        konateľa nevracia a poisťovňa zmluvu bez mena podpisujúceho nevystaví. */
     const jeFO = stav.klient.typ === 'FO';
-    $('menoBox').hidden = !trebaMeno();
+    /* Karta držiteľa je vždy — aj keď meno z registra už máme, klient má vidieť,
+       na koho zmluvu uzatvára. Polia sa skryjú, nie celá karta. */
+    vykresliDrzitela(jeFO);
+    $('menoPolia').hidden = !trebaMeno();
     $('menoPopis').textContent = jeFO
       ? 'Poisťovňa ich potrebuje na zmluvu.'
       : 'Meno osoby, ktorá zmluvu za firmu podpisuje.';
