@@ -555,12 +555,6 @@
   </div>
 
 
-<!-- Kotva pre iPhone: po skrytí poľa ostane výhľad posunutý dole aj keď je
-     scroll na nule — posunie ho späť až to, že sa kurzor nakrátko položí sem,
-     na vrch stránky. `inputmode=none` zabráni, aby pritom vyskočila klávesnica. -->
-<input id="kotva" inputmode="none" tabindex="-1" aria-hidden="true"
-       style="position:absolute;top:0;left:0;width:1px;height:1px;opacity:0;border:0;padding:0;font-size:16px">
-
 <div class="cakanie" id="cakanie" hidden><div class="kruh"></div><b id="cakanieText"></b></div>
 
 <div class="lista" id="lista">
@@ -1100,15 +1094,6 @@ function zlozAdresu() {
    ostala odskrolovaná v prázdne. Na iPhone sa poloha ustáli až po zatvorení
    klávesnice, preto bez plynulého posunu, viackrát a ešte raz vtedy, keď
    klávesnica naozaj zmizne (vtedy sa mení vizuálna časť okna). */
-/* Keď výhľad ostal dole aj pri nulovom scrolle (iPhone), prehliadač ho posunie
-   len kvôli kurzoru — položíme ho teda na chvíľu na kotvu úplne hore. */
-function kotvaHore() {
-  const vv = window.visualViewport;
-  if (!vv || vv.offsetTop < 1) return;
-  const k = $('kotva');
-  k.focus({ preventScroll: false });
-  setTimeout(() => k.blur(), 40);
-}
 function vratHore() {
   const hore = () => {
     const t = document.querySelector('.telefon');
@@ -1120,11 +1105,10 @@ function vratHore() {
   [120, 300, 600, 900, 1400].forEach(ms => setTimeout(hore, ms));
   const vv = window.visualViewport;
   if (vv) {
-    const poKlavesnici = () => { hore(); kotvaHore(); };
+    const poKlavesnici = () => hore();
     vv.addEventListener('resize', poKlavesnici);
     setTimeout(() => vv.removeEventListener('resize', poKlavesnici), 2500);
   }
-  setTimeout(kotvaHore, 60);
 }
 $('obec').addEventListener('change', e => {
   stav.klient.obec = e.target.value;
