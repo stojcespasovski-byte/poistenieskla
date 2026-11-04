@@ -1066,6 +1066,9 @@ function zlozAdresu() {
   $('adresaFo').hidden = true;
   $('foNajdene').hidden = true;
   $('psc').blur();
+  /* Polia zmizli, takže stránka je zrazu kratšia než odskrolovaná poloha —
+     bez tohto by klient pozeral na prázdne miesto pod poslednou kartou. */
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 $('obec').addEventListener('change', e => {
   stav.klient.obec = e.target.value;
