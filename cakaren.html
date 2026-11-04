@@ -1082,10 +1082,16 @@ function zlozAdresu() {
      bez tohto by klient pozeral na prázdne miesto pod poslednou kartou.
      Na iPhone sa výška okna ustáli až po zatvorení klávesnice, preto to
      zopakujeme — jediný pokus skončí v polovici. */
-  const hore = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+  /* Bez plynulého posunu: iPhone ho pri zatváraní klávesnice preruší v polovici.
+     Skúšame viackrát, lebo výška okna sa ustáli až po jej zmiznutí. */
+  const hore = () => {
+    window.scrollTo(0, 0);
+    if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  };
   hore();
-  setTimeout(hore, 250);
-  setTimeout(hore, 600);
+  requestAnimationFrame(hore);
+  [120, 300, 600, 900].forEach(ms => setTimeout(hore, ms));
 }
 $('obec').addEventListener('change', e => {
   stav.klient.obec = e.target.value;
