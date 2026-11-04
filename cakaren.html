@@ -704,8 +704,14 @@ function popisAuta(v) {
    Pásma neurčuje web. Rovnaký zoznam čerpá porovnávač aj ostatné weby, preto ho
    berieme zo spoločnej schémy na backende — kópia tu by sa pri zmene rozišla.
    Keď schéma nepríde, roletku nezobrazíme a nájazd neposielame; backend si vtedy
-   dosadí svoju hodnotu, čo je lepšie než vymyslený zoznam. */
+   dosadí svoju hodnotu, čo je lepšie než vymyslený zoznam.
+
+   Nájazd nemá predvolenú hodnotu. Najvyššie pásmo by klientovi ako úplne prvé
+   číslo ukázalo najdrahší variant zo všetkých, priemerné pásmo by mu cenu po
+   jeho odpovedi niekedy zdvihlo. Preto sa najprv pýtame a cenu ukazujeme až
+   k odpovedi — kým nevyberie, na karte nie je žiadne číslo. */
 let NAJAZD = null;
+let NAJAZD_PYTAME = false;   // je roletka k dispozícii? ak nie, cenu počítame bez nájazdu
 
 async function nacitajNajazd(druh) {
   try {
@@ -713,16 +719,18 @@ async function nacitajNajazd(druh) {
                         + encodeURIComponent(druh || 'OA'));
     const pole = (d.polia || []).find(p => p.kluc === 'vehicle.najazd');
     const moz = pole && pole.moznosti;
-    if (!moz || !Object.keys(moz).length) { $('najazdBox').hidden = true; NAJAZD = null; return; }
+    if (!moz || !Object.keys(moz).length) { bezNajazdu(); return; }
     const zoznam = Object.entries(moz).sort((a, b) => Number(a[0]) - Number(b[0]));
-    NAJAZD = Number(zoznam[zoznam.length - 1][0]);   // predvoľba: najvyšší
-    $('najazd').innerHTML = zoznam
-      .map(([k, popis]) => '<option value="' + k + '"' + (Number(k) === NAJAZD ? ' selected' : '') + '>' + popis + '</option>')
-      .join('');
+    NAJAZD = null;
+    NAJAZD_PYTAME = true;
+    $('najazd').innerHTML = '<option value="" selected>Vyberte</option>'
+      + zoznam.map(([k, popis]) => '<option value="' + k + '">' + popis + '</option>').join('');
     $('najazdBox').hidden = false;
     ukazNajazd();
-  } catch (_) { $('najazdBox').hidden = true; NAJAZD = null; }
+  } catch (_) { bezNajazdu(); }
 }
+function bezNajazdu() { $('najazdBox').hidden = true; NAJAZD = null; NAJAZD_PYTAME = false; }
+
 function ukazNajazd() {
   const s = $('najazd');
   $('najazdHod').textContent = s.selectedIndex >= 0 ? s.options[s.selectedIndex].textContent : '';
@@ -735,15 +743,17 @@ $('najazd').addEventListener('change', async e => {
   ukazNajazd();
   mer('najazd', { hodnota: NAJAZD });
   if (krok !== 2) return;
-  cakaj('Prepočítavame cenu…');
+  cakaj(MATICA ? 'Prepočítavame cenu…' : 'Počítame cenu…');
   try {
     await nacitajCeny();
+    ukazCenu(true);
     prepocitaj();
   } catch (err) {
-    /* Keď nová cena nepríde, vrátime pôvodný nájazd aj pôvodnú cenu — klient
-       nesmie ostať na obrazovke s cenou, ktorá k zvolenému nájazdu nepatrí. */
+    /* Keď cena nepríde, vrátime pôvodný nájazd aj pôvodný stav karty — klient
+       nesmie ostať na obrazovke s cenou, ktorá k zvolenému nájazdu nepatrí.
+       Pri prvej voľbe je pôvodný stav karta bez ceny. */
     NAJAZD = predtym;
-    $('najazd').value = String(predtym);
+    $('najazd').value = predtym === null ? '' : String(predtym);
     ukazNajazd();
     $('listapod').textContent = 'Cenu pre tento nájazd sa nepodarilo získať.';
     $('listapod').hidden = false;
@@ -751,6 +761,20 @@ $('najazd').addEventListener('change', async e => {
   }
   docakane();
 });
+
+/* Karta bez ceny: ostanú na nej len sľuby produktu a otázka na nájazd. Lehoty
+   ani pripoistenia nemajú bez matice čo ukázať a spodná lišta nemá čo sčítať. */
+function ukazCenu(je) {
+  $('heroCena').parentElement.hidden = !je;
+  $('lehoty').hidden = !je;
+  $('blokBtn').hidden = !je;
+  if (!je) $('blokObsah').hidden = true;
+  $('sumaBox').hidden = !je;
+  $('cta').disabled = !je;
+  $('listapod').textContent = je ? 'Ceny sú konečné, vrátane všetkých poplatkov'
+                                 : 'Vyberte ročný nájazd a ukážeme cenu';
+  $('listapod').hidden = false;
+}
 
 /* ---------- produkt ---------- */
 const IKONY = {
@@ -861,7 +885,9 @@ $('auto').addEventListener('input', e => {
   e.target.value = v;
   clearTimeout(autoTimer);
   stav.auto = null; skry(['autoNajdene','autoChyba']);
-  $('najazdBox').hidden = true; NAJAZD = null;
+  /* Iné auto znamená inú cenu: zahodíme maticu aj nájazd, aby sa k novému
+     vozidlu nedostala stará cena. */
+  bezNajazdu(); MATICA = null;
   zhodnotVstup();
   if (v.length < 6) { $('autoHlada').hidden = true; return; }
   $('autoHlada').hidden = false;
@@ -1778,10 +1804,9 @@ function chod(n) {
   }
   if (n === 2) {
     $('cta').firstChild.textContent = 'Pokračovať ';
-    $('cta').disabled = false;
-    $('listapod').textContent = 'Ceny sú konečné, vrátane všetkých poplatkov';
-    $('listapod').hidden = false;
-    prepocitaj();
+    /* Bez matice niet čo prepočítať — karta ostane pri otázke na nájazd. */
+    ukazCenu(!!MATICA);
+    if (MATICA) prepocitaj();
   }
   if (n === 3) {
     vykresliRekap('rekap');
@@ -1835,6 +1860,10 @@ function docakane() { $('cakanie').hidden = true; }
 $('cta').addEventListener('click', () => {
   if (krok === 1) {
     mer('zobrazit_cenu', { auto:stav.auto.nazov, typ:stav.klient.typ });
+    /* Keď sa pýtame na nájazd, cenu tu ešte nepočítame: bez odpovede by sme ju
+       museli odhadnúť a klient by prvé číslo dostal z predpokladu, nie zo svojho
+       nájazdu. Rate-matrix teda zavolá až voľba v roletke na druhom kroku. */
+    if (NAJAZD_PYTAME) { MATICA = null; chod(2); return; }
     $('cta').disabled = true;
     $('listapod').textContent = 'Počítame cenu…';
     $('listapod').hidden = false;
