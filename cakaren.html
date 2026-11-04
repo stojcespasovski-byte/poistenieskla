@@ -971,7 +971,11 @@ document.addEventListener('change', e => {
 
 function potvrdRodneCislo(cifry) {
   $('fo').hidden = false;
+  /* Pole s rodným číslom zmizne — keď v ňom ostane kurzor, iPhone drží stránku
+     odskrolovanú na mieste, kde pole bolo. */
+  $('osoba').blur();
   $('osoba').hidden = true; $('osobaNap').hidden = true;
+  vratHore();
   stav.klient = { typ:'FO', rok:rokNarodenia(cifry), rc:cifry };
   /* Ročník nevypisujeme — je v rodnom čísle pod tým a zaberal by riadok navyše. */
   $('rcDetail').hidden = true;
@@ -1078,12 +1082,14 @@ function zlozAdresu() {
   $('adresaFo').hidden = true;
   $('foNajdene').hidden = true;
   $('psc').blur();
-  /* Polia zmizli, takže stránka je zrazu kratšia než odskrolovaná poloha —
-     bez tohto by klient pozeral na prázdne miesto pod poslednou kartou.
-     Na iPhone sa výška okna ustáli až po zatvorení klávesnice, preto to
-     zopakujeme — jediný pokus skončí v polovici. */
-  /* Bez plynulého posunu: iPhone ho pri zatváraní klávesnice preruší v polovici.
-     Skúšame viackrát, lebo výška okna sa ustáli až po jej zmiznutí. */
+  vratHore();
+}
+
+/* Pole, do ktorého klient písal, zmizne a stránka sa skráti — bez tohto by
+   ostala odskrolovaná v prázdne. Na iPhone sa poloha ustáli až po zatvorení
+   klávesnice, preto bez plynulého posunu, viackrát a ešte raz vtedy, keď
+   klávesnica naozaj zmizne (vtedy sa mení vizuálna časť okna). */
+function vratHore() {
   const hore = () => {
     window.scrollTo(0, 0);
     if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
@@ -1092,9 +1098,6 @@ function zlozAdresu() {
   hore();
   requestAnimationFrame(hore);
   [120, 300, 600, 900, 1400].forEach(ms => setTimeout(hore, ms));
-  /* Na iPhone sa pri zatváraní klávesnice posúva vizuálna časť okna a stránka
-     ostane „zaseknutá" aj keď je scrollY nula. Posun zopakujeme presne vtedy,
-     keď klávesnica naozaj zmizne. */
   const vv = window.visualViewport;
   if (vv) {
     const poKlavesnici = () => hore();
