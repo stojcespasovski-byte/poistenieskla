@@ -720,7 +720,9 @@ async function nacitajNajazd(druh) {
     const pole = (d.polia || []).find(p => p.kluc === 'vehicle.najazd');
     const moz = pole && pole.moznosti;
     if (!moz || !Object.keys(moz).length) { bezNajazdu(); return; }
-    const zoznam = Object.entries(moz).sort((a, b) => Number(a[0]) - Number(b[0]));
+    /* Od najvyššieho nadol: klient roletku otvára zhora a najazdenejšie pásma
+       má hneď po ruke, nie po odrolovaní cez dvadsať nízkych. */
+    const zoznam = Object.entries(moz).sort((a, b) => Number(b[0]) - Number(a[0]));
     NAJAZD = null;
     NAJAZD_PYTAME = true;
     $('najazd').innerHTML = '<option value="" selected>Vyberte</option>'
