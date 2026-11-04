@@ -1061,8 +1061,14 @@ async function preverPsc() {
   skry(['pscChyba','foNajdene']); $('obecBox').hidden = true;
   $('rcAdresa').hidden = true; $('adresaFo').hidden = false;
   if (psc.length !== 5) { zhodnotVstup(); return; }
-  let obce = null;
-  try { obce = (await api('ciselnik/obec?psc=' + psc)).obce; } catch (_) {}
+  /* Zlyhané spojenie nie je neznáme PSČ — vypísať klientovi, že má zlé číslo,
+     keď v skutočnosti nedosiahneme na číselník, ho pošle hľadať chybu u seba. */
+  let obce = null, spadlo = false;
+  try { obce = (await api('ciselnik/obec?psc=' + psc)).obce; } catch (_) { spadlo = true; }
+  if (spadlo) {
+    $('pscChyba').innerHTML = '<b>Spojenie zlyhalo.</b>Skúste to prosím o chvíľu znova.';
+    $('pscChyba').hidden = false; zhodnotVstup(); return;
+  }
   if (!obce || !obce.length) {
     $('pscChyba').innerHTML = '<b>Toto PSČ nepoznáme.</b>Skontrolujte číslo.';
     $('pscChyba').hidden = false; zhodnotVstup(); return;
@@ -1138,7 +1144,9 @@ function zhodnotVstup() {
   /* Keď je všetko vyplnené, pod tlačidlom nič nepíšeme — riadok navyše by zakryl
      vysvetlivku k nájazdu. Veta má zmysel len vtedy, keď niečo chýba. */
   $('listapod').textContent = ok ? ''
-    : (!stav.auto ? 'Zadajte EČV alebo VIN vozidla' : 'Doplňte rodné číslo alebo IČO');
+    : !stav.auto ? 'Zadajte EČV alebo VIN vozidla'
+    : !k ? 'Doplňte rodné číslo alebo IČO'
+    : 'Doplňte PSČ bydliska';
   $('listapod').hidden = ok;
 }
 
