@@ -1110,7 +1110,17 @@ async function hladajFirmu(ico) {
   if (f && f.typ === 'PO') {
     try {
       const c = await api('bcrm/company?ico=' + encodeURIComponent(ico) + '&stat=SK');
-      f.konatelia = (c.konatelia || []).filter(Boolean);
+      /* Register posiela konateľa aj rozobraného (konatelia_detail) — ten berieme,
+         lebo meno z jedného riadka vieme rozdeliť len tipom: dvojité priezvisko
+         ani neznámy titul sa uhádnuť nedajú. Reťazec zostáva na zobrazenie
+         a ako záloha, keby detail nechodil. */
+      const detail = (c.konatelia_detail || []).filter(k => k && (k.meno || k.priezvisko));
+      f.konatelia = detail.length
+        ? detail.map(k => ({
+            cely: k.cele_meno || [k.titul_pred, k.meno, k.priezvisko, k.titul_za].filter(Boolean).join(' '),
+            meno: k.meno || '', priezvisko: k.priezvisko || '',
+          }))
+        : (c.konatelia || []).filter(Boolean).map(cely => ({ cely, ...rozdelKonatela(cely) }));
     } catch (_) { f.konatelia = []; }
   }
   if (moj !== dotazFirmy) return;
@@ -1601,18 +1611,18 @@ function vykresliDrzitela(jeFO) {
   }
   box.hidden = !hlavne && !pod.length;
 }
-/* Konateľ chodí z registra ako jeden riadok aj s titulmi a rolou:
-   „Ing. Ján Novák - konateľ". Do zmluvy ide meno a priezvisko, nič iné. */
+/* Záloha pre prípad, že register pošle konateľa len ako jeden riadok aj s titulmi
+   a rolou: „Ing. Ján Novák - konateľ". Do zmluvy ide meno a priezvisko, nič iné.
+   Je to tip — preto má prednosť rozobraný údaj z konatelia_detail. */
 function rozdelKonatela(cely) {
   const bezRole = String(cely).split(/\s[-–]\s/)[0];
   const t = bezRole.split(/\s+/).filter(x => x && !/\.$/.test(x) && !/^(PhD|CSc|DrSc|MBA|LLM)$/i.test(x.replace(/,$/, '')));
   if (!t.length) return { meno: '', priezvisko: '' };
   return { meno: t.slice(0, -1).join(' '), priezvisko: t[t.length - 1] };
 }
-function dosadKonatela(cely) {
-  const { meno, priezvisko } = rozdelKonatela(cely);
-  $('meno').value = meno;
-  $('priezvisko').value = priezvisko;
+function dosadKonatela(k) {
+  $('meno').value = k.meno || '';
+  $('priezvisko').value = k.priezvisko || '';
   zhodnotUzavretie();
 }
 /* Jedného konateľa dosadíme rovno, pri viacerých sa pýtame — register nevie,
@@ -1626,15 +1636,15 @@ function ponukniKonatelov() {
   if (!k.length) return;
   if (k.length === 1) { if (!$('meno').value.trim()) dosadKonatela(k[0]); return; }
   box.insertAdjacentHTML('beforeend', '<div class="napoveda">Z obchodného registra — kto podpisuje?</div>');
-  k.forEach(cely => {
+  k.forEach(jeden => {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'konatel';
-    b.textContent = cely;
+    b.textContent = jeden.cely;
     b.addEventListener('click', () => {
       box.querySelectorAll('.konatel').forEach(x => x.classList.remove('zvoleny'));
       b.classList.add('zvoleny');
-      dosadKonatela(cely);
+      dosadKonatela(jeden);
     });
     box.appendChild(b);
   });
@@ -1815,8 +1825,10 @@ function chod(n) {
   }
   if (n === 3) {
     vykresliRekap('rekap');
-    /* Sídlo má firma z registra, meno nie vždy: pri právnickej osobe register
-       konateľa nevracia a poisťovňa zmluvu bez mena podpisujúceho nevystaví. */
+    /* Pillow žiada meno a priezvisko osoby, ktorá za firmu podpisuje (v popise WS
+       je forename aj surname povinné, keď je partyType PO a strana je poistník).
+       Konateľa z obchodného registra doplníme, ale pole necháme prepísateľné —
+       podpísať môže aj splnomocnený zamestnanec. */
     const jeFO = stav.klient.typ === 'FO';
     /* Karta držiteľa je vždy — aj keď meno z registra už máme, klient má vidieť,
        na koho zmluvu uzatvára. Polia sa skryjú, nie celá karta. */
