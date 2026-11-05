@@ -1061,11 +1061,13 @@ document.addEventListener('change', e => {
 
 function potvrdRodneCislo(cifry) {
   $('fo').hidden = false;
-  /* Pole s rodným číslom zmizne — keď v ňom ostane kurzor, iPhone drží stránku
-     odskrolovanú na mieste, kde pole bolo. */
-  $('osoba').blur();
   $('osoba').hidden = true; $('osobaNap').hidden = true;
-  vratHore();
+  /* Kurzor ide rovno do PSČ, nie preč. Pole s rodným číslom práve zmizlo a keby
+     v ňom kurzor ostal, iPhone drží stránku odskrolovanú na mieste, kde pole
+     bolo. Zároveň je PSČ to, čo klient píše ďalej, a telefón si zaostrené pole
+     sám vysunie nad klávesnicu — pri návrate na začiatok stránky ho klávesnica
+     prekrývala. Klávesnica je v oboch poliach číselná, takže sa ani neprepne. */
+  $('psc').focus();
   stav.klient = { typ:'FO', rok:rokNarodenia(cifry), rc:cifry };
   /* Ročník nevypisujeme — je v rodnom čísle pod tým a zaberal by riadok navyše. */
   $('rcDetail').hidden = true;
