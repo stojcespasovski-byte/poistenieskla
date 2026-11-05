@@ -29,9 +29,17 @@
     -webkit-overflow-scrolling:touch;padding-bottom:106px;}
 
   /* hlavička */
-  /* cvičná prevádzka — musí byť vidieť skôr než čokoľvek iné */
-  .skuska{background:#8a3a00;color:#fff;padding:9px 16px;font-size:15px;font-weight:600;
-          line-height:1.35;text-align:center;}
+  /* Cvičná prevádzka — musí byť vidieť skôr než čokoľvek iné. Dá sa ťuknutím
+     zraziť na úzky prúžok, aby bolo vidieť stránku presne tak, ako ju uvidí
+     klient na ostrom; zmizne len text, nie informácia, a po načítaní je
+     pruh zase celý. */
+  .skuska{background:#8a3a00;color:#fff;padding:9px 30px 9px 16px;font-size:15px;
+          font-weight:600;line-height:1.35;text-align:center;position:relative;
+          width:100%;display:block;border:0;}
+  .skuska::after{content:"×";position:absolute;right:11px;top:50%;transform:translateY(-50%);
+          font-size:19px;font-weight:400;opacity:.75;}
+  .skuska.zrazena{padding:0;height:6px;font-size:0;}
+  .skuska.zrazena::after{display:none;}
   .hlava{background:#fff;padding:9px 16px;display:flex;align-items:center;gap:12px;
     border-bottom:3px solid var(--znacka);position:sticky;top:0;z-index:5;}
   .logo-servis img{height:34px;width:auto;display:block;}
@@ -323,7 +331,8 @@
 <body hidden>
 <div class="telefon">
 
-  <div class="skuska" id="skuska" hidden>Skúška — poistenie nevzniká a nič sa neplatí.</div>
+  <button class="skuska" id="skuska" type="button" hidden
+          aria-label="Skúšobné prostredie — ťuknutím zmenšiť">Skúška — poistenie nevzniká a nič sa neplatí.</button>
 
   <div class="hlava">
     <span class="logo-servis"><img id="logoServisu" alt="" alt="Hornet Autosklo"></span>
@@ -665,6 +674,11 @@ function nastavPrevadzku(p) {
   const skuska = document.getElementById('skuska');
   if (skuska) skuska.hidden = p.prostredie !== 'cvicne';
 }
+/* Ťuknutím sa pruh zrazí na prúžok a naspäť. Nezatvára sa natrvalo a nikam sa
+   to neukladá: po načítaní stránky musí varovanie znova stáť celé. */
+document.getElementById('skuska').addEventListener('click', e => {
+  e.currentTarget.classList.toggle('zrazena');
+});
 
 function strankaNedostupna() {
   document.body.innerHTML = '<div class="telefon"><div class="obal" style="padding-top:64px;text-align:center">'
