@@ -848,6 +848,14 @@ let MATICA = null;            // celá matica z /rate-matrix
 let CALC_ID = null;           // číslo kalkulácie Pillow, ide ďalej do uzavretia
 let SPOLUUCASTI = [];         // skutočné možnosti z matice, nie náš zoznam
 
+/* Pri samostatnom poistení skla Pillow potrebuje hodnotu vozidla aj vtedy, keď
+   cenu SK2 podľa nej nemení. Klienta sa na ňu v čakárni nepýtame: ak prevádzka
+   ponúka výhradne sklá, pošleme technickú hodnotu 50 000 € na pozadí. Pri
+   prevádzke s ďalšími rizikami ju nesmieme použiť, pretože havarijné krytia sa
+   podľa hodnoty vozidla naozaj cenia. */
+const HODNOTA_PRE_SAMOSTATNE_SKLO = 50000;
+const jeSamostatneSklo = () => PONUKA.length === 1 && PONUKA[0] === SKLO;
+
 const LEHOTY = {
   1:{ nazov:'ročne', splatok:1, prirazka:0 },
   2:{ nazov:'polročne', splatok:2, prirazka:0.08 },
@@ -1326,6 +1334,7 @@ async function nacitajCeny() {
         ecv: a.ecv || '', vin: a.vin || '', first_registration: a.first_registration || null,
         palivo: a.palivo || '', objem: a.objem || 0, vykon: a.vykon || 0,
         hmotnost: a.hmotnost || 0, x4: !!a.x4, ucel: 'bezna',
+        value: jeSamostatneSklo() ? HODNOTA_PRE_SAMOSTATNE_SKLO : null,
         najazd: NAJAZD, garazovane: false, zmluvny_servis: false,
       },
       party: k.ico
@@ -1486,6 +1495,7 @@ async function uzavriZmluvu() {
          oboje, ale text pri neznámej zhode ticho dosadí čiernu — preto kód, kde ho máme. */
       farba: a.farba || '',
       tp: a.tp || '', ucel: 'bezna', najazd: NAJAZD,
+      value: vyber.length === 1 ? HODNOTA_PRE_SAMOSTATNE_SKLO : null,
       garazovane: false, zmluvny_servis: false,
     },
     party: jeFO
